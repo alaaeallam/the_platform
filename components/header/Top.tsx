@@ -9,8 +9,8 @@ import UserMenu from "./UserMenu";
 // import UserMenu from "./UserMenu";
 // import { useSession } from "next-auth/react";
 export default function Top() {
-const [LoggedIn, setLoggedIn] = useState(false);
-//   const [visible, setVisible] = useState(false);
+const [LoggedIn, setLoggedIn] = useState(true);
+const [visible, setVisible] = useState(false);
   return (
     <div className={styles.top}>
       <div className={styles.top__container}>
@@ -36,7 +36,10 @@ const [LoggedIn, setLoggedIn] = useState(false);
               <span>Whishlist</span>
             </Link>
           </li>
-          <li className={styles.li}>
+          <li className={styles.li}
+          onMouseOver={() => setVisible(true)}
+          onMouseLeave={() => setVisible(false)}
+          >
             {LoggedIn ? (
             <li className={styles.li}>
               <img
@@ -55,7 +58,9 @@ const [LoggedIn, setLoggedIn] = useState(false);
               {/* {visible && <UserMenu />} */}
             </li>
           )}
-          <UserMenu LoggedIn={LoggedIn} />
+         {
+            visible && <UserMenu LoggedIn={LoggedIn} />
+         }
           
           </li>
         </ul>
