@@ -1,13 +1,15 @@
+'use client';
 import styles from "./styles.module.scss";
 import { MdSecurity } from "react-icons/md";
 import { BsSuitHeart } from "react-icons/bs";
 import { RiAccountPinCircleLine, RiArrowDropDownFill } from "react-icons/ri";
 import Link from "next/link";
 import { useState } from "react";
+import UserMenu from "./UserMenu";
 // import UserMenu from "./UserMenu";
 // import { useSession } from "next-auth/react";
 export default function Top() {
-
+const [LoggedIn, setLoggedIn] = useState(false);
 //   const [visible, setVisible] = useState(false);
   return (
     <div className={styles.top}>
@@ -35,11 +37,26 @@ export default function Top() {
             </Link>
           </li>
           <li className={styles.li}>
-            <div className={styles.flex}>
-              <RiAccountPinCircleLine />
-              <span>Account</span>
+            {LoggedIn ? (
+            <li className={styles.li}>
+              <img
+                src="https://avatars.githubusercontent.com/u/9919?s=280&v=4"
+                alt="user"
+                className={styles.user__img}
+              />
+                <span>Alaa Allam</span>
               <RiArrowDropDownFill />
-            </div>
+            </li>
+          ) : (
+            <li className={styles.li}>
+              <RiAccountPinCircleLine />
+              <span>My Account</span>
+              <RiArrowDropDownFill />
+              {/* {visible && <UserMenu />} */}
+            </li>
+          )}
+          <UserMenu LoggedIn={LoggedIn} />
+          
           </li>
         </ul>
       </div>
