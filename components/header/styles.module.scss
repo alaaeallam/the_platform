@@ -159,9 +159,12 @@
   }
   .logo {
     img {
-      width: 170px;
-      margin-top: 10px;
-    }
+    width: 60px;
+    height: 60px;        // keep it square
+    margin-top: 10px;
+    border-radius: 50%;   // makes it perfectly round
+    object-fit: cover;    // ensures the image fills the circle
+  }
   }
   .search {
     display: flex;

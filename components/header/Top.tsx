@@ -9,7 +9,7 @@ import UserMenu from "./UserMenu";
 // import UserMenu from "./UserMenu";
 // import { useSession } from "next-auth/react";
 export default function Top() {
-const [LoggedIn, setLoggedIn] = useState(true);
+const [LoggedIn, setLoggedIn] = useState(false);
 const [visible, setVisible] = useState(false);
   return (
     <div className={styles.top}>

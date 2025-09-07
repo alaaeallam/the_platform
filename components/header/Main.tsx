@@ -40,7 +40,7 @@ export default function Main() {
     <div className={styles.main}>
       <div className={styles.main__container}>
         <Link href="/" className={styles.logo}>
-          <Image src="/logo.png" alt="Logo" width={120} height={32} />
+          <Image src="/silhouett.jpg" alt="Logo" width={170} height={170} />
         </Link>
 
         <form onSubmit={handleSearch} className={styles.search}>
