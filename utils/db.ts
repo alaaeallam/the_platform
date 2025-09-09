@@ -1,36 +1,47 @@
+// utils/db.ts
 import mongoose from "mongoose";
 import { env } from "@/lib/env";
 
-interface Cached {
-  conn: typeof mongoose | null;
-  isConnected: number;
+type Cached = {
+  conn: mongoose.Mongoose | null;
+  isConnected: number; // 0 = disconnected, 1 = connected
+};
+
+// Reuse a global cache in dev to survive HMR
+declare global {
+  // eslint-disable-next-line no-var
+  var _mongooseCache: Cached | undefined;
 }
 
-// Reuse a global cache in dev
-const globalForMongoose = globalThis as unknown as { _mongoose?: Cached };
-const cached: Cached = globalForMongoose._mongoose ?? { conn: null, isConnected: 0 };
-globalForMongoose._mongoose = cached;
+const cached: Cached = global._mongooseCache ?? { conn: null, isConnected: 0 };
+if (!global._mongooseCache) {
+  global._mongooseCache = cached;
+}
+
+function resolveMongoUri(): string {
+  // Support either key (Auth.js samples often use MONGODB_URI)
+  const uri = process.env.MONGODB_URI ?? (process.env.MONGODB_URI as string | undefined);
+  if (!uri) throw new Error("Please define MONGODB_URI in environment variables");
+  return uri;
+}
 
 export async function connectDb() {
   if (cached.isConnected === 1 && cached.conn) {
-    console.log("Already connected to the database.");
+    // Already connected
     return;
   }
 
-  if (!env.MONGODB_URL) {
-    throw new Error("Please define the MONGODB_URL environment variable");
+  const uri = resolveMongoUri();
+
+  // If a prior instance exists but isn't connected, disconnect first
+  if (mongoose.connections.length > 0 && mongoose.connections[0].readyState !== 1) {
+    await mongoose.disconnect();
   }
 
   try {
-    // If a prior mongoose instance exists but not connected, disconnect first
-    if (mongoose.connections.length > 0 && mongoose.connections[0].readyState !== 1) {
-      await mongoose.disconnect();
-    }
-
-    const db = await mongoose.connect(env.MONGODB_URL);
+    const db = await mongoose.connect(uri);
     cached.conn = db;
     cached.isConnected = db.connections[0].readyState; // 1 = connected
-    console.log("New connection to the database.");
   } catch (err) {
     console.error("MongoDB connection error:", err);
     throw err;
@@ -38,12 +49,14 @@ export async function connectDb() {
 }
 
 export async function disconnectDb() {
-  if (cached.isConnected && env.NODE_ENV === "production") {
+  if (cached.isConnected && process.env.NODE_ENV === "production") {
     await mongoose.disconnect();
     cached.conn = null;
     cached.isConnected = 0;
   } else {
-    console.log("Not disconnecting from the database (dev mode).");
+    // Keep connection open in dev for faster HMR
   }
 }
-export const db = { connectDb, disconnectDb };
+
+const db = { connectDb, disconnectDb };
+export default db;

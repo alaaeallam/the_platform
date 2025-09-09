@@ -1,10 +1,27 @@
+// store/index.ts
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
-import storage from "redux-persist/lib/storage";
 import { persistReducer, persistStore } from "redux-persist";
+// ❌ don't import default storage directly (breaks on server)
+// import storage from "redux-persist/lib/storage";
+import createWebStorage from "redux-persist/lib/storage/createWebStorage";
 
-// import your slices
 import cartReducer from "./cartSlice";
-// If you add RTK Query later, import its api and concat(api.middleware)
+
+// Use noop storage on the server to avoid "failed to create sync storage" warnings
+const createNoopStorage = () => ({
+  getItem(_key: string) {
+    return Promise.resolve(null);
+  },
+  setItem(_key: string, value: string) {
+    return Promise.resolve(value);
+  },
+  removeItem(_key: string) {
+    return Promise.resolve();
+  },
+});
+
+const storage =
+  typeof window !== "undefined" ? createWebStorage("local") : createNoopStorage();
 
 const rootReducer = combineReducers({
   cart: cartReducer,
@@ -13,7 +30,7 @@ const rootReducer = combineReducers({
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: [], // persist only what you really need
+  whitelist: ["cart"], // persist only the cart
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -23,12 +40,13 @@ export const store = configureStore({
   devTools: process.env.NODE_ENV !== "production",
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false, // redux-persist action payloads are non-serializable
+      serializableCheck: false, // redux-persist actions include non-serializable values
       immutableCheck: false,
     }),
-  // .concat(api.middleware)  // when you add RTK Query
 });
 
 export const persistor = persistStore(store);
+
+// Types
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

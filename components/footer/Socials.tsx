@@ -14,12 +14,12 @@ export default function Socials() {
         <h3>STAY CONNECTED</h3>
         <ul>
           <li>
-            <a href="/" target="_blank">
+            <a href="https://www.facebook.com/search/top?q=silhouett%20egypt" target="_blank">
               <FaFacebookF />
             </a>
           </li>
           <li>
-            <a href="/" target="_blank">
+            <a href="https://www.instagram.com/silhouett.egypt/?hl=en" target="_blank">
               <BsInstagram />
             </a>
           </li>

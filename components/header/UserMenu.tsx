@@ -1,59 +1,52 @@
+// components/header/UserMenu.tsx
 "use client";
 
 import Link from "next/link";
 import styles from "./styles.module.scss";
+import Image from "next/image";
+import { useSession, signOut, signIn } from "next-auth/react";
 
-type UserMenuProps = {
-  loggedIn: boolean;
-};
+export default function UserMenu() {
+  const { data: session } = useSession();
 
-export default function UserMenu({ loggedIn }: UserMenuProps) {
   return (
-    <div className={styles.menu} role="menu" aria-label="User menu">
-      <h4>Welcome to Silhouett Egypt!</h4>
+    <div className={styles.menu}>
+      <h4>Welcome to Shoppay !</h4>
 
-      {loggedIn ? (
+      {session ? (
         <div className={styles.flex}>
-          <img
-            src="https://avatars.githubusercontent.com/u/9919?s=280&v=4"
-            alt="User avatar"
+          <Image
+            src={session.user?.image ?? "/avatar.jpg"}
+            alt="user"
             className={styles.menu__img}
+            width={40}
+            height={40}
           />
           <div className={styles.col}>
             <span>Welcome Back,</span>
-            <h3>Alaa Allam</h3>
-            <button className={styles.linklike} type="button">
-              Sign Out
+            <h3>{session.user?.name ?? session.user?.email}</h3>
+            <button className={styles.linkLike} onClick={() => signOut()}>
+              Sign out
             </button>
           </div>
         </div>
       ) : (
         <div className={styles.flex}>
-          <Link href="/register" className={styles.btn_primary}>
+          <Link className={styles.btn_primary} href="/login?mode=register">
             Register
           </Link>
-          <Link href="/login" className={styles.btn_outlined}>
+          <button className={styles.btn_outlined} onClick={() => signIn()}>
             Login
-          </Link>
+          </button>
         </div>
       )}
 
-      <ul className={styles.menu__list}>
-        <li>
-          <Link href="/profile">Account</Link>
-        </li>
-        <li>
-          <Link href="/profile/orders">My Orders</Link>
-        </li>
-        <li>
-          <Link href="/profile/messages">Message Center</Link>
-        </li>
-        <li>
-          <Link href="/profile/address">Address</Link>
-        </li>
-        <li>
-          <Link href="/profile/whishlist">Whishlist</Link>
-        </li>
+      <ul>
+        <li><Link href="/profile">Account</Link></li>
+        <li><Link href="/profile/orders">My Orders</Link></li>
+        <li><Link href="/profile/messages">Message Center</Link></li>
+        <li><Link href="/profile/address">Address</Link></li>
+        <li><Link href="/profile/whishlist">Whishlist</Link></li>
       </ul>
     </div>
   );
