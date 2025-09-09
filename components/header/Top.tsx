@@ -20,7 +20,7 @@ export default function Top({ country }: { country?: { name: string; flag: strin
         <div />
         <ul className={styles.top__list}>
           <li className={styles.li}>
-            {country?.flag && <img src={country.flag} alt="" />}
+            {country?.flag && <Image src={country.flag} alt="" />}
             <span>{country?.name} / USD</span>
           </li>
 

@@ -5,16 +5,18 @@ import { connectDb } from "@/utils/db";
 import User from "@/models/User";
 import PasswordResetToken from "@/models/PasswordResetToken";
 import { sendPasswordResetEmail } from "@/utils/mail";
+import { Types } from "mongoose"; // 👈 add this
 
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json();
+    const { email } = (await req.json()) as { email?: string }; // 👈 typed body
     if (!email || typeof email !== "string") {
       return NextResponse.json({ message: "Invalid email." }, { status: 400 });
     }
 
     await connectDb();
-    const user = await User.findOne({ email }).lean<{ _id: any; email: string } | null>();
+
+    const user = await User.findOne({ email }).lean<{ _id: Types.ObjectId; email: string } | null>(); // 👈 no any
 
     // Always respond 200 to avoid email enumeration
     if (!user) {

@@ -92,26 +92,30 @@ export default function LoginPage() {
   });
 
   const signUpHandler = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.post("/api/auth/register", { name, email, password });
-      setUser((prev) => ({ ...prev, error: "", success: data?.message ?? "Account created." }));
-      setLoading(false);
+  try {
+    setLoading(true);
+    const { data } = await axios.post("/api/auth/register", { name, email, password });
+    setUser((prev) => ({ ...prev, error: "", success: data?.message ?? "Account created." }));
 
-      // Auto-login after signup
-      const res = await signIn("credentials", { redirect: false, email, password });
-      if (res?.error) {
-        setUser((prev) => ({ ...prev, login_error: res.error || "Login failed after signup" }));
-      } else {
-        router.push("/");
-      }
-    } catch (err: any) {
-      setLoading(false);
-      const msg = err?.response?.data?.message ?? "An error occurred.";
-      setUser((prev) => ({ ...prev, success: "", error: msg }));
+    // Auto-login after signup
+    const res = await signIn("credentials", { redirect: false, email, password });
+    if (res?.error) {
+      setUser((prev) => ({ ...prev, login_error: res.error || "Login failed after signup" }));
+    } else {
+      router.push("/");
     }
-  };
-
+  } catch (err: unknown) {
+    const msg =
+      axios.isAxiosError(err)
+        ? (err.response?.data as { message?: string } | undefined)?.message ?? err.message ?? "An error occurred."
+        : err instanceof Error
+        ? err.message
+        : "An error occurred.";
+    setUser((prev) => ({ ...prev, success: "", error: msg }));
+  } finally {
+    setLoading(false);
+  }
+};
   const signInHandler = async () => {
     setLoading(true);
     const res = await signIn("credentials", {

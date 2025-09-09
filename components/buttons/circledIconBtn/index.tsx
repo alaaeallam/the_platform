@@ -6,7 +6,7 @@ type CircledIconBtnProps = {
   icon?: React.ReactNode;
 };
 
-export default function CircledIconBtn({ type = "button", text, icon }: CircledIconBtnProps) {
+export default function CircledIconBtn({ type = "button", text }: CircledIconBtnProps) {
   return (
     <button className={styles.button} type={type}>
       {text}

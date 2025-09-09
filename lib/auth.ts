@@ -1,4 +1,5 @@
-import type { NextAuthOptions } from "next-auth";
+import type { NextAuthOptions, Session, User as NextAuthUser } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
@@ -6,8 +7,15 @@ import clientPromise from "@/lib/mongodb";
 import bcrypt from "bcrypt";
 import User from "@/models/User";
 import { connectDb } from "@/utils/db";
-import https from "https";
-const ipv4Agent = new https.Agent({ keepAlive: true, family: 4 }); // prefer IPv4
+
+// Extend types for JWT and Session
+interface ExtendedUser extends NextAuthUser {
+  role?: string;
+}
+
+interface ExtendedToken extends JWT {
+  role?: string;
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
@@ -15,11 +23,11 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   pages: { signIn: "/login", error: "/login" },
   providers: [
-    // --- Credentials (unchanged) ---
+    // --- Credentials ---
     Credentials({
       name: "Credentials",
       credentials: {
-        email:    { label: "Email", type: "email" },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
@@ -28,7 +36,12 @@ export const authOptions: NextAuthOptions = {
         await connectDb();
 
         const user = await User.findOne({ email: credentials.email }).lean<{
-          _id: unknown; name?: string; email: string; image?: string; password?: string; role?: string;
+          _id: unknown;
+          name?: string;
+          email: string;
+          image?: string;
+          password?: string;
+          role?: string;
         } | null>();
 
         if (!user || !user.password) throw new Error("This email does not exist.");
@@ -52,7 +65,6 @@ export const authOptions: NextAuthOptions = {
       allowDangerousEmailAccountLinking: true,
       httpOptions: {
         timeout: 15000,
-
       },
       profile(profile) {
         return {
@@ -60,38 +72,28 @@ export const authOptions: NextAuthOptions = {
           name: profile.name,
           email: profile.email,
           image: profile.picture,
+          role: "customer", // default role
         };
       },
     }),
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
-      // When a user signs in (credentials or Google), persist role onto the token.
-      if (user) (token as any).role = (user as any).role ?? "customer";
-      return token;
+    async jwt({ token, user }): Promise<ExtendedToken> {
+      const t = token as ExtendedToken;
+      if (user) {
+        const u = user as ExtendedUser;
+        t.role = u.role ?? "customer";
+      }
+      return t;
     },
-    async session({ session, token }) {
+    async session({ session, token }): Promise<Session> {
+      const t = token as ExtendedToken;
       if (session.user) {
-        (session.user as any).id = token.sub;
-        (session.user as any).role = (token as any).role ?? "customer";
+        session.user.id = token.sub!;
+        (session.user as ExtendedUser).role = t.role ?? "customer";
       }
       return session;
     },
-    /**
-     * Optional: ensure a default role exists in DB for first-time OAuth users.
-     * (MongoDBAdapter creates the user on first OAuth sign-in; we can backfill role.)
-     */
-    // async signIn({ user, account, profile, email, credentials }) {
-    //   if (account?.provider === "google") {
-    //     await connectDb();
-    //     const doc = await User.findOne({ email: user.email });
-    //     if (doc && !doc.role) {
-    //       doc.role = "customer";
-    //       await doc.save();
-    //     }
-    //   }
-    //   return true;
-    // },
   },
 };

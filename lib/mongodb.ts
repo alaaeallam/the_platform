@@ -2,7 +2,7 @@
 import { MongoClient } from "mongodb";
 
 declare global {
-  // eslint-disable-next-line no-var
+  // It's fine to use `var` here for global augmentation
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
