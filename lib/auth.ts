@@ -52,7 +52,7 @@ export const authOptions: NextAuthOptions = {
       allowDangerousEmailAccountLinking: true,
       httpOptions: {
         timeout: 15000,
-        agent: ipv4Agent, 
+
       },
       profile(profile) {
         return {
