@@ -34,7 +34,7 @@ export default function User(): React.ReactElement {
     <div className={styles.user}>
       {/* Header */}
       <Image
-        src="/images/userHeader.jpg"
+        src="/images/Header.jpg"
         alt="Header background"
         width={600}
         height={100}
@@ -143,7 +143,7 @@ export default function User(): React.ReactElement {
 
       {/* Footer */}
       <Image
-        src="/images/userHeader.jpg"
+        src="/images/Header.jpg"
         alt="Footer background"
         width={600}
         height={100}
