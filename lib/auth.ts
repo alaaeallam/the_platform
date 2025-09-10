@@ -14,10 +14,13 @@ interface ExtendedUser extends NextAuthUser {
 interface ExtendedToken extends JWT {
   role?: string;
 }
-
-export const authOptions: NextAuthOptions = {
+type NextAuthOptionsWithTrust = NextAuthOptions & {
+  trustHost?: boolean;
+};
+export const authOptions: NextAuthOptionsWithTrust = {
 
   adapter: MongoDBAdapter(clientPromise),
+  trustHost: true,
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
   pages: { signIn: "/login", error: "/login" },

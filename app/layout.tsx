@@ -53,7 +53,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
-        <Providers>
+        <Providers session={session}>
           <Header country={country} />
           {/* test output (remove later) */}
           <div style={{ display: "none" }} aria-hidden>
