@@ -37,18 +37,10 @@ function getCountry(): CountryInfo {
 export default async function RootLayout({
   children,
 }: { children: React.ReactNode }) {
-  // getCountry is sync; Promise.all is fine (value is wrapped)
-  const [countryInfo, session] = await Promise.all([
+  const [country, session] = await Promise.all([
     getCountry(),
     getServerSession(authOptions),
   ]);
-
-  // choose which flag to pass to existing components
-  const country: LegacyCountry = {
-    name: countryInfo.name,
-    code: countryInfo.code,
-    flag: countryInfo.flagEmoji, // or: countryInfo.flagUrl
-  };
 
   return (
     <html lang="en" suppressHydrationWarning>

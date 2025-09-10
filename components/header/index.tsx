@@ -1,3 +1,4 @@
+// components/header/index.tsx
 "use client";
 
 import styles from "./styles.module.scss";
@@ -5,15 +6,18 @@ import Top from "./Top";
 import Main from "./Main";
 import Ad from "./Ad";
 
-type Country = { name: string; flag: string };
+import type { CountryInfo } from "@/utils/countries";
 
-export default function Header({ country }: { country: Country }) {
+type HeaderProps = {
+  country?: CountryInfo; // <- new shape (code, name, flagEmoji, flagUrl)
+};
+
+export default function Header({ country }: HeaderProps) {
   return (
     <header className={styles.header}>
       <Ad />
-      {/* Top needs country */}
       <Top country={country} />
-      {/* Main is your search/logo row */}
+      {/* Main is your search/logo row; keep as-is unless it needs country too */}
       <Main />
     </header>
   );
