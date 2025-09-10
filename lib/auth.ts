@@ -8,22 +8,20 @@ import bcrypt from "bcrypt";
 import User from "@/models/User";
 import { connectDb } from "@/utils/db";
 
-// Extend types for JWT and Session
 interface ExtendedUser extends NextAuthUser {
   role?: string;
 }
-
 interface ExtendedToken extends JWT {
   role?: string;
 }
 
 export const authOptions: NextAuthOptions = {
+
   adapter: MongoDBAdapter(clientPromise),
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
   pages: { signIn: "/login", error: "/login" },
   providers: [
-    // --- Credentials ---
     Credentials({
       name: "Credentials",
       credentials: {
@@ -35,18 +33,21 @@ export const authOptions: NextAuthOptions = {
 
         await connectDb();
 
-        const user = await User.findOne({ email: credentials.email }).lean<{
-          _id: unknown;
-          name?: string;
-          email: string;
-          image?: string;
-          password?: string;
-          role?: string;
-        } | null>();
+        const user = await User.findOne({ email: credentials.email })
+          .select("+password")
+          .lean<{
+            _id: unknown;
+            name?: string;
+            email: string;
+            image?: string;
+            password?: string;
+            role?: string;
+          } | null>();
 
-        if (!user || !user.password) throw new Error("This email does not exist.");
+        if (!user?.password) return null;
+
         const ok = await bcrypt.compare(credentials.password, user.password);
-        if (!ok) throw new Error("Email or password is wrong!");
+        if (!ok) return null;
 
         return {
           id: String(user._id),
@@ -58,21 +59,18 @@ export const authOptions: NextAuthOptions = {
       },
     }),
 
-    // --- Google OAuth ---
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true,
-      httpOptions: {
-        timeout: 15000,
-      },
+      httpOptions: { timeout: 30000 },
+      // allowDangerousEmailAccountLinking: true, // enable only if you intend it
       profile(profile) {
         return {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          role: "customer", // default role
+          role: "customer",
         };
       },
     }),
@@ -80,18 +78,17 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user }): Promise<ExtendedToken> {
-      const t = token as ExtendedToken;
       if (user) {
-        const u = user as ExtendedUser;
-        t.role = u.role ?? "customer";
+        token.role = (user as ExtendedUser).role ?? "customer";
       }
-      return t;
+      return token as ExtendedToken;
     },
+
     async session({ session, token }): Promise<Session> {
-      const t = token as ExtendedToken;
       if (session.user) {
         session.user.id = token.sub!;
-        (session.user as ExtendedUser).role = t.role ?? "customer";
+        (session.user as ExtendedUser).role =
+          (token as ExtendedToken).role ?? "customer";
       }
       return session;
     },

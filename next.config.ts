@@ -9,14 +9,15 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com", // Google avatars
-      },
-      {
-        protocol: "https",
-        hostname: "cdn-icons-png.flaticon.com", // flag fallback
-      },
+     // Google avatars (if you use Google auth)
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      // Cloudinary (your default avatar)
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      // AliExpress / AliCDN offer images
+      { protocol: "https", hostname: "ae01.alicdn.com" },
+      { protocol: "https", hostname: "img.alicdn.com" },
+      { protocol: "https", hostname: "gdp.alicdn.com" },
+      { protocol: "https", hostname: "assets.stickpng.com" },
     ],
   },
 };
