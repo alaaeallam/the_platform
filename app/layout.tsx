@@ -1,17 +1,14 @@
-// app/layout.tsx (server component)
+// app/layout.tsx
 import type { Metadata } from "next";
-import { headers } from "next/headers"; // ✅ read Vercel geo headers
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./styles/globals.scss";
 import { Providers } from "./providers";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-
-// your countries util
-import { COUNTRY_MAP, type CountryInfo } from "@/utils/countries";
+import { getCountryFromCode, type CountryInfo } from "@/utils/countries";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -21,20 +18,37 @@ export const metadata: Metadata = {
   description: "Shop the latest sunglasses and eyewear at Silhouett.",
 };
 
-// ✅ Use Vercel Geo header only (no external API)
-async function getCountry(): Promise<CountryInfo> {
-  const h = await headers();
-  const code = h.get("x-vercel-ip-country") || "US"; // e.g. "EG", "US"
-  return COUNTRY_MAP[code] ?? { code, name: "Unknown", flag: "🏳️" };
+// your existing Header/Footer prop shape
+type LegacyCountry = { name: string; code: string; flag: string };
+
+// --- Fix here: headers() is sync; add a tiny shim for `.get()` ---
+type H = { get(name: string): string | null };
+
+function getCountry(): CountryInfo {
+  const h = headers() as unknown as H; // ✅ no await, expose `.get()`
+  const code =
+    h.get("x-vercel-ip-country") ||   // e.g. "EG"
+    process.env.GEO_OVERRIDE ||       // handy for local testing
+    "US";
+
+  return getCountryFromCode(code);
 }
 
 export default async function RootLayout({
   children,
 }: { children: React.ReactNode }) {
-  const [country, session] = await Promise.all([
+  // getCountry is sync; Promise.all is fine (value is wrapped)
+  const [countryInfo, session] = await Promise.all([
     getCountry(),
     getServerSession(authOptions),
   ]);
+
+  // choose which flag to pass to existing components
+  const country: LegacyCountry = {
+    name: countryInfo.name,
+    code: countryInfo.code,
+    flag: countryInfo.flagEmoji, // or: countryInfo.flagUrl
+  };
 
   return (
     <html lang="en" suppressHydrationWarning>
