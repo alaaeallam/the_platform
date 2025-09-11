@@ -1,0 +1,633 @@
+[{
+  "_id": {
+    "$oid": "68c301fe1ca8014e4e81bfce"
+  },
+  "name": "Allover Plants Print Square Neck Knot Front Dress",
+  "description": "Allover Plants Print Square Neck Knot Front Dress",
+  "brand": "Boho",
+  "slug": "allover-plants-print-square-neck-knot-front-dress",
+  "category": "62c46ff0062128444ad59193",
+  "subCategories": [
+    "62c46ffd062128444ad59199"
+  ],
+  "details": [
+    {
+      "name": "Style",
+      "value": "Boho"
+    },
+    {
+      "name": "Pattern Type",
+      "value": "Plants, All Over Print"
+    },
+    {
+      "name": "Details",
+      "value": "Knot"
+    },
+    {
+      "name": "Type",
+      "value": "A Line"
+    },
+    {
+      "name": "Neckline",
+      "value": "Square Neck"
+    },
+    {
+      "name": "Sleeve Length",
+      "value": "Short Sleeve"
+    },
+    {
+      "name": "Sleeve Type",
+      "value": "Puff Sleeve"
+    },
+    {
+      "name": "Waist Line",
+      "value": "High Waist"
+    },
+    {
+      "name": "Hem Shaped",
+      "value": "Flared"
+    },
+    {
+      "name": "Length",
+      "value": "Long"
+    },
+    {
+      "name": "Fit Type",
+      "value": "Regular Fit"
+    },
+    {
+      "name": "Fabric",
+      "value": "Non-Stretch"
+    },
+    {
+      "name": "Material",
+      "value": "Polyester"
+    }
+  ],
+  "questions": [],
+  "reviews": [
+    {
+      "reviewBy": "62b33178fbcc6f0282db0606",
+      "rating": 1,
+      "review": "aaaaaaaaaaaaaaa",
+      "size": "S",
+      "style": {
+        "color": "#dac4ac",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045396/products/ouh3i2klgrmwluexm3q9.webp"
+      },
+      "fit": "Small",
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657145489/reviews/whcchkvkbd4dypptoccx.webp"
+      ],
+      "createdAt": "2022-07-06T22:11:30.149Z",
+      "updatedAt": "2022-07-09T09:44:46.559Z"
+    },
+    {
+      "reviewBy": "62c69fc002820c409dcce9ea",
+      "rating": 4,
+      "review": "i like it  a lot but a bit large for me for size L",
+      "size": "L",
+      "style": {
+        "color": "#dac4ac",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045396/products/ouh3i2klgrmwluexm3q9.webp"
+      },
+      "fit": "Large",
+      "images": [],
+      "createdAt": "2022-07-07T08:58:31.646Z",
+      "updatedAt": "2022-07-07T08:58:31.646Z"
+    },
+    {
+      "reviewBy": "62a22b5cd0e120974f5c866e",
+      "rating": 5,
+      "review": "amaaaaaaaaaaaaaaaaaaaaaaazing",
+      "size": "L",
+      "style": {
+        "color": "#dac4ac",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045396/products/ouh3i2klgrmwluexm3q9.webp"
+      },
+      "fit": "Large",
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657189685/reviews/i6wmqtwnjcolkguit6qi.webp"
+      ],
+      "createdAt": "2022-07-07T10:11:00.304Z",
+      "updatedAt": "2022-07-07T10:28:07.389Z"
+    },
+    {
+      "reviewBy": "62a22d98d0e120974f5c8671",
+      "rating": 2.5,
+      "review": "aaaaaaaa",
+      "size": "S",
+      "style": {
+        "color": "#ecd297",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657041179/products/ac3homl0yeimydql5rq4.webp"
+      },
+      "fit": "True to size",
+      "images": [],
+      "createdAt": "2022-07-07T12:28:08.226Z",
+      "updatedAt": "2022-07-07T12:30:52.277Z"
+    },
+    {
+      "reviewBy": "62a2281cd0e120974f5c866c",
+      "rating": 5,
+      "review": "bbbbbbbbbbbbbb",
+      "size": "S",
+      "style": {
+        "color": "#ecd297",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657041179/products/ac3homl0yeimydql5rq4.webp"
+      },
+      "fit": "True to size",
+      "images": [],
+      "createdAt": "2022-07-07T12:33:26.719Z",
+      "updatedAt": "2022-07-07T12:33:26.719Z"
+    }
+  ],
+  "refundPolicy": "30 days",
+  "rating": 3.5,
+  "numReviews": 5,
+  "shipping": 2,
+  "subProducts": [
+    {
+      "sku": "sw2206138988536738",
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657041164/products/j9h8giisorvqwnxgy6lx.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657041168/products/tpwwbcdjxdzk1qok7jqu.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657041171/products/lopvo38miankt6j0usaz.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657041176/products/mjrdih9alzizp5lkb0ty.webp"
+      ],
+      "description_images": [],
+      "color": {
+        "color": "#ecd297",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657041179/products/ac3homl0yeimydql5rq4.webp"
+      },
+      "sizes": [
+        {
+          "size": "S",
+          "qty": 15,
+          "basePrice": 17,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "M",
+          "qty": 1414,
+          "basePrice": 19,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "L",
+          "qty": 0,
+          "basePrice": 21,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "XL",
+          "qty": 1423,
+          "basePrice": 28,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        }
+      ],
+      "discount": 0,
+      "sold": 0,
+      "marketingTags": []
+    },
+    {
+      "sku": "vc22142578988545614",
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045381/products/qbwsyo2xg26zxyygtuzs.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045385/products/fxuhya9s4usojgdfune9.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045389/products/acscvdlnkyt8r7kifsw5.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045392/products/suok4nz4ocdmegkzmqvs.webp"
+      ],
+      "description_images": [],
+      "color": {
+        "color": "#dac4ac",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045396/products/ouh3i2klgrmwluexm3q9.webp"
+      },
+      "sizes": [
+        {
+          "size": "M",
+          "qty": 1456,
+          "basePrice": 15,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "L",
+          "qty": 1700,
+          "basePrice": 21,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        }
+      ],
+      "discount": 10,
+      "sold": 0,
+      "marketingTags": []
+    }
+  ],
+  "createdAt": "2022-07-05T17:13:00.324Z",
+  "updatedAt": "2022-07-09T09:44:46.823Z",
+  "marketingTags": []
+},
+{
+  "_id": {
+    "$oid": "68c301fe1ca8014e4e81bfcf"
+  },
+  "name": "Men Drop Shoulder Metallic Tee",
+  "description": "Men Drop Shoulder Metallic Tee",
+  "brand": "Metallic",
+  "slug": "men-drop-shoulder-metallic-tee",
+  "category": "62cfeb1e119f0cd432b478d6",
+  "subCategories": [],
+  "details": [
+    {
+      "name": "Color",
+      "value": "Bronze"
+    },
+    {
+      "name": "Style",
+      "value": "Party"
+    },
+    {
+      "name": "Pattern Type",
+      "value": "Plain"
+    },
+    {
+      "name": "Neckline",
+      "value": "Round Neck"
+    },
+    {
+      "name": "Sleeve Length",
+      "value": "Short Sleeve"
+    },
+    {
+      "name": "Sleeve Type",
+      "value": "Regular Sleeve"
+    },
+    {
+      "name": "Length",
+      "value": "Regular"
+    }
+  ],
+  "questions": [],
+  "reviews": [],
+  "refundPolicy": "30 days",
+  "rating": 0,
+  "numReviews": 0,
+  "shipping": 0,
+  "subProducts": [
+    {
+      "sku": null,
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665321139/products/qwpijk74an4hss8pcefr.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665321143/products/moxnvgqyuavpnthbysey.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665321148/products/ul0yyluoxu7oz9ywmrfl.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665321152/products/rmuo6ooadi0ukfziq9sz.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665321156/products/etlwzefambmwr2j3abf5.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665321160/products/skjcagnshk0sf0om7oup.webp"
+      ],
+      "description_images": [],
+      "color": {
+        "color": "#601806",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665321165/products/mbnvhr5arty9tlmyhyr2.webp"
+      },
+      "sizes": [
+        {
+          "size": "M",
+          "qty": 145,
+          "basePrice": 19,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "L",
+          "qty": 201,
+          "basePrice": 20,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        }
+      ],
+      "discount": 5,
+      "sold": 0,
+      "marketingTags": []
+    }
+  ],
+  "createdAt": "2022-10-09T13:12:46.375Z",
+  "updatedAt": "2022-10-09T13:12:46.375Z",
+  "marketingTags": []
+},
+{
+  "_id": {
+    "$oid": "68c301fe1ca8014e4e81bfd0"
+  },
+  "name": "Men Plaid Drawstring Waist Pants",
+  "description": "Men Plaid Drawstring Waist Pants",
+  "brand": "Drawstring",
+  "slug": "men-plaid-drawstring-waist-pants",
+  "category": "62cfeb1e119f0cd432b478d6",
+  "subCategories": [],
+  "details": [
+    {
+      "name": "Color",
+      "value": "White"
+    },
+    {
+      "name": "Style",
+      "value": "Preppy"
+    },
+    {
+      "name": "Pattern Type",
+      "value": "Plaid"
+    },
+    {
+      "name": "Type",
+      "value": "Straight Leg"
+    },
+    {
+      "name": "Closure Type",
+      "value": "Drawstring Waist"
+    }
+  ],
+  "questions": [],
+  "reviews": [
+    {
+      "reviewBy": "62b33178fbcc6f0282db0606",
+      "rating": 1,
+      "review": "aaaaaaaaaaaaaaa",
+      "size": "S",
+      "style": {
+        "color": "#dac4ac",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045396/products/ouh3i2klgrmwluexm3q9.webp"
+      },
+      "fit": "Small",
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657145489/reviews/whcchkvkbd4dypptoccx.webp"
+      ],
+      "createdAt": "2022-07-06T22:11:30.149Z",
+      "updatedAt": "2022-07-09T09:44:46.559Z"
+    },
+    {
+      "reviewBy": "62c69fc002820c409dcce9ea",
+      "rating": 4,
+      "review": "i like it  a lot but a bit large for me for size L",
+      "size": "L",
+      "style": {
+        "color": "#dac4ac",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045396/products/ouh3i2klgrmwluexm3q9.webp"
+      },
+      "fit": "Large",
+      "images": [],
+      "createdAt": "2022-07-07T08:58:31.646Z",
+      "updatedAt": "2022-07-07T08:58:31.646Z"
+    },
+    {
+      "reviewBy": "62a22b5cd0e120974f5c866e",
+      "rating": 5,
+      "review": "amaaaaaaaaaaaaaaaaaaaaaaazing",
+      "size": "L",
+      "style": {
+        "color": "#dac4ac",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657045396/products/ouh3i2klgrmwluexm3q9.webp"
+      },
+      "fit": "Large",
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657189685/reviews/i6wmqtwnjcolkguit6qi.webp"
+      ],
+      "createdAt": "2022-07-07T10:11:00.304Z",
+      "updatedAt": "2022-07-07T10:28:07.389Z"
+    },
+    {
+      "reviewBy": "62a22d98d0e120974f5c8671",
+      "rating": 2.5,
+      "review": "aaaaaaaa",
+      "size": "S",
+      "style": {
+        "color": "#ecd297",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657041179/products/ac3homl0yeimydql5rq4.webp"
+      },
+      "fit": "True to size",
+      "images": [],
+      "createdAt": "2022-07-07T12:28:08.226Z",
+      "updatedAt": "2022-07-07T12:30:52.277Z"
+    },
+    {
+      "reviewBy": "62a2281cd0e120974f5c866c",
+      "rating": 5,
+      "review": "bbbbbbbbbbbbbb",
+      "size": "S",
+      "style": {
+        "color": "#ecd297",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1657041179/products/ac3homl0yeimydql5rq4.webp"
+      },
+      "fit": "True to size",
+      "images": [],
+      "createdAt": "2022-07-07T12:33:26.719Z",
+      "updatedAt": "2022-07-07T12:33:26.719Z"
+    }
+  ],
+  "refundPolicy": "30 days",
+  "rating": 3.5,
+  "numReviews": 5,
+  "shipping": 0,
+  "subProducts": [
+    {
+      "sku": null,
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322060/products/znlfwkgbwb6plgscdzvu.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322066/products/xjqhhfqvy9nio4qjwwbq.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322071/products/jyi1njkdvaeukx03efsh.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322076/products/eir1mjcccjubrltc68ge.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322081/products/hoefdn0w4omk8t1plwde.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322086/products/ewizfpvpxpsyc26bet43.webp"
+      ],
+      "description_images": [],
+      "color": {
+        "color": "#393736",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322087/products/hexxvihjei0lfxcw1ayh.webp"
+      },
+      "sizes": [
+        {
+          "size": "S",
+          "qty": 147,
+          "basePrice": 142,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "M",
+          "qty": 52,
+          "basePrice": 142,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "L",
+          "qty": 174,
+          "basePrice": 150,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "XL",
+          "qty": 20,
+          "basePrice": 231,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "XXL",
+          "qty": 12,
+          "basePrice": 231,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        }
+      ],
+      "discount": 36,
+      "sold": 0,
+      "marketingTags": []
+    },
+    {
+      "sku": null,
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322409/products/ndkcswxriymtusa86ooa.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322413/products/iaemqcjgacwivku1lmbn.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322419/products/oh7zribnzkafgjhjzybk.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322447/products/geeq1dchfrczswej1wqz.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322450/products/ls7hpxb4tv1ukwmd2ve3.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322453/products/mvmhsj062fkvei7xghdy.webp"
+      ],
+      "description_images": [],
+      "color": {
+        "color": "#ac6434",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322453/products/yehgsjdk1y5yv89o6pje.webp"
+      },
+      "sizes": [
+        {
+          "size": "S",
+          "qty": 142,
+          "basePrice": 119,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "XXL",
+          "qty": 50,
+          "basePrice": 125,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        }
+      ],
+      "discount": 5,
+      "sold": 0,
+      "marketingTags": []
+    },
+    {
+      "sku": null,
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322641/products/fdmcckl6dahylgrg2kvw.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322645/products/vl6we95vbmkaebpsl9em.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322650/products/viho1qeg4flfavlxwbhu.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322654/products/yrmqwwtvfbt5vz6bfntb.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322659/products/u5whjyi88uijtrwusiah.webp"
+      ],
+      "description_images": [],
+      "color": {
+        "color": "#f4d0a5",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322660/products/wvtduq5v2ocs5zc9mjng.webp"
+      },
+      "sizes": [
+        {
+          "size": "L",
+          "qty": 56,
+          "basePrice": 162,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "XL",
+          "qty": 123,
+          "basePrice": 189,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "3XL",
+          "qty": 98,
+          "basePrice": 250,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        }
+      ],
+      "discount": 11,
+      "sold": 0,
+      "marketingTags": []
+    },
+    {
+      "sku": null,
+      "images": [
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322911/products/f8nu9awqcpykmbqypbsd.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322916/products/t8fvr1ziuo2p1hnqqsht.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322920/products/wdfsepspohamr41m2zah.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322926/products/w00nsgasdsu5zjogwdkd.webp",
+        "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322931/products/zmdvyqbrahdhyb6xklr8.webp"
+      ],
+      "description_images": [],
+      "color": {
+        "color": "#3e3e2d",
+        "image": "https://res.cloudinary.com/dmhcnhtng/image/upload/v1665322932/products/g5bbt39vdn1sfyveuhck.webp"
+      },
+      "sizes": [
+        {
+          "size": "M",
+          "qty": 58,
+          "basePrice": 120,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "L",
+          "qty": 69,
+          "basePrice": 161,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        },
+        {
+          "size": "3XL",
+          "qty": 23,
+          "basePrice": 270,
+          "countryPrices": [],
+          "countryGroupPrices": [],
+          "marketingTags": []
+        }
+      ],
+      "discount": 26,
+      "sold": 0,
+      "marketingTags": []
+    }
+  ],
+  "createdAt": "2022-10-09T13:28:08.507Z",
+  "updatedAt": "2022-10-09T13:42:13.121Z",
+  "marketingTags": []
+}]

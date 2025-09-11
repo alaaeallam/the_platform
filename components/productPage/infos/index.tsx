@@ -13,9 +13,6 @@ import Accordian from "./Accordian";
 import SimillarSwiper from "./SimillarSwiper";
 
 /* ---------- Types ---------- */
-type SizeItem = { size: string; qty: number };
-type Color = { image?: string; color?: string };
-type SubProductVM = { images: string[] };
 
 export interface ProductInfosVM {
   _id: string;
