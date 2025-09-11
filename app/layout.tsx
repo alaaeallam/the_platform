@@ -19,10 +19,9 @@ export const metadata: Metadata = {
 };
 
 // your existing Header/Footer prop shape
-type LegacyCountry = { name: string; code: string; flag: string };
 
 // --- Fix here: headers() is sync; add a tiny shim for `.get()` ---
-type H = { get(name: string): string | null };
+
 
 async function getCountry(): Promise<CountryInfo> {
   try {

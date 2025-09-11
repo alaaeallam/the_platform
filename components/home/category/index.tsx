@@ -1,43 +1,53 @@
+// components/home/category/index.tsx
 "use client";
 
 import { BsArrowRightCircle } from "react-icons/bs";
 import styles from "./styles.module.scss";
 import { useMediaQuery } from "react-responsive";
+import Image from "next/image";
 
-type Product = {
-  id: string | number;
+export type CategoryItem = {
+  id?: string | number;
   image: string;
-  alt?: string;
+  price?: number | string;
+  link?: string;
+  discount?: number | string;
+  sold?: number | string;
 };
 
-type CategoryProps = {
+export type CategoryProps = {
   header: string;
-  products: Product[];
+  products: CategoryItem[];
   background?: string;
 };
 
-export default function Category({
-  header,
-  products,
-  background = "transparent",
-}: CategoryProps): React.JSX.Element {
+export default function Category({ header, products, background }: CategoryProps) {
   const isMedium = useMediaQuery({ query: "(max-width:1300px)" });
   const isMobile = useMediaQuery({ query: "(max-width:550px)" });
 
-  // ✅ limit visible products based on screen size
-  const visibleProducts = products.slice(0, isMobile ? 6 : isMedium ? 4 : 6);
+  const take = isMobile ? 6 : isMedium ? 4 : 6;
+  const visible = products.slice(0, take);
 
   return (
-    <div className={styles.category} style={{ background }}>
+    <div className={styles.category} style={background ? { background } : undefined}>
       <div className={styles.category__header}>
         <h1>{header}</h1>
         <BsArrowRightCircle />
       </div>
 
       <div className={styles.category__products}>
-        {visibleProducts.map((product) => (
-          <div key={product.id} className={styles.product}>
-            <img src={product.image} alt={product.alt ?? "Category product"} />
+        {visible.map((product, idx) => (
+          <div className={styles.product} key={product.id ?? idx}>
+            {/* keep your UI; using next/image is optional */}
+            <Image
+              src={product.image}
+              alt={header}
+              width={220}
+              height={220}
+              className={styles.product__img}
+              unoptimized
+            />
+            {/* if you later want to show price/discount, you have the fields typed */}
           </div>
         ))}
       </div>
