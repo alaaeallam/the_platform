@@ -12,6 +12,7 @@ import "swiper/css/navigation";
 
 // ✅ Autoplay is imported from swiper/modules
 import { Autoplay } from "swiper/modules";
+import Image from "next/image";
 
 /* ---------- Types ---------- */
 export type ProductImage = { url: string };
@@ -57,10 +58,13 @@ export default function ProductSwiper({ images }: ProductSwiperProps): React.JSX
       >
         {images.map((img, idx) => (
           <SwiperSlide key={idx}>
-            <img
+            <Image
               src={img.url}
               alt={`Product image ${idx + 1}`}
               className={styles.productImg}
+              layout="responsive"
+              width={500}
+              height={500}
             />
           </SwiperSlide>
         ))}

@@ -80,7 +80,7 @@ export default function ProductCard({ product }: ProductCardProps): React.JSX.El
     <div className={styles.product}>
       <div className={styles.product__container}>
         <Link
-          href={`/product/${product.slug}?style=${active}`}
+          href={`/products/${product.slug}?style=${active}`}
           target="_blank"
           aria-label={product.name}
           className={styles.product__link}
