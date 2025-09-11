@@ -1,26 +1,36 @@
 // lib/mongodb.ts
-import { MongoClient } from "mongodb";
+import mongoose from "mongoose";
+
+/**
+ * Mongoose connection helper for Next.js (App Router).
+ * Reuses a single connection across hot reloads in dev.
+ */
+type Cached = {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+};
 
 declare global {
-  // It's fine to use `var` here for global augmentation
-  var _mongoClientPromise: Promise<MongoClient> | undefined;
+  // eslint-disable-next-line no-var
+  var _mongooseCached: Cached | undefined;
 }
 
-const uri = process.env.MONGODB_URI || process.env.MONGODB_URL;
-if (!uri) throw new Error("Missing MONGODB_URI/MONGODB_URL");
+const MONGODB_URI = process.env.MONGODB_URI ?? process.env.MONGODB_URL;
+if (!MONGODB_URI) {
+  throw new Error("Missing MONGODB_URI / MONGODB_URL");
+}
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
+const cached: Cached = global._mongooseCached || { conn: null, promise: null };
+global._mongooseCached = cached;
 
-if (process.env.NODE_ENV === "development") {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri);
-    global._mongoClientPromise = client.connect();
+export default async function dbConnect(): Promise<typeof mongoose> {
+  if (cached.conn) return cached.conn;
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI as string, {
+      bufferCommands: false,
+      // You can add options here if needed
+    });
   }
-  clientPromise = global._mongoClientPromise;
-} else {
-  client = new MongoClient(uri);
-  clientPromise = client.connect();
+  cached.conn = await cached.promise;
+  return cached.conn;
 }
-
-export default clientPromise;

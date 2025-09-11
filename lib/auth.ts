@@ -3,7 +3,7 @@ import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import clientPromise from "@/lib/mongodb";
+import clientPromise from "@/lib/mongoClient";
 import bcrypt from "bcrypt";
 import User from "@/models/User";
 import { connectDb } from "@/utils/db";
