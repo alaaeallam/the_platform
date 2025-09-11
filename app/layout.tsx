@@ -24,16 +24,20 @@ type LegacyCountry = { name: string; code: string; flag: string };
 // --- Fix here: headers() is sync; add a tiny shim for `.get()` ---
 type H = { get(name: string): string | null };
 
-function getCountry(): CountryInfo {
-  const h = headers() as unknown as H; // ✅ no await, expose `.get()`
-  const code =
-    h.get("x-vercel-ip-country") ||   // e.g. "EG"
-    process.env.GEO_OVERRIDE ||       // handy for local testing
-    "US";
+async function getCountry(): Promise<CountryInfo> {
+  try {
+    const h = await headers();
+    const code =
+      h.get("x-vercel-ip-country") || // e.g. "EG" in production
+      process.env.GEO_OVERRIDE ||     // optional override for local dev
+      "US";
 
-  return getCountryFromCode(code);
+    return getCountryFromCode(code);
+  } catch {
+    // ultra-safe fallback
+    return getCountryFromCode("US");
+  }
 }
-
 export default async function RootLayout({
   children,
 }: { children: React.ReactNode }) {
