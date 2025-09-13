@@ -1,24 +1,24 @@
-// components/productPage/infos/Accordian.tsx
 "use client";
 
 import * as React from "react";
 import { styled } from "@mui/material/styles";
-import MuiAccordion, { AccordionProps as MuiAccordionProps } from "@mui/material/Accordion";
-import MuiAccordionSummary, {
-  AccordionSummaryProps as MuiAccordionSummaryProps,
-} from "@mui/material/AccordionSummary";
+import MuiAccordion, { type AccordionProps as MuiAccordionProps } from "@mui/material/Accordion";
+import MuiAccordionSummary, { type AccordionSummaryProps as MuiAccordionSummaryProps } from "@mui/material/AccordionSummary";
 import MuiAccordionDetails from "@mui/material/AccordionDetails";
 import { BiRightArrow } from "react-icons/bi";
 import styles from "./styles.module.scss";
 
 /* ---------- Types ---------- */
-type DetailKV = { name?: string; value?: string };
+export type DetailKV = { name?: string; value?: string };
+
 export interface AccordianProps {
-  /** details[0] is treated as the description; the rest are {name,value} rows */
-  details: Array<string | DetailKV>;
+  /** Plain description (optional, from product.description). */
+  description?: string;
+  /** Key/Value rows (from product.details in Mongo). */
+  details: DetailKV[];
 }
 
-/* ---------- Styled MUI wrappers ---------- */
+/* ---------- Styled wrappers ---------- */
 const Accordion = styled((props: MuiAccordionProps) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
 ))(({ theme }) => ({
@@ -30,7 +30,6 @@ const Accordion = styled((props: MuiAccordionProps) => (
 
 const AccordionSummary = styled((props: MuiAccordionSummaryProps) => (
   <MuiAccordionSummary
-    // react-icons doesn’t support MUI’s sx prop; use inline style/class instead
     expandIcon={<BiRightArrow style={{ fontSize: "0.9rem" }} />}
     {...props}
   />
@@ -54,7 +53,7 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
 }));
 
 /* ---------- Component ---------- */
-export default function Accordian({ details }: AccordianProps) {
+export default function Accordian({ description, details }: AccordianProps): React.JSX.Element {
   const [expanded, setExpanded] = React.useState<string | false>("panel1");
 
   const handleChange =
@@ -63,8 +62,7 @@ export default function Accordian({ details }: AccordianProps) {
       setExpanded(newExpanded ? panel : false);
     };
 
-  const description = (details[0] ?? "") as string;
-  const kvRows = details.slice(1).filter(Boolean) as DetailKV[];
+  const kvRows = (details ?? []).filter(Boolean);
 
   return (
     <div className={styles.infos__accordian}>
@@ -82,11 +80,13 @@ export default function Accordian({ details }: AccordianProps) {
           Details
         </AccordionSummary>
 
-        <AccordionDetails>
-          <div className={styles.infos__accordian_grid}>
-            <p>{description}</p>
-          </div>
-        </AccordionDetails>
+        {(description?.trim()?.length ?? 0) > 0 && (
+          <AccordionDetails>
+            <div className={styles.infos__accordian_grid}>
+              <p>{description}</p>
+            </div>
+          </AccordionDetails>
+        )}
 
         {kvRows.length > 0 && (
           <AccordionDetails className="scrollbar">
@@ -100,7 +100,7 @@ export default function Accordian({ details }: AccordianProps) {
         )}
       </Accordion>
 
-      {/* Size & Fit (empty body for now) */}
+      {/* Size & Fit (placeholder) */}
       <Accordion
         expanded={expanded === "panel2"}
         onChange={handleChange("panel2")}

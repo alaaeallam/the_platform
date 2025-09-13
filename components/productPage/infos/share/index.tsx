@@ -1,42 +1,39 @@
-// components/productPage/infos/Share.tsx
+// components/productPage/infos/share/index.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import styles from "./styles.module.scss";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   FacebookShareButton,
-
-  EmailShareButton,
+  TwitterShareButton,
   LinkedinShareButton,
-  PinterestShareButton,
   RedditShareButton,
   TelegramShareButton,
-  TwitterShareButton,
   WhatsappShareButton,
+  PinterestShareButton,
   FacebookIcon,
-
-  EmailIcon,
+  XIcon,
   LinkedinIcon,
-  PinterestIcon,
   RedditIcon,
   TelegramIcon,
-  TwitterIcon,
   WhatsappIcon,
+  PinterestIcon,
 } from "react-share";
+import styles from "./styles.module.scss";
 
 export interface ShareProps {
-  /** Optional explicit URL; if omitted we use the current page URL on the client. */
+  /** Explicit URL to share; if omitted we use current window URL on the client. */
   url?: string;
-  /** Optional share title/quote. */
+  /** Title/caption used where supported (e.g. Twitter/Reddit). */
   title?: string;
-  /** Optional image URL used by Pinterest. */
+  /** Pinterest image URL (recommended for Pinterest). */
   media?: string;
-  /** Optional hashtags for Twitter/Reddit (omit the #). */
+  /** Hashtags for Twitter/Reddit (omit the #). */
   hashtags?: string[];
-  /** Icon size in px (default 38). */
+  /** Optional single hashtag for Facebook (with leading #, e.g. "#Sale"). */
+  facebookHashtag?: string;
+  /** Icon size in px. */
   size?: number;
-  /** Make icons round (default true). */
+  /** Round icons? */
   round?: boolean;
 }
 
@@ -45,12 +42,12 @@ export default function Share({
   title,
   media,
   hashtags = [],
+  facebookHashtag,
   size = 38,
   round = true,
 }: ShareProps): React.JSX.Element {
   const [currentUrl, setCurrentUrl] = useState<string>("");
 
-  // Resolve URL on the client to avoid SSR window access
   useEffect(() => {
     if (!url && typeof window !== "undefined") {
       setCurrentUrl(window.location.href);
@@ -61,38 +58,40 @@ export default function Share({
 
   return (
     <div className={styles.share} aria-label="Share this page">
-      <FacebookShareButton url={shareUrl} quote={title}>
+      {/* Facebook — use `hashtag` (typed), avoid `quote` which causes TS errors with some versions */}
+      <FacebookShareButton url={shareUrl} hashtag={facebookHashtag}>
         <FacebookIcon size={size} round={round} />
       </FacebookShareButton>
 
+      {/* Twitter */}
       <TwitterShareButton url={shareUrl} title={title} hashtags={hashtags}>
-        <TwitterIcon size={size} round={round} />
+        <XIcon size={size} round={round} />
       </TwitterShareButton>
 
+      {/* LinkedIn */}
       <LinkedinShareButton url={shareUrl} title={title}>
         <LinkedinIcon size={size} round={round} />
       </LinkedinShareButton>
 
+      {/* Reddit */}
       <RedditShareButton url={shareUrl} title={title}>
         <RedditIcon size={size} round={round} />
       </RedditShareButton>
 
+      {/* Telegram */}
       <TelegramShareButton url={shareUrl} title={title}>
         <TelegramIcon size={size} round={round} />
       </TelegramShareButton>
 
+      {/* WhatsApp */}
       <WhatsappShareButton url={shareUrl} title={title}>
         <WhatsappIcon size={size} round={round} />
       </WhatsappShareButton>
 
-      {/* Pinterest requires a media (image) URL to work best */}
+      {/* Pinterest requires an image */}
       <PinterestShareButton url={shareUrl} media={media ?? ""} description={title}>
         <PinterestIcon size={size} round={round} />
       </PinterestShareButton>
-
-      <EmailShareButton url={shareUrl} subject={title} body={shareUrl}>
-        <EmailIcon size={size} round={round} />
-      </EmailShareButton>
     </div>
   );
 }

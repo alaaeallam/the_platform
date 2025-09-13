@@ -7,22 +7,24 @@ import { useSearchParams } from "next/navigation";
 import { TbPlus, TbMinus } from "react-icons/tb";
 import { BsHandbagFill, BsHeart } from "react-icons/bs";
 import styles from "./styles.module.scss";
+import Rating from "@mui/material/Rating";
 
-// import Share from "./share";
-import Accordian from "./Accordian";
+import Accordian, { type DetailKV } from "./Accordian";
 import SimillarSwiper from "./SimillarSwiper";
+import Share from "./share";
+import DialogModal from "@/components/dialogModal";
 
 /* ---------- Types ---------- */
-
 export interface ProductInfosVM {
   _id: string;
   name: string;
   slug: string;
   rating: number;
   numReviews: number;
-  createdAt: string; // <-- add this
+  createdAt: string;
   description: string;
-  details: Array<string | { name?: string; value?: string }>;
+  /** Must be KV rows only; description is passed separately. */
+  details: DetailKV[];
   style: number;
   images: string[];
   sizes: { size: string; qty: number }[];
@@ -30,9 +32,9 @@ export interface ProductInfosVM {
   sku: string;
   colors: Array<{ color?: string; image?: string }>;
   priceRange: string;
-  price: number;        // <-- add
-  priceBefore: number;  // <-- add
-  quantity: number;     // stock for current size
+  price: number;
+  priceBefore: number;
+  quantity: number;
   shipping?: number;
   subProducts: { images: string[] }[];
 }
@@ -51,22 +53,19 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
     product.sizes[sizeIndex]?.size
   );
   const [qty, setQty] = useState<number>(1);
-  const [error, setError] = useState<string>("");   // inline error (optional UI)
+  const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
 
-  // Total pieces across sizes (used when no specific size selected)
   const totalPiecesAvailable = useMemo(
     () => product.sizes.reduce((acc, s) => acc + (s.qty ?? 0), 0),
     [product.sizes]
   );
 
-  // Reset on style change
   useEffect(() => {
     setSizeLabel(product.sizes[0]?.size);
     setQty(1);
   }, [styleIndex, product.sizes]);
 
-  // Clamp qty by available quantity (for chosen size)
   useEffect(() => {
     if (qty > product.quantity) setQty(product.quantity);
   }, [sizeIndex, product.quantity, qty]);
@@ -80,33 +79,26 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
       return;
     }
 
-    // TODO: wire to your cart API/slice.
-    // For now, just show a quick success:
+    // TODO: wire to cart slice/API
     setSuccess("Added to cart.");
   };
 
-  // Prepare detail strings for the accordion
-  const detailStrings: string[] = useMemo(() => {
-    const tail = product.details
-      .map((d) =>
-        typeof d === "string"
-          ? d
-          : [d?.name, d?.value].filter(Boolean).join(": ")
-      )
-      .filter((s): s is string => Boolean(s && s.trim()));
-    return [product.description, ...tail];
-  }, [product.description, product.details]);
-
   return (
     <div className={styles.infos}>
+      <DialogModal />
       <div className={styles.infos__container}>
         <h1 className={styles.infos__name}>{product.name}</h1>
         {product.sku && <h2 className={styles.infos__sku}>{product.sku}</h2>}
 
         <div className={styles.infos__rating}>
-          {/* Hook your Rating component back when ready */}
-          &nbsp;(
-          {product.numReviews}
+          <Rating
+            name="half-rating-read"
+            defaultValue={product.rating}
+            precision={0.5}
+            readOnly
+            style={{ color: "#FACF19" }}
+          />
+          ({product.numReviews}
           {product.numReviews === 1 ? " review" : " reviews"})
         </div>
 
@@ -138,7 +130,6 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
           <h4>Select a Size :</h4>
           <div className={styles.infos__sizes_wrap}>
             {product.sizes.map((s, i) => {
-              // ✅ plural route + query
               const href = `/products/${product.slug}?style=${styleIndex}&size=${i}`;
               const active = i === sizeIndex;
               return (
@@ -158,7 +149,6 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
         {/* Colors */}
         <div className={styles.infos__colors}>
           {product.colors?.map((color, i) => {
-            // ✅ plural route + query
             const href = `/products/${product.slug}?style=${i}`;
             const active = i === styleIndex;
             const preview = product.subProducts?.[i]?.images?.[0];
@@ -207,8 +197,11 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
         {error && <span className={styles.error}>{error}</span>}
         {success && <span className={styles.success}>{success}</span>}
 
-        {/* <Share /> */}
-        <Accordian details={detailStrings} />
+        <Share />
+
+        {/* ✅ Pass description separately; details is KV only */}
+        <Accordian description={product.description} details={product.details ?? []} />
+
         <SimillarSwiper />
       </div>
     </div>

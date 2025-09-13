@@ -1,52 +1,65 @@
 // store/index.ts
-import { configureStore, combineReducers } from "@reduxjs/toolkit";
-import { persistReducer, persistStore } from "redux-persist";
-// ❌ don't import default storage directly (breaks on server)
-// import storage from "redux-persist/lib/storage";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
+import {
+  persistReducer,
+  persistStore,
+  type PersistConfig,
+} from "redux-persist";
 import createWebStorage from "redux-persist/lib/storage/createWebStorage";
+import type { WebStorage } from "redux-persist/es/types";
 
 import cartReducer from "./cartSlice";
+import dialogReducer from "./DialogSlice";
 
-// Use noop storage on the server to avoid "failed to create sync storage" warnings
-const createNoopStorage = () => ({
-  getItem(_key: string) {
-    return Promise.resolve(null);
-  },
-  setItem(_key: string, value: string) {
-    return Promise.resolve(value);
-  },
-  removeItem(_key: string) {
-    return Promise.resolve();
-  },
-});
+/** No-op storage for SSR (mirrors WebStorage shape) */
+function createNoopStorage(): WebStorage {
+  return {
+    getItem(_key: string): Promise<string | null> {
+      return Promise.resolve(null);
+    },
+    setItem(_key: string, _value: string): Promise<void> {
+      return Promise.resolve();
+    },
+    removeItem(_key: string): Promise<void> {
+      return Promise.resolve();
+    },
+  };
+}
 
-const storage =
+const storage: WebStorage =
   typeof window !== "undefined" ? createWebStorage("local") : createNoopStorage();
 
+/** Root reducer */
 const rootReducer = combineReducers({
   cart: cartReducer,
+  dialog: dialogReducer,
 });
 
-const persistConfig = {
+type RootReducerState = ReturnType<typeof rootReducer>;
+
+/** Persist only the cart slice */
+const persistConfig: PersistConfig<RootReducerState> = {
   key: "root",
   storage,
-  whitelist: ["cart"], // persist only the cart
+  whitelist: ["cart"],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
+/** Store */
 export const store = configureStore({
   reducer: persistedReducer,
   devTools: process.env.NODE_ENV !== "production",
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false, // redux-persist actions include non-serializable values
+      serializableCheck: false, // redux-persist actions include non-serializable payloads
       immutableCheck: false,
     }),
 });
 
+/** Persistor */
 export const persistor = persistStore(store);
 
-// Types
+/** Types */
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
