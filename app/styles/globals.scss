@@ -45,3 +45,6 @@ button {
   border: none;
   outline: none;
 }
+:root.hide-chrome .global-chrome {
+  display: none !important;
+}
