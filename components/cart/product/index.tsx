@@ -9,18 +9,10 @@ import { MdOutlineKeyboardArrowRight } from "react-icons/md";
 
 import styles from "./styles.module.scss";
 import type { CartProduct } from "@/types/cart";
-import { useAppDispatch} from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import { removeFromCart, setItemQty } from "@/store/cartSlice";
 
-/* ---------- Types ---------- */
-
-export interface ProductImage {
-  url: string;
-}
-export interface ProductColor {
-  image: string;
-}
-
+/* ---------- Props ---------- */
 interface ProductProps {
   product: CartProduct;
   selected: CartProduct[];
@@ -28,10 +20,8 @@ interface ProductProps {
 }
 
 /* ---------- Component ---------- */
-
 const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => {
   const dispatch = useAppDispatch();
-  
   const [active, setActive] = useState<boolean>(false);
 
   /* Track selection state */
@@ -39,21 +29,28 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
     setActive(selected.some((p) => p._uid === product._uid));
   }, [selected, product._uid]);
 
-  /* Update quantity via slice (no unused vars) */
+  /* Update quantity via slice + optimistically sync `selected` */
   const updateQty = (type: "plus" | "minus"): void => {
     const next =
       type === "plus"
         ? Math.min(product.qty + 1, product.quantity)
         : Math.max(product.qty - 1, 1);
 
-    if (next !== product.qty) {
-      dispatch(setItemQty({ _uid: product._uid, qty: next }));
-    }
+    if (next === product.qty) return;
+
+    // Redux
+    dispatch(setItemQty({ _uid: product._uid, qty: next }));
+
+    // Optimistic local sync so totals update instantly
+    setSelected((prev) =>
+      prev.map((p) => (p._uid === product._uid ? { ...p, qty: next } : p))
+    );
   };
 
-  /* Remove product via slice */
-  const removeProduct = (id: string): void => {
+  /* Remove product via slice + sync selection */
+  const removeLine = (id: string): void => {
     dispatch(removeFromCart(id));
+    setSelected((prev) => prev.filter((p) => p._uid !== id));
   };
 
   /* Toggle selection */
@@ -99,11 +96,11 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
               {product.name.length > 30 ? `${product.name.substring(0, 30)}…` : product.name}
             </h1>
             <div style={{ zIndex: 2 }}>
-              <BsHeart />
+              <BsHeart aria-label="Add to wishlist" role="button" tabIndex={0} />
             </div>
             <div
               style={{ zIndex: 2, cursor: "pointer" }}
-              onClick={() => removeProduct(product._uid)}
+              onClick={() => removeLine(product._uid)}
               role="button"
               aria-label="Remove product"
               tabIndex={0}
@@ -121,7 +118,7 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
               height={20}
             />
             {product.size && <span>{product.size}</span>}
-            {product.price && <span>{product.price.toFixed(2)}$</span>}
+            {!!product.price && <span>{product.price.toFixed(2)}$</span>}
             <MdOutlineKeyboardArrowRight />
           </div>
 
@@ -138,14 +135,20 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
                 <span className={styles.discount}>-{product.discount}%</span>
               )}
             </div>
+
             <div className={styles.product__priceQty_qty}>
-              <button disabled={product.qty < 2} onClick={() => updateQty("minus")}>
+              <button
+                disabled={product.qty < 2}
+                onClick={() => updateQty("minus")}
+                aria-label="Decrease quantity"
+              >
                 -
               </button>
-              <span>{product.qty}</span>
+              <span aria-live="polite">{product.qty}</span>
               <button
                 disabled={product.qty === product.quantity}
                 onClick={() => updateQty("plus")}
+                aria-label="Increase quantity"
               >
                 +
               </button>
