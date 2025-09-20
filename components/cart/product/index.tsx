@@ -1,45 +1,24 @@
+// components/cart/product/index.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import Image from "next/image";
 import { BsHeart } from "react-icons/bs";
 import { AiOutlineDelete } from "react-icons/ai";
 import { MdOutlineKeyboardArrowRight } from "react-icons/md";
-import type { CartProduct } from "@/types/cart";
 
 import styles from "./styles.module.scss";
-// import { updateCart } from "@/store/cartSlice";
+import type { CartProduct } from "@/types/cart";
+import { useAppDispatch} from "@/store/hooks";
+import { removeFromCart, setItemQty } from "@/store/cartSlice";
 
 /* ---------- Types ---------- */
 
 export interface ProductImage {
   url: string;
 }
-
 export interface ProductColor {
   image: string;
-}
-
-export interface ProductType {
-  _uid: string;
-  name: string;
-  qty: number;
-  quantity: number;
-  price: number;
-  priceBefore?: number;
-  discount: number;
-  size?: string;
-  images: ProductImage[];
-  color: ProductColor;
-  shipping?: number;
-}
-
-interface CartState {
-  cartItems: ProductType[];
-}
-
-interface RootState {
-  cart: CartState;
 }
 
 interface ProductProps {
@@ -51,33 +30,30 @@ interface ProductProps {
 /* ---------- Component ---------- */
 
 const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => {
-  const { cart } = useSelector((state: RootState) => state);
+  const dispatch = useAppDispatch();
+  
   const [active, setActive] = useState<boolean>(false);
-  const dispatch = useDispatch();
 
   /* Track selection state */
   useEffect(() => {
-    const isSelected = selected.some((p) => p._uid === product._uid);
-    setActive(isSelected);
+    setActive(selected.some((p) => p._uid === product._uid));
   }, [selected, product._uid]);
 
-  /* Update quantity */
+  /* Update quantity via slice (no unused vars) */
   const updateQty = (type: "plus" | "minus"): void => {
-    const newCart = cart.cartItems.map((p) =>
-      p._uid === product._uid
-        ? {
-            ...p,
-            qty: type === "plus" ? p.qty + 1 : p.qty - 1,
-          }
-        : p
-    );
-    // dispatch(updateCart(newCart));
+    const next =
+      type === "plus"
+        ? Math.min(product.qty + 1, product.quantity)
+        : Math.max(product.qty - 1, 1);
+
+    if (next !== product.qty) {
+      dispatch(setItemQty({ _uid: product._uid, qty: next }));
+    }
   };
 
-  /* Remove product */
+  /* Remove product via slice */
   const removeProduct = (id: string): void => {
-    const newCart = cart.cartItems.filter((p) => p._uid !== id);
-    // dispatch(updateCart(newCart));
+    dispatch(removeFromCart(id));
   };
 
   /* Toggle selection */
@@ -95,7 +71,7 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
 
       {/* Header */}
       <div className={styles.product__header}>
-        <img src="/images/store.webp" alt="Store logo" />
+        <Image src="/images/store.webp" alt="Store logo" width={18} height={18} />
         M74JJI Official Store
       </div>
 
@@ -108,21 +84,25 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
           aria-pressed={active}
           tabIndex={0}
         />
-        <img src={product.images[0]?.url} alt={product.name} />
+        <Image
+          src={product.images[0]?.url || "/placeholder.png"}
+          alt={product.name}
+          width={120}
+          height={120}
+          className={styles.product__thumb}
+        />
 
         <div className={styles.col}>
           {/* Title + actions */}
           <div className={styles.grid}>
-            <h1>
-              {product.name.length > 30
-                ? `${product.name.substring(0, 30)}…`
-                : product.name}
+            <h1 title={product.name}>
+              {product.name.length > 30 ? `${product.name.substring(0, 30)}…` : product.name}
             </h1>
             <div style={{ zIndex: 2 }}>
               <BsHeart />
             </div>
             <div
-              style={{ zIndex: 2 }}
+              style={{ zIndex: 2, cursor: "pointer" }}
               onClick={() => removeProduct(product._uid)}
               role="button"
               aria-label="Remove product"
@@ -134,7 +114,12 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
 
           {/* Style */}
           <div className={styles.product__style}>
-            <img src={product.color.image} alt="Color option" />
+            <Image
+              src={product.color.image || "/placeholder.png"}
+              alt="Color option"
+              width={20}
+              height={20}
+            />
             {product.size && <span>{product.size}</span>}
             {product.price && <span>{product.price.toFixed(2)}$</span>}
             <MdOutlineKeyboardArrowRight />
@@ -147,19 +132,14 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
                 USD {(product.price * product.qty).toFixed(2)}$
               </span>
               {product.priceBefore && product.priceBefore !== product.price && (
-                <span className={styles.priceBefore}>
-                  USD {product.priceBefore}$
-                </span>
+                <span className={styles.priceBefore}>USD {product.priceBefore}$</span>
               )}
               {typeof product.discount === "number" && product.discount > 0 && (
                 <span className={styles.discount}>-{product.discount}%</span>
               )}
             </div>
             <div className={styles.product__priceQty_qty}>
-              <button
-                disabled={product.qty < 2}
-                onClick={() => updateQty("minus")}
-              >
+              <button disabled={product.qty < 2} onClick={() => updateQty("minus")}>
                 -
               </button>
               <span>{product.qty}</span>
@@ -174,16 +154,13 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
 
           {/* Shipping */}
           <div className={styles.product__shipping}>
-            {product.shipping
-              ? `+${product.shipping}$ Shipping fee`
-              : "Free Shipping"}
+            {product.shipping ? `+${product.shipping}$ Shipping fee` : "Free Shipping"}
           </div>
 
           {/* Out of stock notice */}
           {product.quantity < 1 && (
             <div className={styles.notAvailable}>
-              This product is out of stock. Add it to your wishlist, it may get
-              restocked.
+              This product is out of stock. Add it to your wishlist, it may get restocked.
             </div>
           )}
         </div>

@@ -11,7 +11,7 @@ type Cached = {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
+  // Augment the Node.js global type to include our cache
   var _mongooseCached: Cached | undefined;
 }
 
@@ -26,9 +26,8 @@ global._mongooseCached = cached;
 export default async function dbConnect(): Promise<typeof mongoose> {
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI as string, {
+    cached.promise = mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
-      // You can add options here if needed
     });
   }
   cached.conn = await cached.promise;

@@ -48,7 +48,7 @@ const orderOptions: OrderOption[] = [
 
 /* ---------- Component ---------- */
 export default function TableHeader({
-  reviews,
+
   allSizes,
   colors,
 }: TableHeaderProps): React.JSX.Element {

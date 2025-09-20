@@ -1,52 +1,47 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import ProductSwiper from "./ProductSwiper";
 import styles from "./styles.module.scss";
 
 /* ---------- Types ---------- */
-
-type Size = {
-  price: number;
-};
-
+type Size = { price: number };
 type SubProduct = {
   images: string[];
   sizes: Size[];
   discount?: number; // percent
-  color: {
-    image?: string;   // swatch image (optional)
-    color?: string;   // hex or css color (optional)
-  };
+  color: { image?: string; color?: string };
 };
-
 export type Product = {
   slug: string;
   name: string;
   subProducts: SubProduct[];
 };
 
-type ProductCardProps = {
-  product: Product;
-};
+type ProductCardProps = { product: Product };
 
 /* ---------- Component ---------- */
-
 export default function ProductCard({ product }: ProductCardProps): React.JSX.Element {
-  // Guard: ensure at least one subProduct exists to avoid crashes
-  const safeSubProducts: SubProduct[] = Array.isArray(product.subProducts) && product.subProducts.length
-    ? product.subProducts
-    : [{ images: [], sizes: [], color: {} }];
+  // ✅ Memoize the normalized subProducts to avoid identity changes
+  const safeSubProducts = useMemo<SubProduct[]>(
+    () =>
+      Array.isArray(product.subProducts) && product.subProducts.length
+        ? product.subProducts
+        : [{ images: [], sizes: [], color: {} }],
+    [product.subProducts]
+  );
 
   const [active, setActive] = useState<number>(0);
 
-  // Clamp active index to a valid range if product changes
+  // ✅ Clamp active when product (or count) changes
   useEffect(() => {
     if (active >= safeSubProducts.length) setActive(0);
-  }, [product, active, safeSubProducts.length]);
+  }, [active, safeSubProducts.length]);
 
-  const activeSub = safeSubProducts[active];
+  // ✅ Memoize the active subProduct
+  const activeSub = useMemo(() => safeSubProducts[active], [safeSubProducts, active]);
 
   // Images for the active style
   const images = activeSub?.images ?? [];
@@ -62,10 +57,7 @@ export default function ProductCard({ product }: ProductCardProps): React.JSX.El
   );
 
   // All style swatches
-  const swatches = useMemo(
-    () => safeSubProducts.map((p) => p.color),
-    [safeSubProducts]
-  );
+  const swatches = useMemo(() => safeSubProducts.map((p) => p.color), [safeSubProducts]);
 
   const hasDiscount = typeof activeSub?.discount === "number" && activeSub.discount! > 0;
 
@@ -90,9 +82,7 @@ export default function ProductCard({ product }: ProductCardProps): React.JSX.El
           </div>
         </Link>
 
-        {hasDiscount && (
-          <div className={styles.product__discount}>-{activeSub!.discount}%</div>
-        )}
+        {hasDiscount && <div className={styles.product__discount}>-{activeSub!.discount}%</div>}
 
         <div className={styles.product__infos}>
           <h1 title={product.name}>
@@ -105,13 +95,15 @@ export default function ProductCard({ product }: ProductCardProps): React.JSX.El
             {swatches.map((style, i) => {
               const isActive = i === active;
 
-              // Image swatch
+              // ✅ Image swatch via Next/Image
               if (style.image) {
                 return (
-                  <img
+                  <Image
                     key={`swatch-img-${i}`}
                     src={style.image}
                     alt={`Style ${i + 1}`}
+                    width={24}
+                    height={24}
                     className={isActive ? styles.active : ""}
                     onMouseOver={() => setActive(i)}
                   />

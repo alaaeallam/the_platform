@@ -10,6 +10,7 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import Slide, { type SlideProps } from "@mui/material/Slide";
 import Link from "next/link";
+import Image from "next/image"; // ✅ Next.js optimized image
 import styles from "./styles.module.scss";
 
 import { hideDialog } from "@/store/DialogSlice";
@@ -44,20 +45,28 @@ export default function DialogModal(): React.JSX.Element {
         aria-describedby="dialog-description"
         fullWidth
       >
-        <DialogTitle className={`${styles.header} ${!hasError ? styles.dialog_success : ""}`}>
+        <DialogTitle
+          className={`${styles.header} ${!hasError ? styles.dialog_success : ""}`}
+        >
           {dialog.header}
         </DialogTitle>
 
         <DialogContent className={styles.body}>
           {dialog.msgs.map((msg, i) => (
-            <DialogContentText className={styles.msg} id={`dialog-line-${i}`} key={`dlg-${i}`}>
-              <img
+            <DialogContentText
+              className={styles.msg}
+              id={`dialog-line-${i}`}
+              key={`dlg-${i}`}
+            >
+              <Image
                 src={
                   msg.type === "error"
                     ? "https://www.freeiconspng.com/uploads/orange-error-icon-0.png"
                     : "https://www.pngmart.com/files/20/Success-Transparent-Background.png"
                 }
                 alt={msg.type === "error" ? "Error" : "Success"}
+                width={24}  // ✅ give it fixed width
+                height={24} // ✅ give it fixed height
               />
               <span>{msg.msg}</span>
             </DialogContentText>

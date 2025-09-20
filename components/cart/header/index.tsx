@@ -13,9 +13,9 @@ export default function Header(): React.JSX.Element {
         <div className={styles.header__left}>
           <Link href="/" aria-label="Go to homepage">
             <Image
-              src="/logo.png"
+              src="/silhouett.jpg"
               alt="Shop logo"
-              width={120}
+              width={60}
               height={40}
               priority
             />

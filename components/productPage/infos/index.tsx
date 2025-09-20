@@ -1,8 +1,11 @@
 // components/productPage/infos/index.tsx
 "use client";
-
+import { addToCart } from "@/store/cartSlice";
+import type { CartProduct } from "@/types/cart";
+import { useAppDispatch } from "@/store";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image"; // ✅
 import { useSearchParams } from "next/navigation";
 import { TbPlus, TbMinus } from "react-icons/tb";
 import { BsHandbagFill, BsHeart } from "react-icons/bs";
@@ -23,7 +26,6 @@ export interface ProductInfosVM {
   numReviews: number;
   createdAt: string;
   description: string;
-  /** Must be KV rows only; description is passed separately. */
   details: DetailKV[];
   style: number;
   images: string[];
@@ -49,9 +51,7 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
   const sizeIndex = Number(searchParams.get("size") ?? "0");
   const styleIndex = Number(searchParams.get("style") ?? String(product.style ?? 0));
 
-  const [sizeLabel, setSizeLabel] = useState<string | undefined>(
-    product.sizes[sizeIndex]?.size
-  );
+  // ❌ removed unused sizeLabel
   const [qty, setQty] = useState<number>(1);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
@@ -61,16 +61,20 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
     [product.sizes]
   );
 
+  // reset qty when style changes
   useEffect(() => {
-    setSizeLabel(product.sizes[0]?.size);
     setQty(1);
   }, [styleIndex, product.sizes]);
 
+  // clamp qty to stock
   useEffect(() => {
     if (qty > product.quantity) setQty(product.quantity);
   }, [sizeIndex, product.quantity, qty]);
 
-  const addToCartHandler = async () => {
+  const dispatch = useAppDispatch();
+
+  /* Add to cart handler */
+  const addToCartHandler = (): void => {
     setError("");
     setSuccess("");
 
@@ -78,8 +82,26 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
       setError("Please select a size.");
       return;
     }
+    if (qty < 1 || qty > product.quantity) {
+      setError("Selected quantity is not available.");
+      return;
+    }
 
-    // TODO: wire to cart slice/API
+    const uid = `${product._id}_${styleIndex}_${sizeIndex}`;
+    const item: CartProduct = {
+      _uid: uid,
+      name: product.name,
+      qty,
+      quantity: product.quantity,
+      price: product.price,
+      shipping: product.shipping,
+      priceBefore: product.priceBefore,
+      discount: product.discount,
+      size: product.sizes[sizeIndex]?.size,
+      images: [{ url: product.images?.[0] ?? "" }],
+      color: { image: product.colors?.[styleIndex]?.image ?? "" },
+    };
+    dispatch(addToCart(item));
     setSuccess("Added to cart.");
   };
 
@@ -103,11 +125,7 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
         </div>
 
         <div className={styles.infos__price}>
-          {Number.isNaN(sizeIndex) ? (
-            <h2>{product.priceRange}</h2>
-          ) : (
-            <h1>{product.price}$</h1>
-          )}
+          {Number.isNaN(sizeIndex) ? <h2>{product.priceRange}</h2> : <h1>{product.price}$</h1>}
           {product.discount > 0 && (
             <h3>
               {!Number.isNaN(sizeIndex) && <span>{product.priceBefore}$</span>}
@@ -121,8 +139,7 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
         </span>
 
         <span>
-          {!Number.isNaN(sizeIndex) ? product.quantity : totalPiecesAvailable}{" "}
-          pieces available.
+          {!Number.isNaN(sizeIndex) ? product.quantity : totalPiecesAvailable} pieces available.
         </span>
 
         {/* Sizes */}
@@ -134,10 +151,7 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
               const active = i === sizeIndex;
               return (
                 <Link href={href} key={`${s.size}-${i}`} aria-label={`Size ${s.size}`}>
-                  <div
-                    className={`${styles.infos__sizes_size} ${active ? styles.active_size : ""}`}
-                    onClick={() => setSizeLabel(s.size)}
-                  >
+                  <div className={`${styles.infos__sizes_size} ${active ? styles.active_size : ""}`}>
                     {s.size}
                   </div>
                 </Link>
@@ -152,6 +166,7 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
             const href = `/products/${product.slug}?style=${i}`;
             const active = i === styleIndex;
             const preview = product.subProducts?.[i]?.images?.[0];
+            const alt = color.color ?? `Color ${i + 1}`;
             return (
               <span
                 key={`color-${i}`}
@@ -159,8 +174,14 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
                 onMouseOver={() => preview && setActiveImg(preview)}
                 onMouseLeave={() => setActiveImg("")}
               >
-                <Link href={href} aria-label={`Color ${color.color ?? i + 1}`}>
-                  <img src={color.image ?? ""} alt={color.color ?? `Color ${i + 1}`} />
+                <Link href={href} aria-label={`Color ${alt}`}>
+                  <Image
+                    src={color.image ?? ""}
+                    alt={alt}
+                    width={28}
+                    height={28}
+                    sizes="28px"
+                  />
                 </Link>
               </span>
             );
@@ -182,13 +203,17 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
         <div className={styles.infos__actions}>
           <button
             disabled={product.quantity < 1}
-            style={{ cursor: product.quantity < 1 ? "not-allowed" as const : undefined }}
+            style={{ cursor: product.quantity < 1 ? ("not-allowed" as const) : undefined }}
             onClick={addToCartHandler}
           >
             <BsHandbagFill />
             <b>ADD TO CART</b>
           </button>
-          <button>
+          <button
+            disabled={product.quantity < 1}
+            style={{ cursor: product.quantity < 1 ? "not-allowed" : undefined }}
+            onClick={addToCartHandler}
+          >
             <BsHeart />
             WISHLIST
           </button>
@@ -198,10 +223,7 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
         {success && <span className={styles.success}>{success}</span>}
 
         <Share />
-
-        {/* ✅ Pass description separately; details is KV only */}
         <Accordian description={product.description} details={product.details ?? []} />
-
         <SimillarSwiper />
       </div>
     </div>

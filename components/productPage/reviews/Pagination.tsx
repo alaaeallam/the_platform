@@ -30,7 +30,7 @@ export default function usePagination<T>(data: T[], itemsPerPage: number) {
   /** Jump to a specific page */
   function jump(page: number): void {
     const pageNumber = Math.max(1, page);
-    setCurrentPage((_) => Math.min(pageNumber, maxPage));
+    setCurrentPage(() => Math.min(pageNumber, maxPage));
   }
 
   return { next, prev, jump, currentData, currentPage, maxPage };

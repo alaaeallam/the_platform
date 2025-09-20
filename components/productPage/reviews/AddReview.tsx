@@ -4,7 +4,6 @@
 import { useEffect, useState } from "react";
 import Rating from "@mui/material/Rating";
 import axios from "axios";
-import { useDispatch } from "react-redux";
 import { ClipLoader } from "react-spinners";
 
 import Images from "./Images";
@@ -16,9 +15,9 @@ import DialogModal from "@/components/dialogModal";
 import dataURItoBlob from "@/utils/dataURItoBlob";
 import { uploadImages } from "@/requests/upload";
 import { ReviewVM } from "./Review";
+import { useAppDispatch } from "@/store/hooks";
 
 /* ---------- Types ---------- */
-
 type MsgType = "error" | "success";
 
 interface DialogMsg {
@@ -26,36 +25,23 @@ interface DialogMsg {
   type: MsgType;
 }
 
-interface SizeVM {
-  size: string;
-}
-
-interface ColorVM {
-  color?: string;
-  image?: string;
-}
-
 interface AddReviewProps {
- product: {
+  product: {
     _id: string;
     allSizes: { size: string }[];
     colors?: { color?: string; image?: string }[];
   };
-  /** React state setter coming from parent <Reviews /> */
   setReviews: React.Dispatch<React.SetStateAction<ReviewVM[]>>;
 }
 
 /* ---------- Constants ---------- */
-
 const FITS = ["Small", "True to size", "Large"] as const;
 
 /* ---------- Component ---------- */
-
 export default function AddReview({ product, setReviews }: AddReviewProps) {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const [loading, setLoading] = useState(false);
-
   const [size, setSize] = useState<string>("");
   const [style, setStyle] = useState<string>("");
   const [fit, setFit] = useState<string>("");
@@ -78,12 +64,7 @@ export default function AddReview({ product, setReviews }: AddReviewProps) {
     if (!rating) msgs.push({ msg: "Please select a rating!", type: "error" });
 
     if (msgs.length) {
-      dispatch(
-        showDialog({
-          header: "Adding review error!",
-          msgs,
-        })
-      );
+      dispatch(showDialog({ header: "Adding review error!", msgs }));
       setLoading(false);
       return;
     }
@@ -125,8 +106,8 @@ export default function AddReview({ product, setReviews }: AddReviewProps) {
           msgs: [
             {
               msg:
-                (err as { response?: { data?: { message?: string } } })?.response
-                  ?.data?.message ?? "Something went wrong. Please try again.",
+                (err as { response?: { data?: { message?: string } } })?.response?.data
+                  ?.message ?? "Something went wrong. Please try again.",
               type: "error",
             },
           ],
@@ -139,9 +120,7 @@ export default function AddReview({ product, setReviews }: AddReviewProps) {
 
   // Derive simple string arrays for the Selects
   const sizeOptions = product.allSizes.map((s) => s.size);
-  const colorOptions = (product.colors ?? [])
-    .map((c) => c.color ?? "")
-    .filter(Boolean);
+  const colorOptions = (product.colors ?? []).map((c) => c.color ?? "").filter(Boolean);
 
   return (
     <div className={styles.reviews__add}>
@@ -149,24 +128,9 @@ export default function AddReview({ product, setReviews }: AddReviewProps) {
 
       <div className={styles.reviews__add_wrap}>
         <div className={styles.flex} style={{ gap: 10 }}>
-          <Select
-            property={size}
-            text="Size"
-            data={sizeOptions.filter((x) => x !== size)}
-            handleChange={setSize}
-          />
-          <Select
-            property={style}
-            text="Style"
-            data={colorOptions.filter((x) => x !== style)}
-            handleChange={setStyle}
-          />
-          <Select
-            property={fit}
-            text="How does it fit"
-            data={FITS.filter((x) => x !== fit)}
-            handleChange={setFit}
-          />
+          <Select property={size} text="Size" data={sizeOptions.filter((x) => x !== size)} handleChange={setSize} />
+          <Select property={style} text="Style" data={colorOptions.filter((x) => x !== style)} handleChange={setStyle} />
+          <Select property={fit} text="How does it fit" data={FITS.filter((x) => x !== fit)} handleChange={setFit} />
         </div>
 
         <Images images={images} setImages={setImages} />

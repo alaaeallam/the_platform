@@ -1,20 +1,21 @@
+// types/cart.ts
 export interface CartProduct {
   _uid: string;
 
   // core cart fields
   name: string;
-  qty: number;          // chosen quantity in cart
-  quantity: number;     // available stock
+  qty: number;          // quantity in cart
+  quantity: number;     // stock available
   price: number;
   shipping?: number | string;
 
-  // optional UI fields used by components
+  // optional UI fields
   priceBefore?: number;
   discount?: number;
   size?: string;
   images: { url: string }[];
   color: { image: string };
 
-  // allow extra fields without breaking typing
+  // allow extras
   [key: string]: unknown;
 }

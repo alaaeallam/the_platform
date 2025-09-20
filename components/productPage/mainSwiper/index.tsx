@@ -2,16 +2,25 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Image from "next/image"; // ✅ use Next Image
 import styles from "./styles.module.scss";
 
-export interface MainSwiperImage { url: string; alt?: string }
-export interface MainSwiperProps {
-  images: Array<string | MainSwiperImage>;
-  activeImg?: string; // can override main image externally (e.g., hover color)
-  zoom?: number;      // magnification factor
+export interface MainSwiperImage {
+  url: string;
+  alt?: string;
 }
 
-export default function MainSwiper({ images, activeImg, zoom = 2 }: MainSwiperProps) {
+export interface MainSwiperProps {
+  images: Array<string | MainSwiperImage>;
+  activeImg?: string; // external override (e.g., hover color)
+  zoom?: number; // magnification factor
+}
+
+export default function MainSwiper({
+  images,
+  activeImg,
+  zoom = 2,
+}: MainSwiperProps) {
   const normalized = useMemo<MainSwiperImage[]>(
     () =>
       (images ?? [])
@@ -54,7 +63,7 @@ export default function MainSwiper({ images, activeImg, zoom = 2 }: MainSwiperPr
     backgroundImage: `url(${currentSrc})`,
     backgroundRepeat: "no-repeat",
     backgroundSize: `${zoom * 100}% ${zoom * 100}%`,
-    backgroundPosition: `${(-lens.x * (zoom - 1))}px ${(-lens.y * (zoom - 1))}px`,
+    backgroundPosition: `${-lens.x * (zoom - 1)}px ${-lens.y * (zoom - 1)}px`,
   } as const;
 
   return (
@@ -66,10 +75,16 @@ export default function MainSwiper({ images, activeImg, zoom = 2 }: MainSwiperPr
         onMouseLeave={onLeave}
         onMouseMove={onMove}
       >
-        {/* Base image */}
-        <img src={currentSrc} alt={normalized[active]?.alt ?? "Product image"} />
+        {/* ✅ Next Image for main */}
+        <Image
+          src={currentSrc}
+          alt={normalized[active]?.alt ?? "Product image"}
+          width={600}
+          height={600}
+          priority
+          className={styles.mainImage}
+        />
 
-        {/* Zoom overlay */}
         {lens.show && <div className={styles.zoomOverlay} style={bgPos} />}
       </div>
 
@@ -83,7 +98,14 @@ export default function MainSwiper({ images, activeImg, zoom = 2 }: MainSwiperPr
             onClick={() => setActive(i)}
             aria-label={`Preview ${i + 1}`}
           >
-            <img src={img.url} alt={img.alt ?? `Thumbnail ${i + 1}`} />
+            {/* ✅ Next Image for thumbnails */}
+            <Image
+              src={img.url}
+              alt={img.alt ?? `Thumbnail ${i + 1}`}
+              width={80}
+              height={80}
+              className={styles.thumb}
+            />
           </button>
         ))}
       </div>

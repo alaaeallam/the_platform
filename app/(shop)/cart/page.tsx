@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import type { CartProduct } from "@/types/cart";
@@ -27,7 +27,7 @@ interface RootState {
 export default function CartPage(): React.JSX.Element {
   const router = useRouter();
   const { data: session } = useSession();
-  const dispatch = useDispatch();
+  // const dispatch = useAppDispatch();
 
   // ✅ use the shared type here
   const [selected, setSelected] = useState<CartProduct[]>([]);
@@ -50,15 +50,29 @@ export default function CartPage(): React.JSX.Element {
     };
   }, [selected]);
 
-  useEffect(() => {
-    if (!cart?.cartItems?.length) {
-      setSelected([]);
-      return;
+useEffect(() => {
+  const items = cart?.cartItems ?? [];
+  if (!items.length) {
+    setSelected([]);
+    return;
+  }
+
+  setSelected((prev) => {
+    // 1) first load: select all
+    if (!prev.length) return items;
+
+    // 2) keep previous selections, auto-add any new items
+    const prevIds = new Set(prev.map((p) => p._uid));
+    const merged = [...prev];
+
+    for (const it of items) {
+      if (!prevIds.has(it._uid)) merged.push(it);
     }
-    setSelected((prev) =>
-      prev.filter((s) => cart.cartItems.some((c) => c._uid === s._uid))
-    );
-  }, [cart?.cartItems]);
+
+    // 3) remove selections that no longer exist
+    return merged.filter((p) => items.some((c) => c._uid === p._uid));
+  });
+}, [cart?.cartItems]);
 
   const saveCartToDbHandler = async (): Promise<void> => {
     if (!selected.length) return;

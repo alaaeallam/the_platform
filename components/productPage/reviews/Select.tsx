@@ -5,7 +5,7 @@ import { IoArrowDown } from "react-icons/io5";
 import styles from "./styles.module.scss";
 
 /* ---------- Types ---------- */
-type SelectKind = "Size" | "Style" | "How does it fit";
+// type SelectKind = "Size" | "Style" | "How does it fit";
 
 type SizeProps = {
   text: "Size";

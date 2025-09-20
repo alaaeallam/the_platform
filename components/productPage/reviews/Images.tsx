@@ -2,13 +2,12 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image"; // ✅ use Next Image
 import { MdOutlineRemoveCircle } from "react-icons/md";
 import styles from "./styles.module.scss";
 
 type ImagesProps = {
-  /** Data-URI images selected by the user */
-  images: string[];
-  /** Setter provided by parent to update images */
+  images: string[]; // data: URLs
   setImages: (updater: (prev: string[]) => string[]) => void;
 };
 
@@ -24,7 +23,6 @@ export default function Images({ images, setImages }: ImagesProps): React.JSX.El
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
 
-    // Respect max count
     const remainingSlots = Math.max(0, MAX_IMAGES - images.length);
     const toProcess = files.slice(0, remainingSlots);
 
@@ -33,39 +31,31 @@ export default function Images({ images, setImages }: ImagesProps): React.JSX.El
     }
 
     toProcess.forEach((file) => {
-      // Validate type
       if (!ALLOWED_TYPES.has(file.type)) {
-        setError(
-          `${file.name} format is unsupported. Only JPEG, PNG, WEBP are allowed.`
-        );
+        setError(`${file.name} format is unsupported. Only JPEG, PNG, WEBP are allowed.`);
         return;
       }
-      // Validate size
       if (file.size > MAX_BYTES) {
         setError(`${file.name} is too large. Max 5MB allowed.`);
         return;
       }
 
-      // Read as Data URL
       const reader = new FileReader();
       reader.onload = (ev) => {
         const result = ev.target?.result;
         if (typeof result === "string") {
           setImages((prev) => [...prev, result]);
-          // Clear any prior error if we successfully add at least one image
           setError("");
         }
       };
       reader.readAsDataURL(file);
     });
 
-    // Reset input so selecting the same file again will trigger onChange
     e.target.value = "";
   };
 
   const removeImage = (imgToRemove: string) => {
     setImages((prev) => prev.filter((img) => img !== imgToRemove));
-    // Clear error if we’re back under the cap
     if (images.length - 1 < MAX_IMAGES) setError("");
   };
 
@@ -100,7 +90,16 @@ export default function Images({ images, setImages }: ImagesProps): React.JSX.El
               role="button"
               tabIndex={0}
             />
-            <img src={img} alt={`User uploaded ${i + 1}`} />
+            {/* ✅ Next Image for data URLs; mark unoptimized and give fixed size */}
+            <Image
+              src={img}
+              alt={`User uploaded ${i + 1}`}
+              width={96}
+              height={96}
+              sizes="96px"
+              className={styles.preview}
+              unoptimized
+            />
           </span>
         ))}
       </div>

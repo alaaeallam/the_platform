@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Rating } from "@mui/material";
 import { AiOutlineLike } from "react-icons/ai";
 import styles from "./styles.module.scss";
@@ -36,7 +37,15 @@ export default function Review({ review }: ReviewProps): React.JSX.Element {
       <div className={styles.flex}>
         <div className={styles.review__user}>
           <h4>{maskedName}</h4>
-          {image && <img src={image} alt={`${maskedName} avatar`} />}
+          {image && (
+            <Image
+              src={image}
+              alt={`${maskedName} avatar`}
+              width={32}
+              height={32}
+              className={styles.review__avatar}
+            />
+          )}
         </div>
 
         <div className={styles.review__review}>
@@ -58,9 +67,11 @@ export default function Review({ review }: ReviewProps): React.JSX.Element {
             </span>
             {review.style?.image && (
               <span className={styles.flex}>
-                <img
+                <Image
                   src={review.style.image}
                   alt="Selected style"
+                  width={24}
+                  height={24}
                   className={styles.review__img}
                 />
               </span>
@@ -74,7 +85,14 @@ export default function Review({ review }: ReviewProps): React.JSX.Element {
           {review.images?.length > 0 &&
             review.images.map((img, i) =>
               img?.url ? (
-                <img src={img.url} alt={`review image ${i + 1}`} key={`img-${i}`} />
+                <Image
+                  key={`img-${i}`}
+                  src={img.url}
+                  alt={`review image ${i + 1}`}
+                  width={80}
+                  height={80}
+                  className={styles.review__thumbnail}
+                />
               ) : null
             )}
         </div>

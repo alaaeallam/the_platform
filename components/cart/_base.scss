@@ -1,3 +1,12 @@
+/* components/cart/_base.scss */
+
+/* so _base.scss itself can use the variables */
+@use "../../app/styles/_tokens" as *;
+
+/* so modules that @use "../_base" get the variables too */
+@forward "../../app/styles/_tokens";
+
+/* any cart-wide mixins/utilities can live here */
 .card {
   background: #fff;
   padding: 1rem;

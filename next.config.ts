@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "img.alicdn.com" },
       { protocol: "https", hostname: "gdp.alicdn.com" },
       { protocol: "https", hostname: "assets.stickpng.com" },
+      { protocol: "https", hostname: "img.ltwebstatic.com" },
     ],
   },
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image"; // ✅ import Next.js Image
 import styles from "./styles.module.scss";
 
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -56,7 +57,14 @@ export default function ProductsSwiper({
             <SwiperSlide key={key}>
               <div className={styles.product}>
                 <div className={styles.product__img}>
-                  <img src={product.image} alt={title} />
+                  {/* ✅ Use Next.js Image */}
+                  <Image
+                    src={product.image}
+                    alt={title}
+                    width={300}   // you can adjust based on your design
+                    height={300}  // keep ratio similar to actual image
+                    className={styles.image}
+                  />
                 </div>
 
                 <div className={styles.product__infos}>
@@ -64,7 +72,7 @@ export default function ProductsSwiper({
                     {title.length > 30 ? `${title.slice(0, 30)}...` : title}
                   </h1>
                   {product.price !== undefined && (
-                    <span>USD{product.price}$</span>
+                    <span>USD {product.price}$</span>
                   )}
                 </div>
               </div>

@@ -1,3 +1,4 @@
+// components/header/Main.tsx
 "use client";
 
 import Link from "next/link";
@@ -5,19 +6,17 @@ import Image from "next/image";
 import styles from "./styles.module.scss";
 import { RiSearch2Line } from "react-icons/ri";
 import { FaOpencart } from "react-icons/fa";
-import { useSelector } from "react-redux";
-import type { RootState } from "@/store";
+import { useAppSelector } from "@/store";
 import { useState, type FormEvent } from "react";
 import { useRouter, usePathname } from "next/navigation";
+
+import { selectCartLineCount } from "@/store/cartSlice";
 
 export default function Main() {
   const router = useRouter();
   const pathname = usePathname();
-
+  const badgeCount = useAppSelector(selectCartLineCount);
   const [query, setQuery] = useState("");
-
-  const cart = useSelector((s: RootState) => s.cart);
-  const cartCount = cart?.items?.length ?? 0;
 
   // Local search handler
   const searchHandler = (q: string) => {
@@ -27,12 +26,13 @@ export default function Main() {
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
+    const trimmed = query.trim();
+    if (!trimmed) return;
+
     if (pathname !== "/browse") {
-      if (query.trim().length > 1) {
-        router.push(`/browse?search=${encodeURIComponent(query.trim())}`);
-      }
+      router.push(`/browse?search=${encodeURIComponent(trimmed)}`);
     } else {
-      searchHandler(query.trim());
+      searchHandler(trimmed);
     }
   };
 
@@ -57,7 +57,7 @@ export default function Main() {
 
         <Link href="/cart" className={styles.cart}>
           <FaOpencart />
-          <span>{cartCount}</span>
+          <span>{badgeCount}</span>
         </Link>
       </div>
     </div>
