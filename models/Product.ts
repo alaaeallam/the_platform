@@ -2,6 +2,9 @@ import mongoose, { Schema, Document, Model, HydratedDocument } from "mongoose";
 
 const { ObjectId } = Schema.Types;
 
+/* ---------- Small util ---------- */
+const ucase = (v: unknown): string => (typeof v === "string" ? v.toUpperCase() : "");
+
 /* ---------- Enums / constants ---------- */
 export const MarketingTagEnum = [
   "FLASH_SALE",
@@ -10,7 +13,7 @@ export const MarketingTagEnum = [
   "BEST_SELLER",
   "LIMITED",
 ] as const;
-type MarketingTag = typeof MarketingTagEnum[number];
+type MarketingTag = (typeof MarketingTagEnum)[number];
 
 /* ---------- Interfaces ---------- */
 export interface IReview {
@@ -27,7 +30,7 @@ export interface IReview {
 }
 
 export interface ICountryPrice {
-  country: string; // "EG", "US", "AE" (ISO-3166 alpha-2)
+  country: string; // ISO-3166 alpha-2: "EG", "US", ...
   price: number;
 }
 
@@ -38,37 +41,32 @@ export interface ICountryGroupPrice {
 
 export interface IMarketingTag {
   tag: MarketingTag;
-  // Auto on/off by time window (optional):
   startAt?: Date | null;
   endAt?: Date | null;
-  // Optional UI hints:
-  badgeText?: string; // e.g. "24H Flash!"
-  priority?: number;  // higher shows first
-  isActive?: boolean; // manual override (if set, time window ignored)
+  badgeText?: string;
+  priority?: number;
+  isActive?: boolean;
 }
 
 export interface ISize {
-  size: string;          // "S", "M", "L"...
+  size: string; // "S", "M", "L"...
   qty: number;
   basePrice: number;
-  // Country pricing:
   countryPrices: ICountryPrice[];
-  countryGroupPrices: ICountryGroupPrice[]; // NEW: price by group
-  // Variant-level (size) discount for use-cases like "Black / M only -10%":
-  discount?: number;     // percent (0-100)
-  marketingTags?: IMarketingTag[]; // tags at size level (optional)
+  countryGroupPrices: ICountryGroupPrice[];
+  discount?: number; // percent (0-100)
+  marketingTags?: IMarketingTag[];
 }
 
 export interface ISubProduct {
   sku?: string;
   images: string[];
   description_images: string[];
-  color?: { color?: string; image?: string }; // color swatch + image
+  color?: { color?: string; image?: string };
   sizes: ISize[];
-  // Fallback discount for all sizes under this subproduct (if size.discount is not set):
-  discount: number; // percent
+  discount: number; // percent (fallback for sizes)
   sold: number;
-  marketingTags?: IMarketingTag[]; // tags specific to this variant (color)
+  marketingTags?: IMarketingTag[];
 }
 
 export interface IProduct extends Document {
@@ -86,18 +84,16 @@ export interface IProduct extends Document {
   numReviews: number;
   shipping: number;
   subProducts: ISubProduct[];
-  // Product-level tags (applied to entire product):
   marketingTags?: IMarketingTag[];
 
   createdAt?: Date;
   updatedAt?: Date;
 
-  // Methods:
   getPriceFor(
     subIndex: number,
     sizeLabel: string,
     countryISO2: string,
-    opts?: { countryGroups?: Record<string, string[]> } // { MENA: ["EG","SA"], LOW_ECONOMY: ["EG","PK",...] }
+    opts?: { countryGroups?: Record<string, string[]> }
   ): number | null;
 
   getDiscountedPrice(price: number, discountPercent?: number): number;
@@ -120,17 +116,24 @@ export interface IProduct extends Document {
     sizeLabel: string,
     countryISO2List: string[],
     opts?: { countryGroups?: Record<string, string[]> }
-  ): Record<string, {
-    baseOrCountryPrice: number;
-    discountPercent: number;
-    discountedPrice: number;
-    shipping: number;
-    finalPrice: number;
-  }> | null;
+  ): Record<
+    string,
+    {
+      baseOrCountryPrice: number;
+      discountPercent: number;
+      discountedPrice: number;
+      shipping: number;
+      finalPrice: number;
+    }
+  > | null;
 
   getActiveTags(
     context?: { at?: Date }
-  ): { product: MarketingTag[]; bySubIndex: Record<number, MarketingTag[]>; byVariantSize: Record<string, MarketingTag[]> };
+  ): {
+    product: MarketingTag[];
+    bySubIndex: Record<number, MarketingTag[]>;
+    byVariantSize: Record<string, MarketingTag[]>;
+  };
 }
 
 /* ---------- Sub-schemas ---------- */
@@ -140,7 +143,10 @@ const reviewSchema = new Schema<IReview>(
     rating: { type: Number, required: true, default: 0, min: 0, max: 5 },
     review: { type: String, required: true, trim: true },
     size: { type: String, trim: true },
-    style: { color: { type: String, trim: true }, image: { type: String, trim: true } },
+    style: {
+      color: { type: String, trim: true },
+      image: { type: String, trim: true },
+    },
     fit: { type: String, trim: true },
     images: [{ type: String }],
     likes: [{ type: ObjectId, ref: "User" }],
@@ -155,14 +161,21 @@ const marketingTagSchema = new Schema<IMarketingTag>(
     endAt: { type: Date },
     badgeText: { type: String, trim: true },
     priority: { type: Number, default: 0 },
-    isActive: { type: Boolean }, // if set, ignore dates
+    isActive: { type: Boolean },
   },
   { _id: false }
 );
 
 const countryPriceSchema = new Schema<ICountryPrice>(
   {
-    country: { type: String, required: true, uppercase: true, trim: true, minlength: 2, maxlength: 2 },
+    country: {
+      type: String,
+      required: true,
+      uppercase: true,
+      trim: true,
+      minlength: 2,
+      maxlength: 2,
+    },
     price: { type: Number, required: true, min: 0 },
   },
   { _id: false }
@@ -170,7 +183,14 @@ const countryPriceSchema = new Schema<ICountryPrice>(
 
 const countryGroupPriceSchema = new Schema<ICountryGroupPrice>(
   {
-    groupCode: { type: String, required: true, uppercase: true, trim: true, minlength: 2, maxlength: 32 },
+    groupCode: {
+      type: String,
+      required: true,
+      uppercase: true,
+      trim: true,
+      minlength: 2,
+      maxlength: 32,
+    },
     price: { type: Number, required: true, min: 0 },
   },
   { _id: false }
@@ -182,7 +202,7 @@ const sizeSchema = new Schema<ISize>(
     qty: { type: Number, default: 0, min: 0 },
     basePrice: { type: Number, required: true, min: 0 },
     countryPrices: { type: [countryPriceSchema], default: [] },
-    countryGroupPrices: { type: [countryGroupPriceSchema], default: [] }, // NEW
+    countryGroupPrices: { type: [countryGroupPriceSchema], default: [] },
     discount: { type: Number, min: 0, max: 100 },
     marketingTags: { type: [marketingTagSchema], default: [] },
   },
@@ -199,7 +219,7 @@ const subProductSchema = new Schema<ISubProduct>(
       image: { type: String, trim: true },
     },
     sizes: { type: [sizeSchema], default: [] },
-    discount: { type: Number, default: 0, min: 0, max: 100 }, // fallback
+    discount: { type: Number, default: 0, min: 0, max: 100 },
     sold: { type: Number, default: 0, min: 0 },
     marketingTags: { type: [marketingTagSchema], default: [] },
   },
@@ -212,18 +232,33 @@ const productSchema = new Schema<IProduct>(
     name: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
     brand: { type: String, trim: true },
-    slug: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
     category: { type: ObjectId, ref: "Category", required: true },
     subCategories: [{ type: ObjectId, ref: "SubCategory" }],
-    details: [{ name: { type: String, trim: true }, value: { type: String, trim: true }, _id: false }],
-    questions: [{ question: { type: String, trim: true }, answer: { type: String, trim: true }, _id: false }],
+    details: [
+      { name: { type: String, trim: true }, value: { type: String, trim: true }, _id: false },
+    ],
+    questions: [
+      {
+        question: { type: String, trim: true },
+        answer: { type: String, trim: true },
+        _id: false,
+      },
+    ],
     reviews: { type: [reviewSchema], default: [] },
     refundPolicy: { type: String, default: "30 days", trim: true },
     rating: { type: Number, required: true, default: 0, min: 0, max: 5 },
     numReviews: { type: Number, required: true, default: 0, min: 0 },
     shipping: { type: Number, required: true, default: 0, min: 0 },
     subProducts: { type: [subProductSchema], default: [] },
-    marketingTags: { type: [marketingTagSchema], default: [] }, // product-level
+    marketingTags: { type: [marketingTagSchema], default: [] },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
@@ -236,21 +271,30 @@ function isTagActive(tag: IMarketingTag, now: Date): boolean {
   return true;
 }
 
-/** Country group resolver */
+/** Country group resolver (ultra-defensive) */
 function resolveGroupPrice(
   size: ISize,
   countryISO2: string,
   countryGroups?: Record<string, string[]>
 ): number | undefined {
   if (!countryGroups) return undefined;
-  const iso = countryISO2.toUpperCase();
-  // find the first matching group in the provided map that has a price
-  for (const [groupCode, countries] of Object.entries(countryGroups)) {
-    if (countries.map((c) => c.toUpperCase()).includes(iso)) {
-      const found = size.countryGroupPrices.find((g) => g.groupCode.toUpperCase() === groupCode.toUpperCase());
-      if (found) return found.price;
-    }
+
+  const iso = ucase(countryISO2);
+  const groupList = Array.isArray(size?.countryGroupPrices) ? size.countryGroupPrices : [];
+
+  for (const [groupCodeRaw, countriesRaw] of Object.entries(countryGroups)) {
+    const groupCode = ucase(groupCodeRaw); // safe
+    // coerce to array, filter to strings, normalize
+    const countries = (Array.isArray(countriesRaw) ? countriesRaw : [countriesRaw])
+      .filter((c): c is string => typeof c === "string" && c.length > 0)
+      .map(ucase);
+
+    if (!countries.includes(iso)) continue;
+
+    const found = groupList.find((g: any) => ucase(g?.groupCode) === groupCode);
+    if (found && typeof (found as any).price === "number") return (found as any).price;
   }
+
   return undefined;
 }
 
@@ -269,20 +313,25 @@ productSchema.methods.getPriceFor = function (
   const size = sub.sizes.find((s) => s.size === sizeLabel);
   if (!size) return null;
 
-  // 1) group override (if mapping provided)
+  // 1) group override
   const groupPrice = resolveGroupPrice(size, countryISO2, opts?.countryGroups);
   if (typeof groupPrice === "number") return groupPrice;
 
   // 2) per-country override
-  const match = size.countryPrices.find((cp) => cp.country.toUpperCase() === countryISO2.toUpperCase());
-  if (match) return match.price;
+  const cps = Array.isArray(size.countryPrices) ? size.countryPrices : [];
+  const iso = ucase(countryISO2);
+  const match = cps.find((cp: any) => ucase(cp?.country) === iso);
+  if (match && typeof match.price === "number") return match.price;
 
-  // 3) fallback to base
-  return size.basePrice ?? null;
+  // 3) base price
+  return typeof size.basePrice === "number" ? size.basePrice : null;
 };
 
 /** Safe percent discount */
-productSchema.methods.getDiscountedPrice = function (price: number, discountPercent?: number): number {
+productSchema.methods.getDiscountedPrice = function (
+  price: number,
+  discountPercent?: number
+): number {
   if (!price || !discountPercent || discountPercent <= 0) return price;
   return Math.max(0, price - (price * discountPercent) / 100);
 };
@@ -304,9 +353,12 @@ productSchema.methods.getFinalPriceFor = function (
   const raw = product.getPriceFor(subIndex, sizeLabel, countryISO2, opts);
   if (raw == null) return null;
 
-  const effectiveDiscount = typeof size.discount === "number" ? size.discount : (sub.discount || 0);
+  const effectiveDiscount =
+    typeof size.discount === "number" ? size.discount : sub.discount || 0;
+
   const discounted = product.getDiscountedPrice(raw, effectiveDiscount);
   const shipping = product.shipping || 0;
+
   return {
     baseOrCountryPrice: raw,
     discountPercent: effectiveDiscount,
@@ -330,15 +382,26 @@ productSchema.methods.getFinalPriceList = function (
   const size = sub.sizes.find((s) => s.size === sizeLabel);
   if (!size) return null;
 
-  const effectiveDiscount = typeof size.discount === "number" ? size.discount : (sub.discount || 0);
+  const effectiveDiscount =
+    typeof size.discount === "number" ? size.discount : sub.discount || 0;
 
-  const out: Record<string, any> = {};
+  const out: Record<
+    string,
+    {
+      baseOrCountryPrice: number;
+      discountPercent: number;
+      discountedPrice: number;
+      shipping: number;
+      finalPrice: number;
+    }
+  > = {};
+
   for (const c of countryISO2List) {
     const raw = product.getPriceFor(subIndex, sizeLabel, c, opts);
     if (raw == null) continue;
     const discounted = product.getDiscountedPrice(raw, effectiveDiscount);
     const shipping = product.shipping || 0;
-    out[c.toUpperCase()] = {
+    out[ucase(c)] = {
       baseOrCountryPrice: raw,
       discountPercent: effectiveDiscount,
       discountedPrice: discounted,
@@ -346,10 +409,11 @@ productSchema.methods.getFinalPriceList = function (
       finalPrice: discounted + shipping,
     };
   }
+
   return Object.keys(out).length ? out : null;
 };
 
-/** Returns which tags are active right now (product-level, subproduct-level, and size-level). */
+/** Active tags at product/subProduct/size levels */
 productSchema.methods.getActiveTags = function (context?: { at?: Date }) {
   const now = context?.at ?? new Date();
   const product = this as HydratedDocument<IProduct>;
@@ -360,16 +424,22 @@ productSchema.methods.getActiveTags = function (context?: { at?: Date }) {
     .map((t) => t.tag);
 
   const bySubIndex: Record<number, MarketingTag[]> = {};
-  const byVariantSize: Record<string, MarketingTag[]> = {}; // key: `${subIndex}:${sizeLabel}`
+  const byVariantSize: Record<string, MarketingTag[]> = {};
 
   product.subProducts?.forEach((sub, si) => {
-    const subTags = (sub.marketingTags || []).filter((t) => isTagActive(t, now)).sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)).map((t) => t.tag);
+    const subTags = (sub.marketingTags || [])
+      .filter((t) => isTagActive(t, now))
+      .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
+      .map((t) => t.tag);
     bySubIndex[si] = subTags;
 
     sub.sizes.forEach((sz) => {
-      const k = `${si}:${sz.size}`;
-      const sTags = (sz.marketingTags || []).filter((t) => isTagActive(t, now)).sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)).map((t) => t.tag);
-      byVariantSize[k] = sTags;
+      const key = `${si}:${sz.size}`;
+      const sTags = (sz.marketingTags || [])
+        .filter((t) => isTagActive(t, now))
+        .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
+        .map((t) => t.tag);
+      byVariantSize[key] = sTags;
     });
   });
 
