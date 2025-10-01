@@ -1,5 +1,5 @@
 // lib/auth.ts
-import type { NextAuthOptions, Session, User as NextAuthUser } from "next-auth";
+import type { NextAuthOptions, User as NextAuthUser } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
@@ -15,6 +15,10 @@ interface ExtendedUser extends NextAuthUser {
 }
 interface ExtendedToken extends JWT {
   role?: string;
+  // NextAuth adds these standard fields to the token when using OAuth
+  name?: string | null;
+  email?: string | null;
+  picture?: string | null;
 }
 
 // 30 days (in seconds)
@@ -48,7 +52,6 @@ export const authOptions: NextAuthOptions & { trustHost?: boolean } = {
         secure: isProd,
       },
     },
-    // Optional but nice to keep names predictable
     callbackUrl: {
       name: isProd
         ? "__Secure-next-auth.callback-url"
@@ -82,11 +85,11 @@ export const authOptions: NextAuthOptions & { trustHost?: boolean } = {
           .select("+password")
           .lean<{
             _id: unknown;
-            name?: string;
+            name?: string | null;
             email: string;
-            image?: string;
+            image?: string | null;
             password?: string;
-            role?: string;
+            role?: string | null;
           } | null>();
 
         if (!user?.password) return null;
@@ -106,7 +109,8 @@ export const authOptions: NextAuthOptions & { trustHost?: boolean } = {
 
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.Google_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET!, // tolerate either env name
+      clientSecret:
+        process.env.Google_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET!,
       httpOptions: { timeout: 30000 },
       profile(profile) {
         return {
@@ -121,46 +125,55 @@ export const authOptions: NextAuthOptions & { trustHost?: boolean } = {
   ],
 
   callbacks: {
-  async jwt({ token, user }) {
-    // Always carry the Mongo _id (not the provider sub)
-    if (token?.email) {
-      await connectDb();
+    async jwt({ token, user }) {
+      // Typed views (avoid any)
+      const t = token as ExtendedToken;
+      const u = (user ?? undefined) as ExtendedUser | undefined;
 
-      // doc is either a lean user or null
-      let doc = await User.findOne({ email: token.email })
-        .select({ _id: 1, role: 1 })
-        .lean<{ _id: unknown; role?: string } | null>();
+      // Always carry the Mongo _id (not just the provider sub)
+      if (t?.email) {
+        await connectDb();
 
-      if (!doc) {
-        // First-time OAuth signup: create minimal user
-        const created = await User.create({
-          name: token.name ?? (user as any)?.name ?? "",
-          email: token.email,
-          image: (token as any)?.picture ?? (user as any)?.image ?? null,
-          role: "customer",
-        });
-        doc = { _id: created._id, role: created.role ?? "customer" };
+        // doc is either a lean user or null
+        let doc = await User.findOne({ email: t.email })
+          .select({ _id: 1, role: 1 })
+          .lean<{ _id: unknown; role?: string } | null>();
+
+        if (!doc) {
+          // First-time OAuth signup: create minimal user
+          const created = await User.create({
+            name: t.name ?? u?.name ?? "",
+            email: t.email,
+            image: t.picture ?? u?.image ?? null,
+            role: "customer",
+          });
+          doc = { _id: created._id, role: created.role ?? "customer" };
+        }
+
+        const { _id, role } = doc;
+        t.sub = String(_id); // critical: use Mongo _id
+        t.role = role ?? t.role ?? "customer";
       }
 
-      // From here, doc is non-null
-      const { _id, role } = doc;
-      token.sub = String(_id);                       // critical: use Mongo _id
-      (token as any).role = role ?? (token as any).role ?? "customer";
-    }
+      // If credentials flow provided a role, keep it
+      if (u?.role && !t.role) {
+        t.role = u.role;
+      }
 
-    // If credentials flow provided a role, keep it
-    if (user && (user as any).role && !(token as any).role) {
-      (token as any).role = (user as any).role;
-    }
+      return t;
+    },
 
-    return token;
+    async session({ session, token }) {
+      const t = token as ExtendedToken;
+
+      if (session.user) {
+        // Mutate the session.user in a typed-safe way
+        (session.user as NextAuthUser & { id?: string; role?: string }).id =
+          token.sub ?? "";
+        (session.user as NextAuthUser & { id?: string; role?: string }).role =
+          t.role ?? "customer";
+      }
+      return session;
+    },
   },
-
-  async session({ session, token }) {
-    if (session.user) {
-      session.user.id = token.sub ?? "";             // now Mongo _id
-      (session.user as any).role = (token as any).role ?? "customer";
-    }
-    return session;
-  },
-}}
+};

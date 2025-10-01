@@ -23,46 +23,65 @@ export default function Products({ cart }: ProductsProps) {
 
       {/* Products list */}
       <div className={styles.products__wrap}>
-        {products.map((product) => {
-          // prefer _id; fall back to productId/product slug + size for a stable key
-          const key =
-            product._id ??
-            `${product.product ?? product.productId ?? product.slug ?? product.name}-${product.size}`;
+{products.map((product, i) => {
+  // style as a number when available; fallback token 'x'
+  const styleKey: number | "x" =
+    typeof product.style === "number" && Number.isFinite(product.style)
+      ? product.style
+      : "x";
 
-          const lineTotal = Number(product.price) * Number(product.qty || 0);
-          const mainImg = product.image || "/placeholder.png";
-          const colorImg = product.color?.image;
+  // prefer productId; otherwise use legacy `product` if it's a string
+  const productIdForKey =
+    product.productId ??
+    (typeof product.product === "string" ? product.product : "pid");
 
-          return (
-            <div key={key} className={styles.product}>
-              {/* Left: images */}
-              <div className={styles.product__img}>
-                <img src={mainImg} alt={product.name} />
-                <div className={styles.product__infos}>
-                  {colorImg && (
-                    <img
-                      src={colorImg}
-                      alt="Selected color"
-                      className={styles.product__color}
-                    />
-                  )}
-                  {product.size !== undefined && <span>{String(product.size)}</span>}
-                  <span>x{product.qty}</span>
-                </div>
-              </div>
+  // stable React key
+  const reactKey =
+    product._id ||
+    `${productIdForKey}-${styleKey}-${product.size ?? "x"}-${i}`;
 
-              {/* Middle: name */}
-              <div className={styles.product__name} title={product.name}>
-                {product.name.length > 18
-                  ? `${product.name.substring(0, 18)}…`
-                  : product.name}
-              </div>
+  const lineTotal = Number(product.price) * Number(product.qty || 0);
+  const displayName =
+    typeof product.name === "string" ? product.name : "Item";
 
-              {/* Right: price */}
-              <div className={styles.product__price}>{lineTotal.toFixed(2)}$</div>
-            </div>
-          );
-        })}
+  const mainImg =
+    (typeof product?.image === "string" && product.image) ||
+    "/placeholder.png";
+
+  const colorImg =
+    product?.color && typeof product.color.image === "string"
+      ? product.color.image
+      : undefined;
+
+  return (
+    <div key={reactKey} className={styles.product}>
+      <div className={styles.product__img}>
+        <img src={mainImg} alt={displayName} />
+        <div className={styles.product__infos}>
+          {colorImg && (
+            <img
+              src={colorImg}
+              alt="Selected color"
+              className={styles.product__color}
+            />
+          )}
+          {product.size !== undefined && <span>{String(product.size)}</span>}
+          <span>x{product.qty}</span>
+        </div>
+      </div>
+
+      <div className={styles.product__name} title={displayName}>
+        {displayName.length > 18
+          ? `${displayName.substring(0, 18)}…`
+          : displayName}
+      </div>
+
+      <div className={styles.product__price}>
+        {lineTotal.toFixed(2)}$
+      </div>
+    </div>
+  );
+})}
       </div>
 
       {/* Subtotal */}

@@ -5,9 +5,9 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/lib/auth"; // adjust if your authOptions lives elsewhere
-import db from "@/utils/db";       // keeping your old utils pathing style
-import User from "@/models/User";      // adjust if your models live elsewhere
+import { authOptions } from "@/lib/auth";
+import db from "@/utils/db";
+import User from "@/models/User";
 
 /* ----------------------------- Types ----------------------------- */
 
@@ -40,7 +40,9 @@ function isValidAddress(a: Partial<Address>): a is Address {
     "address1",
     "country",
   ];
-  return reqd.every((k) => typeof a[k] === "string" && (a[k] as string).trim().length > 0);
+  return reqd.every(
+    (k) => typeof a[k] === "string" && (a[k] as string).trim().length > 0
+  );
 }
 
 /* ----------------------------- Handler ----------------------------- */
@@ -56,7 +58,10 @@ export async function POST(req: Request) {
     const address = body?.address;
 
     if (!address || !isValidAddress(address)) {
-      return NextResponse.json({ message: "Invalid address payload" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid address payload" },
+        { status: 400 }
+      );
     }
 
     await db.connectDb();
@@ -69,19 +74,32 @@ export async function POST(req: Request) {
     }
 
     // Push the new address
-    await user.updateOne({
-      $push: { address },
-    });
+    await user.updateOne({ $push: { address } });
 
-    // Return updated address list
-    const fresh = await User.findById(user._id).select("address").lean();
+    // Return updated address list (typed)
+    const fresh = await User.findById(user._id)
+      .select("address")
+      .lean<{ address?: Address[] } | null>();
 
     await db.disconnectDb();
-    return NextResponse.json({ addresses: fresh?.address ?? [] }, { status: 200 });
-  } catch (err: any) {
-    console.error("[POST /api/user/saveAddress]", err);
-    // best-effort disconnect if db util manages pooling explicitly
-    try { await db.disconnectDb(); } catch {}
-    return NextResponse.json({ message: err?.message || "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { addresses: fresh?.address ?? [] },
+      { status: 200 }
+    );
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Server error";
+    // Log safely without relying on 'any'
+    
+    console.error("[POST /api/user/saveAddress]", message);
+
+    // Best-effort disconnect if your util manages pooling explicitly
+    try {
+      await db.disconnectDb();
+    } catch {
+      /* ignore */
+    }
+
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

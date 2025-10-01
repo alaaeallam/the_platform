@@ -81,33 +81,43 @@ export default function Summary({
         : cart.cartTotal;
 
     try {
-      setPosting(true);
-      const res = await fetch("/api/order/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          products: cart.products,
-          shippingAddress: selectedAddress,
-          paymentMethod,
-          total: finalTotal,
-          totalBeforeDiscount: cart.cartTotal,
-          couponApplied: coupon || undefined,
-          userId: user._id,
-        }),
-      });
+  setPosting(true);
+  const res = await fetch("/api/order/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      products: cart.products,
+      shippingAddress: selectedAddress,
+      paymentMethod,
+      total: finalTotal,
+      totalBeforeDiscount: cart.cartTotal,
+      couponApplied: coupon || undefined,
+      userId: user._id,
+    }),
+  });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.message || "Failed to place order.");
-      }
+     if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { message?: string };
+    throw new Error(data?.message || "Failed to place order.");
+  }
 
       const data = (await res.json()) as { order_id: string };
-      router.push(`/order/${data.order_id}`);
-    } catch (e: any) {
-      setOrderError(e?.message || "Unable to place order. Please try again.");
-    } finally {
-      setPosting(false);
-    }
+  router.push(`/order/${data.order_id}`);
+    } catch (err: unknown) {
+  const message =
+    err instanceof Error
+      ? err.message
+      : (typeof err === "object" &&
+         err !== null &&
+         "message" in err &&
+         typeof (err as { message: unknown }).message === "string")
+      ? (err as { message: string }).message
+      : "Unable to place order. Please try again.";
+
+  setOrderError(message);
+} finally {
+  setPosting(false);
+}
   }, [
     paymentMethod,
     selectedAddress,

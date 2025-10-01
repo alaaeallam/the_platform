@@ -5,15 +5,16 @@ import * as React from "react";
 import styles from "./styles.module.scss";
 import { Form, Formik } from "formik";
 import * as Yup from "yup";
-// If you don't have the plugin installed, keep this line removed:
-// import "yup-phone";
-import type { SelectChangeEvent } from "@mui/material/Select";
 
 import ShippingInput from "../../inputs/shippingInput";
 import SingularSelect from "../../selects/SingularSelect";
 import { countries } from "../../../data/countries";
 
-import { changeActiveAddress, deleteAddress, saveAddress } from "@/requests/user";
+import {
+  changeActiveAddress,
+  deleteAddress,
+  saveAddress,
+} from "@/requests/user";
 
 import { FaIdCard, FaMapMarkerAlt } from "react-icons/fa";
 import { GiPhone } from "react-icons/gi";
@@ -55,11 +56,7 @@ type ShippingProps = {
 const ShippingSchema = Yup.object({
   firstName: Yup.string().required("First name is required.").min(3).max(20),
   lastName: Yup.string().required("Last name is required.").min(3).max(20),
-  phoneNumber: Yup.string()
-    .required("Phone number is required.")
-    // .phone() // enable only if you install + configure `yup-phone`
-    .min(3)
-    .max(30),
+  phoneNumber: Yup.string().required("Phone number is required.").min(3).max(30),
   state: Yup.string().required("State name is required.").min(2).max(60),
   city: Yup.string().required("City name is required.").min(2).max(60),
   zipCode: Yup.string().required("Zip/Postal code is required.").min(2).max(30),
@@ -82,44 +79,51 @@ const emptyForm: Omit<Address, "_id"> = {
   country: "",
 };
 
-
-export default function Shipping({ user, addresses, setAddresses, profile }: ShippingProps) {
+export default function Shipping({
+  user,
+  addresses,
+  setAddresses,
+  profile,
+}: ShippingProps) {
   const [form, setForm] = React.useState<Omit<Address, "_id">>(emptyForm);
 
   // show the create form only when there are no saved addresses
   const hasAnyAddress = Array.isArray(user?.address) && user.address.length > 0;
   const [visible, setVisible] = React.useState<boolean>(!hasAnyAddress);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-const handleCountryChange = (value: string) => {
-  setForm((prev) => ({ ...prev, country: value || "" }));
-};
-
+  const handleCountryChange = (value: string) => {
+    setForm((prev) => ({ ...prev, country: value || "" }));
+  };
 
   const saveShippingHandler = async (): Promise<void> => {
     const res = await saveAddress(form);
     if (res.ok) {
-      setAddresses(res.data.addresses);
+      // Assert API result to our local Address[] to keep types in one place
+      setAddresses(res.data.addresses as unknown as Address[]);
       setVisible(false);
       setForm(emptyForm);
     } else {
+      // eslint-disable-next-line no-console
       console.error(res.error);
     }
   };
 
   const changeActiveHandler = async (id: string): Promise<void> => {
     const res = await changeActiveAddress(id);
-    if (res.ok) setAddresses(res.data.addresses);
+    if (res.ok) setAddresses(res.data.addresses as unknown as Address[]);
     else console.error(res.error);
   };
 
   const deleteHandler = async (id: string): Promise<void> => {
     const res = await deleteAddress(id);
-    if (res.ok) setAddresses(res.data.addresses);
+    if (res.ok) setAddresses(res.data.addresses as unknown as Address[]);
     else console.error(res.error);
   };
 
@@ -139,7 +143,10 @@ const handleCountryChange = (value: string) => {
           const isActive = !!address.active;
           const id = address._id; // optional _id → guard below
           return (
-            <div key={id ?? `${address.firstName}-${address.zipCode}`} className={styles.address__wrap}>
+            <div
+              key={id ?? `${address.firstName}-${address.zipCode}`}
+              className={styles.address__wrap}
+            >
               <button
                 type="button"
                 className={styles.address__delete}
@@ -164,7 +171,8 @@ const handleCountryChange = (value: string) => {
                 <div className={styles.address__col}>
                   <span>
                     <FaIdCard />
-                    {address.firstName.toUpperCase()} {address.lastName.toUpperCase()}
+                    {address.firstName.toUpperCase()}{" "}
+                    {address.lastName.toUpperCase()}
                   </span>
                   <span>
                     <GiPhone />
@@ -184,7 +192,9 @@ const handleCountryChange = (value: string) => {
                   <span>{address.zipCode}</span>
                 </div>
 
-                {isActive && <span className={styles.active__text}>Active</span>}
+                {isActive && (
+                  <span className={styles.active__text}>Active</span>
+                )}
               </button>
             </div>
           );
@@ -211,7 +221,12 @@ const handleCountryChange = (value: string) => {
 
       {/* Create / edit address form */}
       {visible && (
-        <Formik enableReinitialize initialValues={form} validationSchema={ShippingSchema} onSubmit={saveShippingHandler}>
+        <Formik
+          enableReinitialize
+          initialValues={form}
+          validationSchema={ShippingSchema}
+          onSubmit={saveShippingHandler}
+        >
           {() => (
             <Form>
               <SingularSelect
@@ -223,19 +238,51 @@ const handleCountryChange = (value: string) => {
               />
 
               <div className={styles.col}>
-                <ShippingInput name="firstName" placeholder="*First Name" onChange={handleChange} />
-                <ShippingInput name="lastName" placeholder="*Last Name" onChange={handleChange} />
+                <ShippingInput
+                  name="firstName"
+                  placeholder="*First Name"
+                  onChange={handleChange}
+                />
+                <ShippingInput
+                  name="lastName"
+                  placeholder="*Last Name"
+                  onChange={handleChange}
+                />
               </div>
 
               <div className={styles.col}>
-                <ShippingInput name="state" placeholder="*State/Province" onChange={handleChange} />
-                <ShippingInput name="city" placeholder="*City" onChange={handleChange} />
+                <ShippingInput
+                  name="state"
+                  placeholder="*State/Province"
+                  onChange={handleChange}
+                />
+                <ShippingInput
+                  name="city"
+                  placeholder="*City"
+                  onChange={handleChange}
+                />
               </div>
 
-              <ShippingInput name="phoneNumber" placeholder="*Phone number" onChange={handleChange} />
-              <ShippingInput name="zipCode" placeholder="*Post/Zip code" onChange={handleChange} />
-              <ShippingInput name="address1" placeholder="Address 1" onChange={handleChange} />
-              <ShippingInput name="address2" placeholder="Address 2" onChange={handleChange} />
+              <ShippingInput
+                name="phoneNumber"
+                placeholder="*Phone number"
+                onChange={handleChange}
+              />
+              <ShippingInput
+                name="zipCode"
+                placeholder="*Post/Zip code"
+                onChange={handleChange}
+              />
+              <ShippingInput
+                name="address1"
+                placeholder="Address 1"
+                onChange={handleChange}
+              />
+              <ShippingInput
+                name="address2"
+                placeholder="Address 2"
+                onChange={handleChange}
+              />
 
               <button type="submit">Save Address</button>
             </Form>

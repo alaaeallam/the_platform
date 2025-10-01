@@ -5,8 +5,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/lib/auth";           // if your repo keeps this in utils/auth, adjust import
-import db from "@/utils/db";                         // adjust to your project (utils/db or lib/db)
+import { authOptions } from "@/lib/auth";
+import db from "@/utils/db";
 import User from "@/models/User";
 import Cart from "@/models/Cart";
 import Coupon from "@/models/Coupon";
@@ -20,11 +20,20 @@ type Body = {
 type Ok = { totalAfterDiscount: number; discount: number };
 type Err = { message: string };
 
+/** Minimal shape we rely on from session.user */
+type SessionUserLike = {
+  id?: string;
+  email?: string | null;
+};
+
 /* ---------- Helpers ---------- */
 
 function toMoney(n: number): number {
-  // round to 2 decimals, as a number
   return Math.round(n * 100) / 100;
+}
+
+function getErrMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Server error";
 }
 
 /* ---------- POST ---------- */
@@ -45,10 +54,13 @@ export async function POST(req: Request) {
 
     await db.connectDb();
 
-    // Find the user (by email first for OAuth, then by id if present)
+    // Narrow the session user safely (no `any`)
+    const u = session.user as unknown as SessionUserLike;
+
+    // Find the user (prefer email for OAuth, fall back to id if present)
     const user =
-      (await User.findOne({ email: session.user.email })) ||
-      (await User.findById((session.user as any)?.id));
+      (u.email ? await User.findOne({ email: u.email }) : null) ??
+      (u.id ? await User.findById(u.id) : null);
 
     if (!user) {
       await db.disconnectDb();
@@ -59,6 +71,7 @@ export async function POST(req: Request) {
     const couponDoc = await Coupon.findOne({ coupon: code });
     if (!couponDoc) {
       await db.disconnectDb();
+      // Keep 200 for "invalid coupon" UX if that's what you expect
       return NextResponse.json<Err>({ message: "Invalid coupon" }, { status: 200 });
     }
 
@@ -82,11 +95,13 @@ export async function POST(req: Request) {
 
     const payload: Ok = { totalAfterDiscount, discount };
     return NextResponse.json<Ok>(payload, { status: 200 });
-  } catch (e: any) {
-    // Ensure connection is closed on error
+  } catch (err: unknown) {
+    const message = getErrMessage(err);
     try {
       await db.disconnectDb();
-    } catch {}
-    return NextResponse.json<Err>({ message: e?.message || "Server error" }, { status: 500 });
+    } catch {
+      /* ignore */
+    }
+    return NextResponse.json<Err>({ message }, { status: 500 });
   }
 }

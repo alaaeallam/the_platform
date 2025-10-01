@@ -11,12 +11,15 @@ type Cached = {
   promise: Promise<typeof mongoose> | null;
 };
 
+/* eslint-disable no-var */
 declare global {
-  // Node global cache for the Mongoose connection
-  // (declaration only; no 'var' runtime usage)
-  // eslint-disable-next-line no-var
+  // Node global cache for the Mongoose connection (type declaration only)
   var _mongooseCached: Cached | undefined;
 }
+/* eslint-enable no-var */
+
+// Allow TS to “see” the augmented global property
+const g = global as typeof globalThis & { _mongooseCached?: Cached };
 
 const MONGODB_URI = process.env.MONGODB_URI ?? process.env.MONGODB_URL;
 if (!MONGODB_URI) {
@@ -26,8 +29,8 @@ if (!MONGODB_URI) {
 // Optional explicit DB name if it's not embedded in the URI
 const DB_NAME = process.env.MONGODB_DB;
 
-const cached: Cached = global._mongooseCached || { conn: null, promise: null };
-global._mongooseCached = cached;
+const cached: Cached = g._mongooseCached ?? { conn: null, promise: null };
+g._mongooseCached = cached;
 
 export default async function dbConnect(): Promise<typeof mongoose> {
   if (cached.conn) return cached.conn;

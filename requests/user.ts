@@ -1,46 +1,40 @@
-// requests/user.ts
 import axios, { AxiosError } from "axios";
 
 /* ---------- Shared Types ---------- */
-
-export type Address = {
-  _id?: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  state: string;
-  city: string;
-  zipCode: string;
-  address1: string;
-  address2?: string;
-  country: string;
-  active?: boolean;
-};
+export type Address = { /* …unchanged… */ };
 
 type AddressListPayload = { addresses: Address[] };
-
-type CouponSuccess = {
-  totalAfterDiscount: number;
-  discount: number;
-};
+type CouponSuccess = { totalAfterDiscount: number; discount: number };
 
 type ApiOk<T> = { ok: true; data: T };
 type ApiErr = { ok: false; error: string };
 export type ApiResult<T> = ApiOk<T> | ApiErr;
 
-/* ---------- Helpers ---------- */
+/* ---------- NEW: cart payload types ---------- */
+export type CartPayloadItem = {
+  productId: string;
+  style: number;
+  size: string;              // send as string to the server
+  qty: number;
+  color?: { color?: string; image?: string };
+};
 
+export type SaveCartBody = {
+  cart: CartPayloadItem[];
+  country?: string;
+  countryGroups?: Record<string, string[]>;
+};
+
+/* ---------- Helpers ---------- */
 function getAxiosErrorMessage(err: unknown): string {
   const ax = err as AxiosError<any>;
   if (ax?.response?.data) {
     const d = ax.response.data as any;
-    // common shapes: { message }, { error: { message } }
     if (typeof d.message === "string") return d.message;
     if (d.error && typeof d.error.message === "string") return d.error.message;
   }
   return ax?.message || "Request failed";
 }
-
 async function wrap<T>(p: Promise<{ data: T }>): Promise<ApiResult<T>> {
   try {
     const { data } = await p;
@@ -51,12 +45,8 @@ async function wrap<T>(p: Promise<{ data: T }>): Promise<ApiResult<T>> {
 }
 
 /* ---------- API Calls ---------- */
-
-export async function saveCart(
-  cart: unknown
-): Promise<ApiResult<unknown>> {
-  // Server returns a variety of shapes; keep as unknown unless you control it.
-  return wrap(axios.post<unknown>("/api/user/saveCart", { cart }));
+export async function saveCart(body: SaveCartBody): Promise<ApiResult<unknown>> {
+  return wrap(axios.post<unknown>("/api/user/saveCart", body));
 }
 
 export async function saveAddress(

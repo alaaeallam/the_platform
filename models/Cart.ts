@@ -8,6 +8,7 @@ export interface ICartProduct {
   product: Types.ObjectId;
   name: string;
   image: string;
+  style: number;           // ⬅️ add this
   size: string;
   qty: number;
   color?: {
@@ -16,6 +17,7 @@ export interface ICartProduct {
   };
   price: number;
 }
+
 
 export interface ICart extends Document {
   products: ICartProduct[];
@@ -32,6 +34,7 @@ const cartProductSchema = new Schema<ICartProduct>(
     product: { type: ObjectId, ref: "Product", required: true },
     name: { type: String, required: true },
     image: { type: String, required: true },
+    style: { type: Number, required: true },     // ⬅️ add this
     size: { type: String, required: true },
     qty: { type: Number, required: true, min: 1 },
     color: {

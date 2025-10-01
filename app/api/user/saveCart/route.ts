@@ -8,7 +8,10 @@ import CartModel, { type ICart, type ICartProduct } from "@/models/Cart";
 import UserModel from "@/models/User";
 import { Types } from "mongoose";
 
-/* ---------- Request payload ---------- */
+type MinimalColor = { color?: string; image?: string };
+type MinimalSubProduct = { images?: string[]; color?: MinimalColor };
+type WithSubProducts = { subProducts?: MinimalSubProduct[] };
+
 type IncomingCartItem = {
   productId: string;
   style: number;
@@ -16,16 +19,15 @@ type IncomingCartItem = {
   qty: number;
   color?: { color?: string; image?: string };
 };
+
 type SaveCartBody = {
   cart: IncomingCartItem[];
   country?: string;
   countryGroups?: Record<string, string[]>;
 };
 
-/* ---------- Helpers ---------- */
 const isValidObjectId = (id: string) => Types.ObjectId.isValid(id);
 
-/* ---------- Route ---------- */
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -54,57 +56,64 @@ export async function POST(req: NextRequest) {
     const products: ICartProduct[] = [];
     let cartTotal = 0;
 
-    for (const item of items) {
-      if (!item?.productId || !isValidObjectId(item.productId)) continue;
-      if (typeof item.style !== "number" || !item.size) continue;
-      const qty = Math.max(1, Number(item.qty || 1));
+   for (const item of items) {
+  if (!item?.productId || !isValidObjectId(item.productId)) continue;
 
-      // must NOT use .lean() here so mongoose methods exist
-      const productDoc = await ProductModel.findById(item.productId);
-      if (!productDoc) continue;
+  // style often arrives as "0" — coerce and validate
+  const styleIdx = Number(item.style);
+  if (!Number.isFinite(styleIdx)) continue;
 
-      const sub = productDoc.subProducts?.[item.style];
-      if (!sub) continue;
+  if (typeof item.size !== "string" || !item.size) continue;
 
-      const firstImage = sub.images?.[0] || "";
+  const qty = Math.max(1, Number(item.qty || 1));
 
-      const priceInfo = productDoc.getFinalPriceFor(
-        item.style,
-        item.size,
-        countryISO2,
-        { countryGroups }
-      );
-      if (!priceInfo) continue;
+  // DO NOT .lean() because we need instance methods
+  const productDoc = await ProductModel.findById(item.productId);
+  if (!productDoc) continue;
+  const subs = (productDoc as unknown as WithSubProducts).subProducts ?? [];
+  const sub: MinimalSubProduct | undefined = subs[styleIdx];
+  if (!sub) continue;
 
-      // per-unit, discounted, without shipping
-      const unitPrice = Number(priceInfo.discountedPrice);
-      const lineTotal = unitPrice * qty;
+  // price
+  const priceInfo = productDoc.getFinalPriceFor(styleIdx, item.size, countryISO2, { countryGroups });
+  if (!priceInfo) continue;
 
-      // If you want shipping included in cartTotal, use:
-      // const lineTotal = (unitPrice + Number(priceInfo.shipping || 0)) * qty;
+  const unitPrice = Number(priceInfo.discountedPrice);
+  const lineTotal = unitPrice * qty;
 
-      products.push({
-        product: productDoc._id as unknown as Types.ObjectId,
-        name: productDoc.name,
-        image: firstImage,
-        size: item.size,
-        qty,
-        color: {
-          color: item.color?.color ?? sub.color?.color ?? "",
-          image: item.color?.image ?? sub.color?.image ?? "",
-        },
-        price: unitPrice,
-      });
+  // image precedence: color.image > sub.images[0] > first image across subs
+  const colorImg =
+    (item.color?.image && typeof item.color.image === "string" && item.color.image) ||
+    (sub?.color?.image && typeof sub.color.image === "string" && sub.color.image) ||
+    undefined;
 
-      cartTotal += lineTotal;
-    }
+  const subPrimary: string | undefined =
+  Array.isArray(sub?.images) && sub.images.length > 0 ? sub.images[0] : undefined;
 
-    // (1) If everything filtered out, don’t write an empty doc
+  const firstFromAnySub: string | undefined =
+  subs.find((sp) => Array.isArray(sp.images) && sp.images.length > 0)?.images?.[0];
+
+  const chosenImage = colorImg || subPrimary || firstFromAnySub || "";
+
+  products.push({
+    product: productDoc._id as unknown as Types.ObjectId,
+    name: productDoc.name,
+    image: chosenImage,                              // ✅ use the computed image
+    style: styleIdx,                                 // ✅ persist style
+    size: item.size,
+    qty,
+    color: {
+      color: item.color?.color ?? sub?.color?.color ?? "",
+      image: item.color?.image ?? sub?.color?.image ?? "",
+    },
+    price: unitPrice,
+  });
+
+  cartTotal += lineTotal;
+}
+
     if (products.length === 0) {
-      return NextResponse.json(
-        { message: "No valid products to save." },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "No valid products to save." }, { status: 400 });
     }
 
     const saved = await CartModel.findOneAndUpdate(
@@ -118,10 +127,7 @@ export async function POST(req: NextRequest) {
       { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean<ICart>();
 
-    return NextResponse.json(
-      { message: "Cart saved", cartId: saved?._id, cart: saved },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Cart saved", cartId: saved?._id, cart: saved }, { status: 200 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to save cart";
     return NextResponse.json({ message: msg }, { status: 500 });

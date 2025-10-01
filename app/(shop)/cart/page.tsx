@@ -14,14 +14,27 @@ import ProductsSwiper from "@/components/productsSwiper";
 import Empty from "@/components/cart/empty";
 import { women_swiper } from "@/data/home";
 
-import { saveCart, type CartPayload } from "@/requests/user";
-import { syncCart, type CartSyncResponse } from "@/requests/cart";
+import {
+  saveCart,
+  type CartPayloadItem,
+  type SaveCartBody,
+} from "@/requests/user";
+import {
+  syncCart,
+  type CartSyncResponse,
+  type ClientCartLine,
+  type CartSyncBody,
+} from "@/requests/cart";
 import type { CartProduct } from "@/types/cart";
 
 import styles from "@/app/styles/cart.module.scss";
 
-interface CartState { cartItems: CartProduct[] }
-interface RootState { cart: CartState }
+interface CartState {
+  cartItems: CartProduct[];
+}
+interface RootState {
+  cart: CartState;
+}
 
 /** Parse productId & style index from legacy _uid = `${productId}_${styleIndex}_${sizeIndex}` */
 function parseIdsFromUid(uid: string): { productId?: string; style?: number } {
@@ -31,6 +44,19 @@ function parseIdsFromUid(uid: string): { productId?: string; style?: number } {
     productId: productId && productId.length >= 12 ? productId : undefined,
     style: Number.isFinite(style) ? style : undefined,
   };
+}
+
+// precise type guard for syncCart payload items
+function isClientCartLine(
+  v: ClientCartLine | undefined
+): v is ClientCartLine {
+  return (
+    !!v &&
+    typeof v.productId === "string" &&
+    typeof v.style === "number" &&
+    typeof v.size === "string" &&
+    typeof v.qty === "number"
+  );
 }
 
 // 👉 put your real mapping here:
@@ -77,29 +103,35 @@ export default function CartPage(): React.JSX.Element {
     }
     (async () => {
       try {
-        const payload = {
-          cart: selected.map((line) => {
-            const ids = parseIdsFromUid(line._uid);
-            if (!ids.productId || typeof ids.style !== "number" || !line.size) return undefined;
-            return {
-              productId: ids.productId,
-              style: ids.style,
-              size: String(line.size),
-              qty: Number(line.qty || 1),
-              _uid: line._uid,
-            };
-          }).filter(Boolean) as { productId: string; style: number; size: string; qty: number; _uid?: string }[],
+        const payload: CartSyncBody = {
+          cart: selected
+            .map<ClientCartLine | undefined>((line) => {
+              const ids = parseIdsFromUid(line._uid);
+              if (!ids.productId || typeof ids.style !== "number" || !line.size) {
+                return undefined;
+              }
+              return {
+                productId: ids.productId,
+                style: ids.style,
+                size: String(line.size),
+                qty: Number(line.qty || 1),
+                _uid: line._uid,
+              };
+            })
+            .filter(isClientCartLine),
           country: COUNTRY,
           countryGroups: COUNTRY_GROUPS,
         };
+
         const res = await syncCart(payload);
         setSynced(res);
       } catch (e) {
+        // eslint-disable-next-line no-console
         console.error("cart sync failed:", e);
         setSynced(null);
       }
     })();
-  }, [selected]);
+  }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // (optional) auto-refresh every 60s while on the page
   useEffect(() => {
@@ -120,8 +152,14 @@ export default function CartPage(): React.JSX.Element {
         total: synced.total,
       };
     }
-    const shipping = selected.reduce((a, c) => a + Number(c.shipping ?? 0), 0);
-    const sub = selected.reduce((a, c) => a + Number(c.price) * Number(c.qty), 0);
+    const shipping = selected.reduce(
+      (a, c) => a + Number(c.shipping ?? 0),
+      0
+    );
+    const sub = selected.reduce(
+      (a, c) => a + Number(c.price) * Number(c.qty),
+      0
+    );
     return {
       shippingFee: Number(shipping.toFixed(2)),
       subtotal: Number(sub.toFixed(2)),
@@ -129,43 +167,48 @@ export default function CartPage(): React.JSX.Element {
     };
   }, [synced, selected]);
 
-  // Save to DB using the SYNCED lines, then go to checkout
+  // Save to DB, then go to checkout
   const saveCartToDbHandler = async (): Promise<void> => {
     if (!selected.length) return;
     if (!session) return void signIn();
 
-    const payload: CartPayload = synced
-      ? {
-          cart: synced.lines.map((l) => ({
-            productId: l.productId,
-            style: l.style,
-            size: l.size,
-            qty: l.qty,
-          })),
-          country: COUNTRY,
-          countryGroups: COUNTRY_GROUPS,
+    // Prefer synced lines if available (they reflect server-validated state)
+    const cartLinesFromSynced: CartPayloadItem[] | null = synced
+      ? synced.lines.map((l) => ({
+          productId: l.productId,
+          style: l.style,
+          size: String(l.size),
+          qty: l.qty,
+        }))
+      : null;
+
+    const cartLinesFromSelected: CartPayloadItem[] = selected
+      .map<CartPayloadItem | undefined>((line) => {
+        const ids = parseIdsFromUid(line._uid);
+        if (!ids.productId || typeof ids.style !== "number" || !line.size) {
+          return undefined;
         }
-      : {
-          cart: selected
-            .map((line) => {
-              const ids = parseIdsFromUid(line._uid);
-              if (!ids.productId || typeof ids.style !== "number" || !line.size) return undefined;
-              return {
-                productId: ids.productId,
-                style: ids.style,
-                size: String(line.size),
-                qty: Number(line.qty || 1),
-              };
-            })
-            .filter(Boolean) as CartPayload["cart"],
-          country: COUNTRY,
-          countryGroups: COUNTRY_GROUPS,
+        return {
+          productId: ids.productId,
+          style: ids.style,
+          size: String(line.size),
+          qty: Number(line.qty || 1),
         };
+      })
+      .filter((v): v is CartPayloadItem => Boolean(v));
+
+    const body: SaveCartBody = {
+      cart: cartLinesFromSynced ?? cartLinesFromSelected,
+      country: COUNTRY,
+      countryGroups: COUNTRY_GROUPS,
+    };
 
     try {
-      await saveCart(payload);
+      const res = await saveCart(body);
+      if (!res.ok) throw new Error(res.error);
       router.push("/checkout");
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("Failed to save cart:", err);
     }
   };
@@ -176,7 +219,11 @@ export default function CartPage(): React.JSX.Element {
     <div className={styles.cart}>
       {hasItems ? (
         <div className={styles.cart__container}>
-          <CartHeader cartItems={cart.cartItems} selected={selected} setSelected={setSelected} />
+          <CartHeader
+            cartItems={cart.cartItems}
+            selected={selected}
+            setSelected={setSelected}
+          />
 
           {synced?.anyChanged && (
             <div className={styles.notice}>
