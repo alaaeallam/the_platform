@@ -121,21 +121,46 @@ export const authOptions: NextAuthOptions & { trustHost?: boolean } = {
   ],
 
   callbacks: {
-    async jwt({ token, user }): Promise<ExtendedToken> {
-      if (user) {
-        token.role = (user as ExtendedUser).role ?? "customer";
-      }
-      return token as ExtendedToken;
-    },
+  async jwt({ token, user }) {
+    // Always carry the Mongo _id (not the provider sub)
+    if (token?.email) {
+      await connectDb();
 
-    async session({ session, token }): Promise<Session> {
-      if (session.user) {
-        // `sub` is the user id placed by NextAuth on the JWT
-        session.user.id = token.sub ?? "";
-        (session.user as ExtendedUser).role =
-          (token as ExtendedToken).role ?? "customer";
+      // doc is either a lean user or null
+      let doc = await User.findOne({ email: token.email })
+        .select({ _id: 1, role: 1 })
+        .lean<{ _id: unknown; role?: string } | null>();
+
+      if (!doc) {
+        // First-time OAuth signup: create minimal user
+        const created = await User.create({
+          name: token.name ?? (user as any)?.name ?? "",
+          email: token.email,
+          image: (token as any)?.picture ?? (user as any)?.image ?? null,
+          role: "customer",
+        });
+        doc = { _id: created._id, role: created.role ?? "customer" };
       }
-      return session;
-    },
+
+      // From here, doc is non-null
+      const { _id, role } = doc;
+      token.sub = String(_id);                       // critical: use Mongo _id
+      (token as any).role = role ?? (token as any).role ?? "customer";
+    }
+
+    // If credentials flow provided a role, keep it
+    if (user && (user as any).role && !(token as any).role) {
+      (token as any).role = (user as any).role;
+    }
+
+    return token;
   },
-};
+
+  async session({ session, token }) {
+    if (session.user) {
+      session.user.id = token.sub ?? "";             // now Mongo _id
+      (session.user as any).role = (token as any).role ?? "customer";
+    }
+    return session;
+  },
+}}

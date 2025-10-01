@@ -1,7 +1,7 @@
 // components/cart/product/index.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import * as React from "react";
 import Image from "next/image";
 import { BsHeart } from "react-icons/bs";
 import { AiOutlineDelete } from "react-icons/ai";
@@ -22,26 +22,31 @@ interface ProductProps {
 /* ---------- Component ---------- */
 const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => {
   const dispatch = useAppDispatch();
-  const [active, setActive] = useState<boolean>(false);
+  const [active, setActive] = React.useState<boolean>(false);
+
+  /* Derived, safe values */
+  const thumbSrc =
+    (Array.isArray(product.images) && product.images?.[0]?.url) || "/placeholder.png";
+  const colorSrc = product.color?.image || "/placeholder.png";
+  const unitPrice = Number(product.price) || 0;
+  const qty = Math.max(1, Number(product.qty) || 1);
+  const quantityAvailable = Math.max(0, Number(product.quantity) || 0);
+  const lineTotal = (unitPrice * qty).toFixed(2);
 
   /* Track selection state */
-  useEffect(() => {
+  React.useEffect(() => {
     setActive(selected.some((p) => p._uid === product._uid));
   }, [selected, product._uid]);
 
   /* Update quantity via slice + optimistically sync `selected` */
   const updateQty = (type: "plus" | "minus"): void => {
     const next =
-      type === "plus"
-        ? Math.min(product.qty + 1, product.quantity)
-        : Math.max(product.qty - 1, 1);
+      type === "plus" ? Math.min(qty + 1, quantityAvailable) : Math.max(qty - 1, 1);
 
-    if (next === product.qty) return;
+    if (next === qty) return;
 
-    // Redux
     dispatch(setItemQty({ _uid: product._uid, qty: next }));
 
-    // Optimistic local sync so totals update instantly
     setSelected((prev) =>
       prev.map((p) => (p._uid === product._uid ? { ...p, qty: next } : p))
     );
@@ -64,7 +69,7 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
 
   return (
     <div className={`${styles.card} ${styles.product}`}>
-      {product.quantity < 1 && <div className={styles.blur} />}
+      {quantityAvailable < 1 && <div className={styles.blur} />}
 
       {/* Header */}
       <div className={styles.product__header}>
@@ -82,7 +87,7 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
           tabIndex={0}
         />
         <Image
-          src={product.images[0]?.url || "/placeholder.png"}
+          src={thumbSrc}
           alt={product.name}
           width={120}
           height={120}
@@ -111,26 +116,22 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
 
           {/* Style */}
           <div className={styles.product__style}>
-            <Image
-              src={product.color.image || "/placeholder.png"}
-              alt="Color option"
-              width={20}
-              height={20}
-            />
-            {product.size && <span>{product.size}</span>}
-            {!!product.price && <span>{product.price.toFixed(2)}$</span>}
+            <Image src={colorSrc} alt="Color option" width={20} height={20} />
+            {product.size ? <span>{product.size}</span> : null}
+            {unitPrice > 0 ? <span>{unitPrice.toFixed(2)}$</span> : null}
             <MdOutlineKeyboardArrowRight />
           </div>
 
           {/* Price & Qty */}
           <div className={styles.product__priceQty}>
             <div className={styles.product__priceQty_price}>
-              <span className={styles.price}>
-                USD {(product.price * product.qty).toFixed(2)}$
-              </span>
-              {product.priceBefore && product.priceBefore !== product.price && (
-                <span className={styles.priceBefore}>USD {product.priceBefore}$</span>
-              )}
+              <span className={styles.price}>USD {lineTotal}$</span>
+              {product.priceBefore &&
+                Number(product.priceBefore) !== unitPrice && (
+                  <span className={styles.priceBefore}>
+                    USD {Number(product.priceBefore).toFixed(2)}$
+                  </span>
+                )}
               {typeof product.discount === "number" && product.discount > 0 && (
                 <span className={styles.discount}>-{product.discount}%</span>
               )}
@@ -138,15 +139,15 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
 
             <div className={styles.product__priceQty_qty}>
               <button
-                disabled={product.qty < 2}
+                disabled={qty < 2}
                 onClick={() => updateQty("minus")}
                 aria-label="Decrease quantity"
               >
                 -
               </button>
-              <span aria-live="polite">{product.qty}</span>
+              <span aria-live="polite">{qty}</span>
               <button
-                disabled={product.qty === product.quantity}
+                disabled={qty === quantityAvailable}
                 onClick={() => updateQty("plus")}
                 aria-label="Increase quantity"
               >
@@ -161,7 +162,7 @@ const Product: React.FC<ProductProps> = ({ product, selected, setSelected }) => 
           </div>
 
           {/* Out of stock notice */}
-          {product.quantity < 1 && (
+          {quantityAvailable < 1 && (
             <div className={styles.notAvailable}>
               This product is out of stock. Add it to your wishlist, it may get restocked.
             </div>

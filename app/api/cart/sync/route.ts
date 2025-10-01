@@ -1,15 +1,22 @@
 // app/api/cart/sync/route.ts
 import { NextResponse, type NextRequest } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
 import dbConnect from "@/lib/mongodb";
 import ProductModel from "@/models/Product";
+import Cart from "@/models/Cart";
+
 import { Types } from "mongoose";
+
+/* ---------- Request/Response Types ---------- */
 
 type ClientCartLine = {
   productId?: string;
-  style?: number;                 // subProduct index
-  size?: string;                  // size label (required)
-  qty?: number;                   // requested qty
-  _uid?: string;                  // legacy fallback
+  style?: number;       // subProduct index
+  size?: string;        // size label (required)
+  qty?: number;         // requested qty
+  _uid?: string;        // legacy fallback (e.g. "<productId>_<style>_<sizeIdx>")
 };
 
 type CartSyncBody = {
@@ -29,10 +36,12 @@ type SyncedCartLine = {
   image: string;
   price: number;           // per-unit, discounted, excl. shipping
   shipping: number;        // per-unit shipping
-  lineTotal: number;
-  lineShipping: number;
+  lineTotal: number;       // price * qty
+  lineShipping: number;    // shipping * qty
   changed: boolean;
-  reasons: Array<"MISSING" | "OOS" | "QTY_ADJUSTED" | "STRUCTURE_FIXED" | "NO_PRICE">;
+  reasons: Array<
+    "MISSING" | "OOS" | "QTY_ADJUSTED" | "STRUCTURE_FIXED" | "NO_PRICE"
+  >;
 };
 
 type CartSyncResponse = {
@@ -41,7 +50,10 @@ type CartSyncResponse = {
   shipping: number;
   total: number;
   anyChanged: boolean;
+  saved?: boolean;
 };
+
+/* ---------- Helpers ---------- */
 
 function parseIdsFromUid(uid?: string): { productId?: string; style?: number } {
   const parts = String(uid || "").split("_");
@@ -57,15 +69,31 @@ function isValidObjectId(id?: string): id is string {
   return !!id && Types.ObjectId.isValid(id);
 }
 
+/* ---------- Route ---------- */
+
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     const body = (await req.json()) as CartSyncBody;
+
     const items = Array.isArray(body?.cart) ? body.cart : [];
+    const userIdFromSession = session?.user?.id ?? "";
+
+    // Quick observability in the server console
+    console.log("[/api/cart/sync] begin", {
+      userIdFromSession,
+      cartFromClientCount: items.length,
+    });
+
     if (!items.length) {
       return NextResponse.json<CartSyncResponse>(
-        { lines: [], subtotal: 0, shipping: 0, total: 0, anyChanged: false },
+        { lines: [], subtotal: 0, shipping: 0, total: 0, anyChanged: false, saved: false },
         { status: 200 }
       );
+    }
+
+    if (!userIdFromSession) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await dbConnect();
@@ -110,7 +138,7 @@ export async function POST(req: NextRequest) {
       const product = await ProductModel.findById(productId);
       if (!product) {
         if (process.env.NODE_ENV !== "production") {
-          console.error("[sync] product missing", { productId });
+          console.error("[/api/cart/sync] product missing", { productId });
         }
         out.push({
           productId,
@@ -136,7 +164,7 @@ export async function POST(req: NextRequest) {
 
       if (!sub || !sizeRow) {
         if (process.env.NODE_ENV !== "production") {
-          console.error("[sync] sub/size missing", { productId, style, sizeLabel });
+          console.error("[/api/cart/sync] sub/size missing", { productId, style, sizeLabel });
         }
         out.push({
           productId,
@@ -163,7 +191,7 @@ export async function POST(req: NextRequest) {
       const fin = product.getFinalPriceFor(style, sizeLabel, country, { countryGroups });
       if (!fin) {
         if (process.env.NODE_ENV !== "production") {
-          console.error("[sync] price resolution failed", { productId, style, sizeLabel, country });
+          console.error("[/api/cart/sync] price resolution failed", { productId, style, sizeLabel, country });
         }
         out.push({
           productId,
@@ -217,10 +245,44 @@ export async function POST(req: NextRequest) {
     const total = Number((subtotal + shipping).toFixed(2));
     const anyChanged = out.some((l) => l.changed);
 
-    return NextResponse.json<CartSyncResponse>({ lines: out, subtotal, shipping, total, anyChanged }, { status: 200 });
+    /* -------------------- Persist to DB (upsert) -------------------- */
+    // Checkout reads from DB; make sure the synced cart is saved for this user.
+    // We store per-line *unit* price and qty; cartTotal includes shipping so Checkout matches the UI.
+    const dbProducts = out
+      .filter((l) => isValidObjectId(l.productId) && l.qty > 0 && l.price > 0)
+      .map((l) => ({
+        product: new Types.ObjectId(l.productId), // schema uses "product" (parent id)
+        style: l.style,
+        size: l.size,
+        qty: l.qty,
+        price: l.price, // unit price snapshot
+      }));
+
+    const saved = await Cart.findOneAndUpdate(
+      { user: new Types.ObjectId(userIdFromSession) },
+      {
+        $set: {
+          user: new Types.ObjectId(userIdFromSession),
+          products: dbProducts,
+          cartTotal: total,            // keep in sync with UI "Total"
+          totalAfterDiscount: total,   // set same for now (unless coupon logic applies)
+        },
+      },
+      { upsert: true, new: true }
+    ).lean();
+
+    console.log("[/api/cart/sync] saved cart", {
+      userIdFromSession,
+      lineCount: dbProducts.length,
+      cartTotal: saved?.cartTotal,
+    });
+
+    return NextResponse.json<CartSyncResponse>(
+      { lines: out, subtotal, shipping, total, anyChanged, saved: true },
+      { status: 200 }
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // You’ll see this in the dev terminal; helps chase 500s.
     if (process.env.NODE_ENV !== "production") {
       console.error("[/api/cart/sync] fatal:", err);
     }

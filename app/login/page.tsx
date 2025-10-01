@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import axios from "axios";
 
-import LoginInput from "@/components/loginInput";
+import LoginInput from "@/components/inputs/loginInput";
 import CircledIconBtn from "@/components/buttons/circledIconBtn";
 import DotLoaderSpinner from "@/components/loaders/dotLoader";
 

@@ -3,7 +3,7 @@
 import styles from "../../styles/forgot.module.scss";
 import { BiLeftArrowAlt } from "react-icons/bi";
 import CircledIconBtn from "../../../components/buttons/circledIconBtn";
-import LoginInput from "@/components/loginInput";
+import LoginInput from "@/components/inputs/loginInput";
 import { useState } from "react";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";

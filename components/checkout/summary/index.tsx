@@ -1,0 +1,194 @@
+// components/checkout/summary/index.tsx
+"use client";
+
+import * as React from "react";
+import styles from "./styles.module.scss";
+import * as Yup from "yup";
+import { Form, Formik } from "formik";
+import ShippingInput from "../../inputs/shippingInput";
+import { applyCoupon } from "../../../requests/user";
+import { useRouter } from "next/navigation";
+
+import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
+
+/* ----------------------------- Types ----------------------------- */
+type SummaryProps = {
+  totalAfterDiscount: number | "";
+  setTotalAfterDiscount: React.Dispatch<React.SetStateAction<number | "">>;
+  user: UserVM;
+  cart: CartVM;
+  paymentMethod: PaymentMethod;
+  selectedAddress: Address | null | undefined;
+};
+
+const couponSchema = Yup.object({
+  coupon: Yup.string().required("Please enter a coupon first!"),
+});
+
+/* ----------------------------- Component ----------------------------- */
+
+export default function Summary({
+  totalAfterDiscount,
+  setTotalAfterDiscount,
+  user,
+  cart,
+  paymentMethod,
+  selectedAddress,
+}: SummaryProps) {
+  const router = useRouter();
+
+  const [coupon, setCoupon] = React.useState<string>("");
+  const [discount, setDiscount] = React.useState<number>(0);
+  const [error, setError] = React.useState<string>("");
+  const [orderError, setOrderError] = React.useState<string>("");
+  const [posting, setPosting] = React.useState<boolean>(false);
+
+  /* ----- Coupon handler ----- */
+  const applyCouponHandler = React.useCallback(async () => {
+    setError("");
+    try {
+      const res = await applyCoupon(coupon);
+
+      if (!res.ok) {
+        setError(res.error);
+        setDiscount(0);
+        return;
+      }
+
+      setTotalAfterDiscount(res.data.totalAfterDiscount);
+      setDiscount(res.data.discount);
+    } catch {
+      setError("Something went wrong applying the coupon. Please try again.");
+    }
+  }, [coupon, setTotalAfterDiscount]);
+
+  /* ----- Order handler ----- */
+  const placeOrderHandler = React.useCallback(async () => {
+    setOrderError("");
+
+    if (!paymentMethod) {
+      setOrderError("Please choose a payment method.");
+      return;
+    }
+    if (!selectedAddress) {
+      setOrderError("Please choose a shipping address.");
+      return;
+    }
+
+    const finalTotal =
+      typeof totalAfterDiscount === "number" && !Number.isNaN(totalAfterDiscount)
+        ? totalAfterDiscount
+        : cart.cartTotal;
+
+    try {
+      setPosting(true);
+      const res = await fetch("/api/order/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          products: cart.products,
+          shippingAddress: selectedAddress,
+          paymentMethod,
+          total: finalTotal,
+          totalBeforeDiscount: cart.cartTotal,
+          couponApplied: coupon || undefined,
+          userId: user._id,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.message || "Failed to place order.");
+      }
+
+      const data = (await res.json()) as { order_id: string };
+      router.push(`/order/${data.order_id}`);
+    } catch (e: any) {
+      setOrderError(e?.message || "Unable to place order. Please try again.");
+    } finally {
+      setPosting(false);
+    }
+  }, [
+    paymentMethod,
+    selectedAddress,
+    totalAfterDiscount,
+    cart.cartTotal,
+    cart.products,
+    coupon,
+    user._id,
+    router,
+  ]);
+
+  const showNewPrice =
+    typeof totalAfterDiscount === "number" &&
+    totalAfterDiscount > 0 &&
+    totalAfterDiscount < cart.cartTotal;
+
+  /* ----- Render ----- */
+  return (
+    <div className={styles.summary}>
+      <div className={styles.header}>
+        <h3>Order Summary</h3>
+      </div>
+
+      <div className={styles.coupon}>
+        <Formik
+          enableReinitialize
+          initialValues={{ coupon }}
+          validationSchema={couponSchema}
+          onSubmit={applyCouponHandler}
+        >
+          {() => (
+            <Form>
+              <ShippingInput
+                name="coupon"
+                placeholder="*Coupon"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setCoupon(e.target.value)
+                }
+              />
+              {error && <span className={styles.error}>{error}</span>}
+
+              <button
+                className={styles.apply_btn}
+                type="submit"
+                disabled={!coupon.trim()}
+              >
+                Apply
+              </button>
+
+              <div className={styles.infos}>
+                <span>
+                  Total : <b>{cart.cartTotal}$</b>
+                </span>
+
+                {discount > 0 && (
+                  <span className={styles.coupon_span}>
+                    Coupon applied : <b>-{discount}%</b>
+                  </span>
+                )}
+
+                {showNewPrice && (
+                  <span>
+                    New price : <b>{totalAfterDiscount}$</b>
+                  </span>
+                )}
+              </div>
+            </Form>
+          )}
+        </Formik>
+      </div>
+
+      <button
+        className={styles.submit_btn}
+        onClick={placeOrderHandler}
+        disabled={posting}
+        aria-disabled={posting}
+      >
+        {posting ? "Placing…" : "Place Order"}
+      </button>
+
+      {orderError && <span className={styles.error}>{orderError}</span>}
+    </div>
+  );
+}
