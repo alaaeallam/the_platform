@@ -1,9 +1,11 @@
 @import "../base";
+
 .shipping {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+
   .col {
     display: flex;
     flex-direction: column;
@@ -12,9 +14,11 @@
       gap: 1rem;
     }
   }
+
   form {
     width: 100%;
     transition: all 0.2s;
+
     button {
       width: 150px;
       height: 50px;
@@ -23,12 +27,14 @@
       background: #000;
       cursor: pointer;
     }
+
     .select {
       width: 220px;
       margin-bottom: 10px !important;
     }
   }
 }
+
 .hide_show {
   height: 45px;
   width: 100%;
@@ -36,6 +42,7 @@
   cursor: pointer;
   color: #000;
   border: 1px solid #000;
+
   span {
     display: flex;
     align-items: center;
@@ -43,11 +50,13 @@
     gap: 5px;
   }
 }
+
 .addresses {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   width: 100%;
+
   .address {
     position: relative;
     display: grid;
@@ -57,15 +66,45 @@
     cursor: pointer;
     padding: 1rem;
     height: 100%;
+    &__wrap{
+      position: relative;
+    }
+    /* ✅ Delete icon */
     &__delete {
       position: absolute;
-      top: 1rem;
-      right: 1rem;
-      font-size: 1.5rem;
-      fill: #666;
-      filter: invert(10%);
-      z-index: 10;
+      top: 8px;
+      right: 8px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      color: #d32f2f;
+      transition: color 0.2s;
+
+      svg {
+        width: 22px;
+        height: 22px;
+        pointer-events: none;
+      }
+
+      &:hover {
+        color: darkred;
+      }
+
+      &:disabled,
+      &[aria-disabled="true"] {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
     }
+
     &__col {
       display: flex;
       flex-direction: column;
@@ -75,16 +114,19 @@
         display: flex;
         align-items: center;
         gap: 5px;
+
         svg {
           fill: #666;
         }
       }
     }
+
     &__side {
       height: 90px;
       width: 90px;
       display: grid;
       place-items: center;
+
       img {
         height: 100px;
         width: 100px;
@@ -93,13 +135,15 @@
         object-fit: cover;
       }
     }
+
     .active__text {
       position: absolute;
       bottom: 1rem;
       right: 1rem;
       color: $success-color;
       font-size: 12px;
-      &:befor {
+
+      &:before {
         content: "";
         width: 5px;
         height: 5px;
@@ -113,6 +157,7 @@
     }
   }
 }
+
 .active {
   &:before {
     position: absolute;

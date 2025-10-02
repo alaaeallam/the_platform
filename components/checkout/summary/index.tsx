@@ -9,6 +9,8 @@ import ShippingInput from "../../inputs/shippingInput";
 import { applyCoupon } from "../../../requests/user";
 import { useRouter } from "next/navigation";
 
+import DotLoaderSpinner from "@/components/loaders/dotLoader"; // ⬅️ overlay loader
+
 import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
 
 /* ----------------------------- Types ----------------------------- */
@@ -34,7 +36,7 @@ export default function Summary({
   cart,
   paymentMethod,
   selectedAddress,
-}: SummaryProps) {
+}: SummaryProps): React.JSX.Element {
   const router = useRouter();
 
   const [coupon, setCoupon] = React.useState<string>("");
@@ -81,43 +83,41 @@ export default function Summary({
         : cart.cartTotal;
 
     try {
-  setPosting(true);
-  const res = await fetch("/api/order/create", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      products: cart.products,
-      shippingAddress: selectedAddress,
-      paymentMethod,
-      total: finalTotal,
-      totalBeforeDiscount: cart.cartTotal,
-      couponApplied: coupon || undefined,
-      userId: user._id,
-    }),
-  });
+      setPosting(true);
+      const res = await fetch("/api/order/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          products: cart.products,
+          shippingAddress: selectedAddress,
+          paymentMethod,
+          total: finalTotal,
+          totalBeforeDiscount: cart.cartTotal,
+          couponApplied: coupon || undefined,
+          userId: user._id,
+        }),
+      });
 
-     if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new Error(data?.message || "Failed to place order.");
-  }
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(data?.message || "Failed to place order.");
+      }
 
       const data = (await res.json()) as { order_id: string };
-  router.push(`/order/${data.order_id}`);
+      router.push(`/order/${data.order_id}`);
     } catch (err: unknown) {
-  const message =
-    err instanceof Error
-      ? err.message
-      : (typeof err === "object" &&
-         err !== null &&
-         "message" in err &&
-         typeof (err as { message: unknown }).message === "string")
-      ? (err as { message: string }).message
-      : "Unable to place order. Please try again.";
-
-  setOrderError(message);
-} finally {
-  setPosting(false);
-}
+      const message =
+        err instanceof Error
+          ? err.message
+          : (typeof err === "object" &&
+              err !== null &&
+              "message" in err &&
+              typeof (err as { message: unknown }).message === "string")
+          ? (err as { message: string }).message
+          : "Unable to place order. Please try again.";
+      setOrderError(message);
+      setPosting(false); // if we didn't navigate away, clear loading state
+    }
   }, [
     paymentMethod,
     selectedAddress,
@@ -136,7 +136,10 @@ export default function Summary({
 
   /* ----- Render ----- */
   return (
-    <div className={styles.summary}>
+    <div className={styles.summary} aria-busy={posting}>
+      {/* Full-panel overlay while placing order */}
+      {posting && <DotLoaderSpinner loading />}
+
       <div className={styles.header}>
         <h3>Order Summary</h3>
       </div>
@@ -162,9 +165,10 @@ export default function Summary({
               <button
                 className={styles.apply_btn}
                 type="submit"
-                disabled={!coupon.trim()}
+                disabled={!coupon.trim() || posting}
+                aria-disabled={!coupon.trim() || posting}
               >
-                Apply
+                {posting ? "Please wait…" : "Apply"}
               </button>
 
               <div className={styles.infos}>
@@ -194,6 +198,7 @@ export default function Summary({
         onClick={placeOrderHandler}
         disabled={posting}
         aria-disabled={posting}
+        aria-label="Place order"
       >
         {posting ? "Placing…" : "Place Order"}
       </button>

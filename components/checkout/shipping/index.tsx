@@ -147,15 +147,17 @@ export default function Shipping({
               key={id ?? `${address.firstName}-${address.zipCode}`}
               className={styles.address__wrap}
             >
-              <button
-                type="button"
-                className={styles.address__delete}
-                onClick={() => id && deleteHandler(id)}
-                aria-label="Delete address"
-                title="Delete address"
-              >
-                <IoIosRemoveCircleOutline />
-              </button>
+             <button
+  type="button"
+  className={styles.address__delete}
+  onClick={() => id && deleteHandler(id)}
+  disabled={!id}
+  aria-disabled={!id}
+  aria-label={id ? "Delete address" : "No id for this address"}
+  title={id ? "Delete address" : "Address has no id"}
+>
+  <IoIosRemoveCircleOutline />
+</button>
 
               <button
                 type="button"

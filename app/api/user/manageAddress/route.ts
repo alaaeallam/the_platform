@@ -15,8 +15,7 @@ import User from "@/models/User";
 type IdBody = { id?: string };
 type ErrorResp = { message: string };
 
-/** Shape of an address subdocument on the User model (lean or hydrated). */
-type AddressDoc = {
+type AddressLean = {
   _id: mongoose.Types.ObjectId | string;
   firstName?: string;
   lastName?: string;
@@ -28,23 +27,18 @@ type AddressDoc = {
   address2?: string;
   country?: string;
   active?: boolean;
-  /** Present when the address is a Mongoose subdocument */
-  toObject?: () => Omit<AddressDoc, "toObject">;
 };
 
 /* ----------------------------- Utils ----------------------------- */
 
-function isValidObjectId(id?: string): id is string {
-  return !!id && mongoose.Types.ObjectId.isValid(id);
-}
+const isValidObjectId = (id?: string): id is string =>
+  !!id && mongoose.Types.ObjectId.isValid(id);
 
-function getErrMessage(err: unknown): string {
-  return err instanceof Error ? err.message : "Server error";
-}
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Server error");
 
 /* -------------------------------- PUT --------------------------------
-   Mark one address as active (and all others inactive)
------------------------------------------------------------------------ */
+   Mark one address as active (others inactive) on the `address` array
+------------------------------------------------------------------------ */
 export async function PUT(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -59,40 +53,46 @@ export async function PUT(req: Request) {
 
     await db.connectDb();
 
-    const user = await User.findById(session.user.id);
-    if (!user) {
+    // Ensure user exists and has the `address` array
+    const hasUser = await User.exists({ _id: session.user.id });
+    if (!hasUser) {
       await db.disconnectDb();
       return NextResponse.json<ErrorResp>({ message: "User not found." }, { status: 404 });
     }
 
-    const current = Array.isArray((user as unknown as { address?: AddressDoc[] }).address)
-      ? ((user as unknown as { address: AddressDoc[] }).address)
-      : [];
+    // 1) Set all addresses inactive
+    await User.updateOne(
+      { _id: session.user.id },
+      { $set: { "address.$[].active": false } }
+    );
 
-    const updated: AddressDoc[] = current.map((addr) => {
-      const plain = typeof addr.toObject === "function" ? addr.toObject() : addr;
-      return {
-        ...plain,
-        active: String(plain._id) === String(id),
-      };
-    });
+    // 2) Set the selected one active using arrayFilters
+    const upd = await User.updateOne(
+      { _id: session.user.id },
+      { $set: { "address.$[elem].active": true } },
+      { arrayFilters: [{ "elem._id": new mongoose.Types.ObjectId(id) }] }
+    );
 
-    // Write back the normalized array
-    user.set("address", updated);
-    await user.save();
+    if (upd.matchedCount === 0) {
+      await db.disconnectDb();
+      return NextResponse.json<ErrorResp>({ message: "Address not found." }, { status: 404 });
+    }
 
-    const fresh = await User.findById(user._id).select("address").lean<{ address?: AddressDoc[] } | null>();
+    // 3) Return fresh list
+    const fresh = await User.findById(session.user.id)
+      .select("address")
+      .lean<{ address?: AddressLean[] } | null>();
 
     await db.disconnectDb();
     return NextResponse.json({ addresses: fresh?.address ?? [] }, { status: 200 });
-  } catch (err: unknown) {
-    try { await db.disconnectDb(); } catch { /* ignore */ }
-    return NextResponse.json<ErrorResp>({ message: getErrMessage(err) }, { status: 500 });
+  } catch (e) {
+    try { await db.disconnectDb(); } catch {}
+    return NextResponse.json<ErrorResp>({ message: errMsg(e) }, { status: 500 });
   }
 }
 
 /* ------------------------------- DELETE -------------------------------
-   Remove an address by _id
+   Remove an address by _id from `address`
 ------------------------------------------------------------------------ */
 export async function DELETE(req: Request) {
   try {
@@ -101,35 +101,31 @@ export async function DELETE(req: Request) {
       return NextResponse.json<ErrorResp>({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // DELETE with JSON body (supported via fetch)
-    const { id } = (await req.json()) as IdBody;
+    const { id } = (await req.json()) as IdBody; // DELETE with JSON body via fetch
     if (!isValidObjectId(id)) {
       return NextResponse.json<ErrorResp>({ message: "Invalid address ID." }, { status: 400 });
     }
 
     await db.connectDb();
 
-    const user = await User.findById(session.user.id);
-    if (!user) {
+    const upd = await User.updateOne(
+      { _id: session.user.id },
+      { $pull: { address: { _id: new mongoose.Types.ObjectId(id) } } }
+    );
+
+    if (upd.modifiedCount === 0) {
       await db.disconnectDb();
-      return NextResponse.json<ErrorResp>({ message: "User not found." }, { status: 404 });
+      return NextResponse.json<ErrorResp>({ message: "Address not found." }, { status: 404 });
     }
 
-    const current = Array.isArray((user as unknown as { address?: AddressDoc[] }).address)
-      ? ((user as unknown as { address: AddressDoc[] }).address)
-      : [];
-
-    const filtered = current.filter((addr) => String(addr._id) !== String(id));
-
-    user.set("address", filtered);
-    await user.save();
-
-    const fresh = await User.findById(user._id).select("address").lean<{ address?: AddressDoc[] } | null>();
+    const fresh = await User.findById(session.user.id)
+      .select("address")
+      .lean<{ address?: AddressLean[] } | null>();
 
     await db.disconnectDb();
     return NextResponse.json({ addresses: fresh?.address ?? [] }, { status: 200 });
-  } catch (err: unknown) {
-    try { await db.disconnectDb(); } catch { /* ignore */ }
-    return NextResponse.json<ErrorResp>({ message: getErrMessage(err) }, { status: 500 });
+  } catch (e) {
+    try { await db.disconnectDb(); } catch {}
+    return NextResponse.json<ErrorResp>({ message: errMsg(e) }, { status: 500 });
   }
 }

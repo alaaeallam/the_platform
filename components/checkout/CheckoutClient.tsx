@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Header from "@/components/cart/header";
+// import Header from "@/components/cart/header";
 import Shipping from "@/components/checkout/shipping";
 import Products from "@/components/checkout/products";
 import Payment from "@/components/checkout/payment";
@@ -39,7 +39,7 @@ export default function CheckoutClient({ user, cart }: Props) {
 
   return (
     <>
-      <Header />
+      {/* <Header /> */}
       <div className={`${styles.container} ${styles.checkout}`}>
         <div className={styles.checkout__side}>
           <Shipping
