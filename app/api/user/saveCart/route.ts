@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
   const firstFromAnySub: string | undefined =
   subs.find((sp) => Array.isArray(sp.images) && sp.images.length > 0)?.images?.[0];
 
-  const chosenImage = colorImg || subPrimary || firstFromAnySub || "";
+  const chosenImage = subPrimary || firstFromAnySub || colorImg || "";
 
   products.push({
     product: productDoc._id as unknown as Types.ObjectId,

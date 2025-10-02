@@ -189,9 +189,7 @@ export default async function CheckoutPage(): Promise<React.JSX.Element> {
 
     // 1) prefer the image stored on the line (what the user actually saw/selected)
     const lineImage =
-      typeof p?.image === "string" && p.image.trim().length > 0
-        ? p.image
-        : undefined;
+  typeof p?.image === "string" && p.image.trim().length > 0 ? p.image : undefined;
 
     // 2) then the explicitly chosen color image (if present on the line)
     const colorImage =
@@ -200,10 +198,8 @@ export default async function CheckoutPage(): Promise<React.JSX.Element> {
         : undefined;
 
     // 3) then the variant image from the product
-    const subPrimaryImage =
-      Array.isArray(sub?.images) && sub.images.length > 0
-        ? sub.images[0]
-        : undefined;
+   const subPrimaryImage =
+  Array.isArray(sub?.images) && sub.images.length > 0 ? sub.images[0] : undefined;
 
     // 4) fall back to the first available image across subProducts
     const firstImageFromAnySub =
@@ -213,12 +209,12 @@ export default async function CheckoutPage(): Promise<React.JSX.Element> {
           )?.images?.[0]
         : undefined;
 
-    const image =
-      colorImage ||
-      lineImage ||
-      subPrimaryImage ||
-      firstImageFromAnySub ||
-      "/placeholder.png";
+   const image =
+  lineImage ||
+  subPrimaryImage ||
+  firstImageFromAnySub ||
+  colorImage || // only if nothing else
+  "/placeholder.png";
 
     const name =
       (typeof doc?.name === "string" && doc.name) ||
