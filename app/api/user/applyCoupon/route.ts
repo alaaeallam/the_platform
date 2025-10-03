@@ -13,95 +13,116 @@ import Coupon from "@/models/Coupon";
 
 /* ---------- Types ---------- */
 
-type Body = {
-  coupon?: string;
-};
-
-type Ok = { totalAfterDiscount: number; discount: number };
+type Body = { coupon?: string };
+type Ok = { totalAfterDiscount: number; discount: number }; // discount = percent used (for UI tag)
 type Err = { message: string };
 
-/** Minimal shape we rely on from session.user */
-type SessionUserLike = {
-  id?: string;
-  email?: string | null;
-};
+type SessionUserLike = { id?: string; email?: string | null };
 
 /* ---------- Helpers ---------- */
-
-function toMoney(n: number): number {
-  return Math.round(n * 100) / 100;
-}
-
-function getErrMessage(err: unknown): string {
-  return err instanceof Error ? err.message : "Server error";
-}
+const toMoney = (n: number) => Math.round(n * 100) / 100;
+const getErrMessage = (e: unknown) =>
+  e instanceof Error ? e.message : "Server error";
 
 /* ---------- POST ---------- */
-
 export async function POST(req: Request) {
+  let connected = false;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json<Err>({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { coupon } = (await req.json()) as Body;
-    const code = (coupon ?? "").trim();
-
+    const { coupon: couponRaw } = (await req.json()) as Body;
+    const code = (couponRaw ?? "").trim().toUpperCase();
     if (!code) {
       return NextResponse.json<Err>({ message: "Please provide a coupon code." }, { status: 400 });
     }
 
     await db.connectDb();
+    connected = true;
 
-    // Narrow the session user safely (no `any`)
-    const u = session.user as unknown as SessionUserLike;
-
-    // Find the user (prefer email for OAuth, fall back to id if present)
+    // resolve user by email first (oauth), then id
+    const s = session.user as unknown as SessionUserLike;
     const user =
-      (u.email ? await User.findOne({ email: u.email }) : null) ??
-      (u.id ? await User.findById(u.id) : null);
-
+      (s.email ? await User.findOne({ email: s.email }) : null) ??
+      (s.id ? await User.findById(s.id) : null);
     if (!user) {
-      await db.disconnectDb();
       return NextResponse.json<Err>({ message: "User not found." }, { status: 404 });
     }
 
-    // Validate coupon
-    const couponDoc = await Coupon.findOne({ coupon: code });
+    // find active & valid coupon
+    const now = new Date();
+    const couponDoc = await Coupon.findOne({
+      code,                            // <-- correct field
+      isActive: true,
+      startAt: { $lte: now },
+      endAt: { $gte: now },
+    }).lean();
+
     if (!couponDoc) {
-      await db.disconnectDb();
-      // Keep 200 for "invalid coupon" UX if that's what you expect
-      return NextResponse.json<Err>({ message: "Invalid coupon" }, { status: 200 });
+      return NextResponse.json<Err>({ message: "Invalid coupon" }, { status: 404 });
     }
 
-    // Load cart
+    // load cart
     const cart = await Cart.findOne({ user: user._id });
     if (!cart) {
-      await db.disconnectDb();
       return NextResponse.json<Err>({ message: "Cart not found." }, { status: 404 });
     }
 
-    const discount = Number(couponDoc.discount) || 0;
     const cartTotal = Number(cart.cartTotal) || 0;
 
-    const totalAfterDiscount = toMoney(cartTotal - (cartTotal * discount) / 100);
+    // min order check
+    if (couponDoc.minOrder && cartTotal < Number(couponDoc.minOrder)) {
+      return NextResponse.json<Err>(
+        { message: `Minimum order is ${couponDoc.minOrder}.` },
+        { status: 400 }
+      );
+    }
 
-    // Persist the discounted total on the cart
+    // compute discount
+    const type = String(couponDoc.type || "").toUpperCase(); // "PERCENT" | "AMOUNT"
+    const value = Number(couponDoc.value) || 0;
+
+    let discountAmount = 0;
+    let uiDiscountPercent = 0; // what your UI shows as "-{discount}%"
+
+    if (type === "PERCENT") {
+      uiDiscountPercent = Math.max(0, Math.min(100, value));
+      discountAmount = (cartTotal * uiDiscountPercent) / 100;
+
+      if (couponDoc.maxDiscount) {
+        discountAmount = Math.min(discountAmount, Number(couponDoc.maxDiscount));
+      }
+    } else if (type === "AMOUNT") {
+      discountAmount = Math.max(0, value);
+      // translate amount to a percent for the UI label (bounded 0..100)
+      uiDiscountPercent = cartTotal > 0 ? Math.min(100, (discountAmount / cartTotal) * 100) : 0;
+    } else {
+      return NextResponse.json<Err>({ message: "Unsupported coupon type." }, { status: 400 });
+    }
+
+    const totalAfterDiscount = toMoney(Math.max(0, cartTotal - discountAmount));
+
+    // persist discounted total on the cart
     cart.totalAfterDiscount = totalAfterDiscount;
     await cart.save();
 
-    await db.disconnectDb();
+    const payload: Ok = {
+      totalAfterDiscount,
+      discount: Math.round(uiDiscountPercent * 100) / 100, // nice tidy percent
+    };
 
-    const payload: Ok = { totalAfterDiscount, discount };
     return NextResponse.json<Ok>(payload, { status: 200 });
-  } catch (err: unknown) {
-    const message = getErrMessage(err);
-    try {
-      await db.disconnectDb();
-    } catch {
-      /* ignore */
+  } catch (err) {
+    return NextResponse.json<Err>({ message: getErrMessage(err) }, { status: 500 });
+  } finally {
+    if (connected) {
+      try {
+        await db.disconnectDb();
+      } catch {
+        /* ignore */
+      }
     }
-    return NextResponse.json<Err>({ message }, { status: 500 });
   }
 }

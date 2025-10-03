@@ -8,12 +8,10 @@ import { Form, Formik } from "formik";
 import ShippingInput from "../../inputs/shippingInput";
 import { applyCoupon } from "../../../requests/user";
 import { useRouter } from "next/navigation";
-
-import DotLoaderSpinner from "@/components/loaders/dotLoader"; // ⬅️ overlay loader
+import DotLoaderSpinner from "@/components/loaders/dotLoader";
 
 import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
 
-/* ----------------------------- Types ----------------------------- */
 type SummaryProps = {
   totalAfterDiscount: number | "";
   setTotalAfterDiscount: React.Dispatch<React.SetStateAction<number | "">>;
@@ -26,8 +24,6 @@ type SummaryProps = {
 const couponSchema = Yup.object({
   coupon: Yup.string().required("Please enter a coupon first!"),
 });
-
-/* ----------------------------- Component ----------------------------- */
 
 export default function Summary({
   totalAfterDiscount,
@@ -43,28 +39,50 @@ export default function Summary({
   const [discount, setDiscount] = React.useState<number>(0);
   const [error, setError] = React.useState<string>("");
   const [orderError, setOrderError] = React.useState<string>("");
-  const [posting, setPosting] = React.useState<boolean>(false);
+  const [posting, setPosting] = React.useState<boolean>(false);   // placing order
+  const [applying, setApplying] = React.useState<boolean>(false); // applying coupon
 
-  /* ----- Coupon handler ----- */
+  /* ----- Coupon handler (with logs) ----- */
   const applyCouponHandler = React.useCallback(async () => {
     setError("");
+    setApplying(true);
+
+    const code = coupon.trim();
+    const t0 = performance.now();
+
+    console.groupCollapsed("%cApply coupon", "color:#2f82ff;font-weight:bold");
+    console.log("coupon code →", code || "(empty)");
+    console.log("cartTotal →", Number(cart.cartTotal).toFixed(2));
+
     try {
-      const res = await applyCoupon(coupon);
+      const res = await applyCoupon(code);
+      console.log(`applyCoupon(): ${performance.now() - t0} ms`);
+      console.log("API ok? →", res.ok);
 
       if (!res.ok) {
-        setError(res.error);
+        console.log("API error →", res.error);
         setDiscount(0);
+        setTotalAfterDiscount("");
+        setError(res.error || "Invalid coupon.");
         return;
       }
 
+      // Expecting: { totalAfterDiscount: number, discount: number }
+      console.log("API data →", res.data);
       setTotalAfterDiscount(res.data.totalAfterDiscount);
       setDiscount(res.data.discount);
-    } catch {
+    } catch (e) {
+      console.log("Exception →", e);
+      setDiscount(0);
+      setTotalAfterDiscount("");
       setError("Something went wrong applying the coupon. Please try again.");
+    } finally {
+      setApplying(false);
+      console.groupEnd();
     }
-  }, [coupon, setTotalAfterDiscount]);
+  }, [coupon, cart.cartTotal, setTotalAfterDiscount]);
 
-  /* ----- Order handler ----- */
+  /* ----- Order handler (unchanged, keeps overlay loader) ----- */
   const placeOrderHandler = React.useCallback(async () => {
     setOrderError("");
 
@@ -116,7 +134,7 @@ export default function Summary({
           ? (err as { message: string }).message
           : "Unable to place order. Please try again.";
       setOrderError(message);
-      setPosting(false); // if we didn't navigate away, clear loading state
+      setPosting(false);
     }
   }, [
     paymentMethod,
@@ -134,10 +152,8 @@ export default function Summary({
     totalAfterDiscount > 0 &&
     totalAfterDiscount < cart.cartTotal;
 
-  /* ----- Render ----- */
   return (
     <div className={styles.summary} aria-busy={posting}>
-      {/* Full-panel overlay while placing order */}
       {posting && <DotLoaderSpinner loading />}
 
       <div className={styles.header}>
@@ -159,16 +175,17 @@ export default function Summary({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setCoupon(e.target.value)
                 }
+                disabled={applying || posting}
               />
               {error && <span className={styles.error}>{error}</span>}
 
               <button
                 className={styles.apply_btn}
                 type="submit"
-                disabled={!coupon.trim() || posting}
-                aria-disabled={!coupon.trim() || posting}
+                disabled={!coupon.trim() || applying || posting}
+                aria-disabled={!coupon.trim() || applying || posting}
               >
-                {posting ? "Please wait…" : "Apply"}
+                {applying ? "Applying…" : "Apply"}
               </button>
 
               <div className={styles.infos}>
@@ -196,8 +213,8 @@ export default function Summary({
       <button
         className={styles.submit_btn}
         onClick={placeOrderHandler}
-        disabled={posting}
-        aria-disabled={posting}
+        disabled={posting || applying}
+        aria-disabled={posting || applying}
         aria-label="Place order"
       >
         {posting ? "Placing…" : "Place Order"}
