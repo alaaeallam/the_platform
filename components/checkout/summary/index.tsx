@@ -1,4 +1,3 @@
-// components/checkout/summary/index.tsx
 "use client";
 
 import * as React from "react";
@@ -12,6 +11,7 @@ import DotLoaderSpinner from "@/components/loaders/dotLoader";
 
 import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
 
+/* ----------------------------- Types ----------------------------- */
 type SummaryProps = {
   totalAfterDiscount: number | "";
   setTotalAfterDiscount: React.Dispatch<React.SetStateAction<number | "">>;
@@ -24,6 +24,8 @@ type SummaryProps = {
 const couponSchema = Yup.object({
   coupon: Yup.string().required("Please enter a coupon first!"),
 });
+
+/* ----------------------------- Component ----------------------------- */
 
 export default function Summary({
   totalAfterDiscount,
@@ -39,50 +41,69 @@ export default function Summary({
   const [discount, setDiscount] = React.useState<number>(0);
   const [error, setError] = React.useState<string>("");
   const [orderError, setOrderError] = React.useState<string>("");
-  const [posting, setPosting] = React.useState<boolean>(false);   // placing order
-  const [applying, setApplying] = React.useState<boolean>(false); // applying coupon
 
-  /* ----- Coupon handler (with logs) ----- */
+  // loaders
+  const [posting, setPosting] = React.useState<boolean>(false);      // place order
+  const [isApplying, setIsApplying] = React.useState<boolean>(false); // coupon apply/remove
+
+  /* ----- Coupon: apply ----- */
   const applyCouponHandler = React.useCallback(async () => {
     setError("");
-    setApplying(true);
-
-    const code = coupon.trim();
+    setIsApplying(true);
+    console.groupCollapsed("%cApply coupon", "color:#888");
+    console.log("coupon code →", coupon);
+    console.log("cartTotal →", cart.cartTotal);
     const t0 = performance.now();
 
-    console.groupCollapsed("%cApply coupon", "color:#2f82ff;font-weight:bold");
-    console.log("coupon code →", code || "(empty)");
-    console.log("cartTotal →", Number(cart.cartTotal).toFixed(2));
-
     try {
-      const res = await applyCoupon(code);
-      console.log(`applyCoupon(): ${performance.now() - t0} ms`);
+      const res = await applyCoupon(coupon);
+
+      console.log("applyCoupon():", (performance.now() - t0).toFixed(3), "ms");
       console.log("API ok? →", res.ok);
+    
 
       if (!res.ok) {
-        console.log("API error →", res.error);
+        setError(res.error);
         setDiscount(0);
         setTotalAfterDiscount("");
-        setError(res.error || "Invalid coupon.");
         return;
       }
 
-      // Expecting: { totalAfterDiscount: number, discount: number }
-      console.log("API data →", res.data);
       setTotalAfterDiscount(res.data.totalAfterDiscount);
       setDiscount(res.data.discount);
     } catch (e) {
-      console.log("Exception →", e);
-      setDiscount(0);
-      setTotalAfterDiscount("");
       setError("Something went wrong applying the coupon. Please try again.");
+      console.warn(e);
     } finally {
-      setApplying(false);
+      setIsApplying(false);
       console.groupEnd();
     }
   }, [coupon, cart.cartTotal, setTotalAfterDiscount]);
 
-  /* ----- Order handler (unchanged, keeps overlay loader) ----- */
+  /* ----- Coupon: remove ----- */
+  const removeCouponHandler = React.useCallback(async () => {
+    setIsApplying(true);
+    console.groupCollapsed("%cRemove coupon", "color:#888");
+    const t0 = performance.now();
+
+    try {
+      // Client-side clear
+      setDiscount(0);
+      setTotalAfterDiscount("");
+      setCoupon("");
+      setError("");
+
+      // OPTIONAL: if you add a backend endpoint to clear the stored discount on the cart,
+      // you can call it here. Leaving it safe/no-op if it doesn't exist.
+      // await fetch("/api/user/clearCoupon", { method: "POST" }).catch(() => {});
+    } finally {
+      console.log("removeCoupon():", (performance.now() - t0).toFixed(3), "ms");
+      setIsApplying(false);
+      console.groupEnd();
+    }
+  }, [setTotalAfterDiscount]);
+
+  /* ----- Order handler ----- */
   const placeOrderHandler = React.useCallback(async () => {
     setOrderError("");
 
@@ -111,7 +132,7 @@ export default function Summary({
           paymentMethod,
           total: finalTotal,
           totalBeforeDiscount: cart.cartTotal,
-          couponApplied: coupon || undefined,
+          couponApplied: discount > 0 ? coupon : undefined,
           userId: user._id,
         }),
       });
@@ -143,6 +164,7 @@ export default function Summary({
     cart.cartTotal,
     cart.products,
     coupon,
+    discount,
     user._id,
     router,
   ]);
@@ -152,8 +174,10 @@ export default function Summary({
     totalAfterDiscount > 0 &&
     totalAfterDiscount < cart.cartTotal;
 
+  /* ----- Render ----- */
   return (
     <div className={styles.summary} aria-busy={posting}>
+      {/* Full-panel overlay while placing order */}
       {posting && <DotLoaderSpinner loading />}
 
       <div className={styles.header}>
@@ -172,21 +196,35 @@ export default function Summary({
               <ShippingInput
                 name="coupon"
                 placeholder="*Coupon"
+                value={coupon}
+                disabled={discount > 0 || isApplying || posting}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setCoupon(e.target.value)
                 }
-                disabled={applying || posting}
               />
               {error && <span className={styles.error}>{error}</span>}
 
-              <button
-                className={styles.apply_btn}
-                type="submit"
-                disabled={!coupon.trim() || applying || posting}
-                aria-disabled={!coupon.trim() || applying || posting}
-              >
-                {applying ? "Applying…" : "Apply"}
-              </button>
+              {/* Apply / Remove buttons */}
+              {discount > 0 ? (
+                <button
+                  type="button"
+                  className={`${styles.apply_btn} ${styles.remove_btn}`}
+                  onClick={removeCouponHandler}
+                  disabled={isApplying || posting}
+                  aria-disabled={isApplying || posting}
+                >
+                  {isApplying ? "Removing…" : "Remove Coupon"}
+                </button>
+              ) : (
+                <button
+                  className={styles.apply_btn}
+                  type="submit"
+                  disabled={!coupon.trim() || isApplying || posting}
+                  aria-disabled={!coupon.trim() || isApplying || posting}
+                >
+                  {isApplying ? "Applying…" : "Apply"}
+                </button>
+              )}
 
               <div className={styles.infos}>
                 <span>
@@ -213,8 +251,8 @@ export default function Summary({
       <button
         className={styles.submit_btn}
         onClick={placeOrderHandler}
-        disabled={posting || applying}
-        aria-disabled={posting || applying}
+        disabled={posting}
+        aria-disabled={posting}
         aria-label="Place order"
       >
         {posting ? "Placing…" : "Place Order"}

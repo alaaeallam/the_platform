@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { getCountryFromCode, type CountryInfo } from "@/utils/countries";
+import { Toaster } from "react-hot-toast";
 import CrossTabCartSync from "@/components/cart/CrossTabCartSync";
 async function getCountry(): Promise<CountryInfo> {
   try {
@@ -22,6 +23,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
     <CrossTabCartSync />
       <Header country={country} />
       {children}
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <Footer country={country} />
     </>
   );
