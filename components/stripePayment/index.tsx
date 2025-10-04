@@ -1,41 +1,39 @@
+//components/stripePayment/index.tsx
 "use client";
 
 import * as React from "react";
 import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe, type Stripe, type StripeElementsOptions } from "@stripe/stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import type { StripeElementsOptions } from "@stripe/stripe-js";
 import Form from "./Form";
 
-type StripePaymentProps = {
-  stripePublicKey: string;
-  total: number;
-  orderId: string;
-  onSuccess?: () => void;
-};
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
-// ✅ Cache should store the *return type of loadStripe*, not a Promise of it
-const stripePromiseCache = new Map<string, ReturnType<typeof loadStripe>>();
+export default function StripePayment({ orderId }: { orderId: string }) {
+  const [clientSecret, setClientSecret] = React.useState<string | null>(null);
 
-function getStripe(pk: string): ReturnType<typeof loadStripe> {
-  if (!stripePromiseCache.has(pk)) {
-    stripePromiseCache.set(pk, loadStripe(pk));
-  }
-  // non-null because we just set it if missing
-  return stripePromiseCache.get(pk)!;
-}
+  React.useEffect(() => {
+    (async () => {
+      const res = await fetch("/api/stripe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      setClientSecret(data.clientSecret);
+    })();
+  }, [orderId]);
 
-export default function StripePayment({
-  stripePublicKey,
-  total,
-  orderId,
-  onSuccess,
-}: StripePaymentProps) {
+  if (!clientSecret) return <p>Loading payment…</p>;
+
   const options: StripeElementsOptions = {
+    clientSecret,
     appearance: { theme: "stripe" },
   };
 
   return (
-    <Elements stripe={getStripe(stripePublicKey)} options={options}>
-      <Form total={total} orderId={orderId} onSuccess={onSuccess} />
+    <Elements stripe={stripePromise} options={options}>
+      <Form clientSecret={clientSecret} orderId={orderId} />
     </Elements>
   );
 }

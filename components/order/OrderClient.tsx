@@ -402,11 +402,7 @@ const statusClass =
               )}
 
               {order.paymentMethod === "credit_card" && (
-                <StripePayment
-                  total={order.total}
-                  orderId={order._id}
-                  stripePublicKey={stripePublicKey}
-                />
+                <StripePayment orderId={order._id} />
               )}
 
               {order.paymentMethod === "cash" && (

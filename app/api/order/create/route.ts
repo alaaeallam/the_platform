@@ -15,6 +15,11 @@ import Order, {
   type IOrderProduct,
   type IShippingAddress,
 } from "@/models/Order";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: "2025-09-30.clover",
+});
 
 /* ----------------------------- Types ----------------------------- */
 
@@ -30,6 +35,7 @@ type Body = {
   }>;
   shippingAddress?: Partial<IShippingAddress>;
   paymentMethod?: string;
+  payment?: { provider: "stripe"; intentId: string } | undefined;
   total?: number; // ignored (client-provided)
   totalBeforeDiscount?: number; // ignored (client-provided)
   couponApplied?: string;
@@ -143,7 +149,16 @@ export async function POST(req: Request) {
       price: Number(p.price || 0),
     }));
 
-    // Build order payload (server-trusted values)
+    // Normalize client method ids to canonical values
+    const canonicalPaymentMethod = (() => {
+      const pm = (body.paymentMethod || "").toLowerCase();
+      if (pm === "paypal") return "paypal";
+      if (pm === "cash" || pm === "cod") return "cash";
+      // treat card brands / stripe as stripe
+      if (pm === "stripe" || pm === "visa" || pm === "mastercard") return "stripe";
+      return pm || "cash"; // default
+    })();
+
     const payload: IOrderCreate = {
       user: userId,
       products: orderProducts,
@@ -158,19 +173,63 @@ export async function POST(req: Request) {
         zipCode: body.shippingAddress.zipCode!,
         country: body.shippingAddress.country!,
       },
-      paymentMethod: body.paymentMethod!,
+      paymentMethod: canonicalPaymentMethod,
       total: effectiveTotal,
       totalBeforeDiscount: subtotalRounded,
       couponApplied: body.couponApplied,
-      shippingPrice: 0, // adjust when you implement shipping
-      taxPrice: 0, // adjust when you implement tax
+      shippingPrice: 0,
+      taxPrice: 0,
       isPaid: false,
       status: "Not Processed",
-      // optional:
       paymentResult: undefined,
       paidAt: undefined,
       deliveredAt: undefined,
     };
+
+    // If Stripe payment info is provided, verify the intent and mark as paid
+    if (body.payment?.provider === "stripe" && body.payment.intentId) {
+      try {
+        const pi = await stripe.paymentIntents.retrieve(body.payment.intentId, {
+          expand: ["latest_charge"],
+        });
+        if (pi.status === "succeeded") {
+          // Optional integrity checks
+          // if (pi.amount !== Math.round(effectiveTotal * 100)) {
+          //   return NextResponse.json<Err>({ message: "Payment amount mismatch." }, { status: 400 });
+          // }
+          const latestCharge = (pi.latest_charge ?? null) as Stripe.Charge | string | null;
+          const receiptUrl =
+            typeof latestCharge === "object" && latestCharge !== null
+              ? latestCharge.receipt_url ?? undefined
+              : undefined;
+
+          payload.isPaid = true;
+          payload.paidAt = new Date();
+          payload.paymentMethod = "stripe";
+          payload.paymentResult = {
+            id: pi.id,
+            status: pi.status,
+            amount: pi.amount,
+            currency: pi.currency,
+            receipt_url: receiptUrl,
+          } as {
+            id: string;
+            status: string;
+            amount: number;
+            currency: string;
+            receipt_url?: string;
+          };
+          payload.status = "Not Processed";
+        } else {
+          return NextResponse.json<Err>({ message: "Payment not completed." }, { status: 400 });
+        }
+      } catch (e) {
+        return NextResponse.json<Err>(
+          { message: `Unable to verify payment: ${errMsg(e)}` },
+          { status: 400 }
+        );
+      }
+    }
 
     const created = await Order.create(payload);
 

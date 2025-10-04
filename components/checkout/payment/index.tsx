@@ -1,4 +1,5 @@
-// components/checkout/payment/index.tsx
+
+//components/checkout/payment/index.tsx
 "use client";
 
 import * as React from "react";
@@ -6,12 +7,12 @@ import styles from "./styles.module.scss";
 import { paymentMethods } from "@/data/paymentMethods";
 import type { PaymentMethod } from "@/types/checkout";
 
-/** Local shape for items in data/paymentMethods */
 export interface PaymentMethodInfo {
-  id: PaymentMethod;      // reuse the union: "paypal" | "visa" | "mastercard" | "cash" | "stripe"
+  id: PaymentMethod;           // "STRIPE" | "PAYPAL" | "CASH" | "COD" | "CARD"
   name: string;
   description?: string;
-  images: string[];       // image ids like "visa", "mastercard", etc.
+  images?: string[];           // e.g., ["visa","mastercard"]
+  disabled?: boolean;          // optional
 }
 
 type PaymentProps = {
@@ -21,7 +22,6 @@ type PaymentProps = {
 };
 
 export default function Payment({ paymentMethod, setPaymentMethod, profile }: PaymentProps) {
-  // Ensure the imported data is strongly typed
   const methods = paymentMethods as PaymentMethodInfo[];
 
   return (
@@ -38,8 +38,8 @@ export default function Payment({ paymentMethod, setPaymentMethod, profile }: Pa
           <label
             key={pm.id}
             htmlFor={`pm-${pm.id}`}
-            className={styles.payment__item}
-            style={{ background: checked ? "#f5f5f5" : "" }}
+            className={`${styles.payment__item} ${checked ? styles.checked : ""}`}
+            aria-checked={checked}
           >
             <input
               type="radio"
@@ -48,17 +48,18 @@ export default function Payment({ paymentMethod, setPaymentMethod, profile }: Pa
               value={pm.id}
               checked={checked}
               onChange={() => setPaymentMethod(pm.id)}
+              disabled={pm.disabled}
             />
 
-            {/* Icon for the method itself */}
-            <img src={`../../../images/checkout/${pm.id}.webp`} alt={pm.name} />
+            {/* Main method icon */}
+            <img src={`/images/checkout/${pm.id}.webp`} alt={`${pm.name} logo`} />
 
             <div className={styles.payment__item_col}>
               <span>Pay with {pm.name}</span>
               <p>
                 {pm.images?.length
                   ? pm.images.map((img) => (
-                      <img key={img} src={`../../../images/payment/${img}.webp`} alt="" />
+                      <img key={img} src={`/images/payment/${img}.webp`} alt={`${img} logo`} />
                     ))
                   : pm.description}
               </p>

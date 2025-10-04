@@ -20,6 +20,7 @@
     "@types/react-image-magnify": "^2.7.4",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.7.0",
     "dayjs": "^1.11.18",
     "formik": "^2.4.6",
     "fs": "^0.0.1-security",
@@ -40,6 +41,7 @@
     "react-spinners": "^0.17.0",
     "redux-persist": "^6.0.0",
     "sass": "^1.91.0",
+    "stripe": "^19.1.0",
     "swiper": "^11.2.10",
     "yup": "^1.7.0",
     "zod": "^4.1.5"

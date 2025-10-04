@@ -1,3 +1,5 @@
+//components/checkout/summary/index.tsx
+
 "use client";
 
 import * as React from "react";
@@ -9,8 +11,23 @@ import { applyCoupon } from "../../../requests/user";
 import { useRouter } from "next/navigation";
 import DotLoaderSpinner from "@/components/loaders/dotLoader";
 
-import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
+import { Elements, useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import type { StripeElementsOptions } from "@stripe/stripe-js";
 
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
+type CanonicalPM = "STRIPE" | "PAYPAL" | "CASH";
+
+// Only return a canonical value when the user explicitly chose a method.
+// Otherwise return null so we don't render the card form prematurely.
+function toCanonical(pm: PaymentMethod | null | undefined): CanonicalPM | null {
+  if (pm === "paypal") return "PAYPAL";
+  if (pm === "cash") return "CASH";
+  if (pm === "stripe" || pm === "visa" || pm === "mastercard") return "STRIPE";
+  return null; // unknown / not selected yet
+}
 /* ----------------------------- Types ----------------------------- */
 type SummaryProps = {
   totalAfterDiscount: number | "";
@@ -25,6 +42,70 @@ const couponSchema = Yup.object({
   coupon: Yup.string().required("Please enter a coupon first!"),
 });
 
+/* ----------------------------- Inline Stripe Form ----------------------------- */
+type InlineStripeHandle = { confirm: () => Promise<string> };
+
+const InlineStripeForm = React.forwardRef<InlineStripeHandle, { amountCents: number }>(function InlineStripeForm({ amountCents }, ref) {
+  const [clientSecret, setClientSecret] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        
+        const res = await fetch("/api/stripe/intent", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ amountCents }),   // <— send amountCents, not { cart:{...} }
+});
+        const data = await res.json();
+        setClientSecret(data.clientSecret);
+      } catch (e) {
+        console.error("Failed to init Stripe intent", e);
+      }
+    })();
+  }, [amountCents]);
+
+  const ConfirmInner = () => {
+    const stripe = useStripe();
+    const elements = useElements();
+
+    React.useImperativeHandle(ref, () => ({
+      async confirm() {
+        if (!stripe || !elements) throw new Error("Payment form not ready");
+        const card = elements.getElement(CardElement);
+        if (!card) throw new Error("Card element not found");
+
+        if (!clientSecret) throw new Error("Missing client secret");
+
+        const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: { card },
+        });
+
+        if (error) throw new Error(error.message || "Payment failed");
+        if (!paymentIntent || paymentIntent.status !== "succeeded") throw new Error("Payment not completed");
+        return paymentIntent.id;
+      },
+    }));
+
+    return (
+      <div className={styles.inlineStripeBox}>
+        <label className={styles.inlineStripeLabel}>Card number</label>
+        <CardElement />
+      </div>
+    );
+  };
+
+  if (!clientSecret) return <p>Loading payment…</p>;
+
+  const options: StripeElementsOptions = { clientSecret };
+
+  return (
+    <Elements stripe={stripePromise} options={options} key={clientSecret}>
+      <ConfirmInner />
+    </Elements>
+  );
+});
+
 /* ----------------------------- Component ----------------------------- */
 
 export default function Summary({
@@ -36,6 +117,9 @@ export default function Summary({
   selectedAddress,
 }: SummaryProps): React.JSX.Element {
   const router = useRouter();
+  const isStripeSelected = toCanonical(paymentMethod) === "STRIPE";
+
+  const stripeRef = React.useRef<InlineStripeHandle | null>(null);
 
   const [coupon, setCoupon] = React.useState<string>("");
   const [discount, setDiscount] = React.useState<number>(0);
@@ -104,70 +188,73 @@ export default function Summary({
   }, [setTotalAfterDiscount]);
 
   /* ----- Order handler ----- */
-  const placeOrderHandler = React.useCallback(async () => {
-    setOrderError("");
+const placeOrderHandler = React.useCallback(async () => {
+  setOrderError("");
 
-    if (!paymentMethod) {
-      setOrderError("Please choose a payment method.");
-      return;
+  if (!paymentMethod) {
+    setOrderError("Please choose a payment method.");
+    return;
+  }
+  if (!selectedAddress) {
+    setOrderError("Please choose a shipping address.");
+    return;
+  }
+
+  try {
+    const canonical = isStripeSelected ? "STRIPE" : toCanonical(paymentMethod);
+
+    let paymentInfo: { provider: "stripe"; intentId: string } | undefined;
+    if (canonical === "STRIPE") {
+      // Confirm card payment first (do not set posting yet to avoid unmounting Element)
+      const amountCents = Math.round((typeof totalAfterDiscount === "number" && !Number.isNaN(totalAfterDiscount) ? totalAfterDiscount : cart.cartTotal) * 100);
+      if (!stripeRef.current) throw new Error("Payment form not ready");
+      const intentId = await stripeRef.current.confirm();
+      paymentInfo = { provider: "stripe", intentId };
     }
-    if (!selectedAddress) {
-      setOrderError("Please choose a shipping address.");
-      return;
+
+    setPosting(true);
+
+    // Now create the order (mark as paid if stripe)
+    const res = await fetch("/api/order/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        products: cart.products,
+        shippingAddress: selectedAddress,
+        paymentMethod,
+        totalBeforeDiscount: cart.cartTotal,
+        total: typeof totalAfterDiscount === "number" && !Number.isNaN(totalAfterDiscount) ? totalAfterDiscount : cart.cartTotal,
+        couponApplied: discount > 0 ? coupon : undefined,
+        userId: user._id,
+        payment: paymentInfo, // server can treat presence as paid
+      }),
+    });
+
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      throw new Error(data?.message || "Failed to place order.");
     }
 
-    const finalTotal =
-      typeof totalAfterDiscount === "number" && !Number.isNaN(totalAfterDiscount)
-        ? totalAfterDiscount
-        : cart.cartTotal;
-
-    try {
-      setPosting(true);
-      const res = await fetch("/api/order/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          products: cart.products,
-          shippingAddress: selectedAddress,
-          paymentMethod,
-          total: finalTotal,
-          totalBeforeDiscount: cart.cartTotal,
-          couponApplied: discount > 0 ? coupon : undefined,
-          userId: user._id,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { message?: string };
-        throw new Error(data?.message || "Failed to place order.");
-      }
-
-      const data = (await res.json()) as { order_id: string };
-      router.push(`/order/${data.order_id}`);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : (typeof err === "object" &&
-              err !== null &&
-              "message" in err &&
-              typeof (err as { message: unknown }).message === "string")
-          ? (err as { message: string }).message
-          : "Unable to place order. Please try again.";
-      setOrderError(message);
-      setPosting(false);
-    }
-  }, [
-    paymentMethod,
-    selectedAddress,
-    totalAfterDiscount,
-    cart.cartTotal,
-    cart.products,
-    coupon,
-    discount,
-    user._id,
-    router,
-  ]);
+    const data = (await res.json()) as { order_id: string };
+    // Redirect to order page for all methods now
+    router.push(`/order/${data.order_id}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unable to place order. Please try again.";
+    setOrderError(message);
+    setPosting(false);
+  }
+}, [
+  paymentMethod,
+  selectedAddress,
+  totalAfterDiscount,
+  cart.cartTotal,
+  cart.products,
+  coupon,
+  discount,
+  user._id,
+  router,
+  isStripeSelected,
+]);
 
   const showNewPrice =
     typeof totalAfterDiscount === "number" &&
@@ -183,6 +270,16 @@ export default function Summary({
       <div className={styles.header}>
         <h3>Order Summary</h3>
       </div>
+
+      {isStripeSelected && (
+        <div className={styles.inlineStripeContainer}>
+          <h4>Complete your payment</h4>
+          <InlineStripeForm
+            ref={stripeRef}
+            amountCents={Math.round((showNewPrice ? (totalAfterDiscount as number) : cart.cartTotal) * 100)}
+          />
+        </div>
+      )}
 
       <div className={styles.coupon}>
         <Formik
