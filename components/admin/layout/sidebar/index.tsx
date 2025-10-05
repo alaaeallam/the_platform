@@ -131,7 +131,7 @@ export default function Sidebar(): React.JSX.Element {
 
           <ul className={styles.sidebar__list}>
             <li className={isActive("product/all") ? styles.active : ""}>
-              <Link href="/admin/dashboard/product/all">
+              <Link href="/admin/dashboard/products/all">
                 <FaThList />
                 <span className={styles.show}>All Products</span>
               </Link>
