@@ -6,7 +6,7 @@ import Link from "next/link";
 import styles from "@/app/styles/dashboard.module.scss";
 import Dropdown from "@/components/admin/dashboard/dropdown";
 import Notifications from "@/components/admin/dashboard/notifications";
-import Layout from "@/components/admin/layout";
+
 import { TbUsers } from "react-icons/tb";
 import { SlHandbag, SlEye } from "react-icons/sl";
 import { SiProducthunt } from "react-icons/si";
@@ -47,7 +47,7 @@ export default function DashboardClient({ users, orders, products }: DashboardPr
   const unpaid = orders.filter((o) => !o.isPaid).reduce((acc, o) => acc + (Number(o.total) || 0), 0);
 
   return (
-    <Layout>
+    <>
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.header__search}>
@@ -156,6 +156,6 @@ export default function DashboardClient({ users, orders, products }: DashboardPr
           </table>
         </div>
       </div>
-    </Layout>
+    </>
   );
 }

@@ -21,7 +21,6 @@ export default function SubCategoriesClient({
   );
 
   return (
-    <Layout>
     <div>
       <Create categories={categories} setSubCategories={setSubCategories} />
       <List
@@ -30,6 +29,6 @@ export default function SubCategoriesClient({
         setSubCategories={setSubCategories}
       />
     </div>
-    </Layout>
+  
   );
 }

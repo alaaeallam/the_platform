@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Create from "@/components/admin/categories/Create";
 import List from "@/components/admin/categories/List";
-import Layout from "@/components/admin/layout";
+
 
 // Duplicate or import the shared type.
 // If you keep the source of truth in a single file (recommended),
@@ -28,11 +28,11 @@ export default function CategoriesClient({
   const [categories, setCategories] = useState<CategoryVM[]>(initialCategories);
 
   return (
-    <Layout>
+   
     <div>
       <Create setCategories={setCategories} />
       <List categories={categories} setCategories={setCategories} />
     </div>
-    </Layout>
+
   );
 }
