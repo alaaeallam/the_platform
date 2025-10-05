@@ -1,30 +1,48 @@
 // app/providers.tsx
 "use client";
 
+import * as React from "react";
 import { SessionProvider } from "next-auth/react";
 import type { Session } from "next-auth";
-import { Provider } from "react-redux";
+import { Provider as ReduxProvider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "@/store";
 
-interface ProvidersProps {
-  children: React.ReactNode;
-  session: Session | null;
-}
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-export function Providers({ children, session }: ProvidersProps) {
+type ProvidersProps = {
+  children: React.ReactNode;
+  /** Optional: pass when you use getServerSession in a server layout/page */
+  session?: Session | null;
+};
+
+export function Providers({ children, session }: ProvidersProps): React.JSX.Element {
   return (
     <SessionProvider
       session={session ?? undefined}
       refetchOnWindowFocus
-      refetchInterval={5 * 60}   // refresh JWT every 5 minutes in the background
+      refetchInterval={5 * 60} // refresh JWT every 5 minutes
       refetchWhenOffline={false}
     >
-      <Provider store={store}>
+      <ReduxProvider store={store}>
         <PersistGate loading={null} persistor={persistor}>
           {children}
+
+          {/* Global toast container (mounted once) */}
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            newestOnTop
+            closeOnClick
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+            toastStyle={{ zIndex: 10000 }} // keep above modals/headers
+          />
         </PersistGate>
-      </Provider>
+      </ReduxProvider>
     </SessionProvider>
   );
 }
