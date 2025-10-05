@@ -5,6 +5,7 @@ import Footer from "@/components/footer";
 import { getCountryFromCode, type CountryInfo } from "@/utils/countries";
 import { Toaster } from "react-hot-toast";
 import CrossTabCartSync from "@/components/cart/CrossTabCartSync";
+
 async function getCountry(): Promise<CountryInfo> {
   try {
     const h = await headers();
@@ -15,12 +16,16 @@ async function getCountry(): Promise<CountryInfo> {
   }
 }
 
-export default async function ShopLayout({ children }: { children: React.ReactNode }) {
+export default async function ShopLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const country = await getCountry();
 
   return (
     <>
-    <CrossTabCartSync />
+      <CrossTabCartSync />
       <Header country={country} />
       {children}
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />

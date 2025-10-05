@@ -17,7 +17,6 @@ export default function Header({ country }: HeaderProps) {
     <header className={styles.header}>
       <Ad />
       <Top country={country} />
-      {/* Main is your search/logo row; keep as-is unless it needs country too */}
       <Main />
     </header>
   );
