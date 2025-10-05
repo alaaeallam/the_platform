@@ -6,19 +6,10 @@ import axios from "axios";
 import { AiFillDelete, AiTwotoneEdit } from "react-icons/ai";
 import { toast } from "react-toastify";
 import styles from "./styles.module.scss";
-
+import type { CategoryVM } from "./types";
 /* =========================
    Types
    ========================= */
-
-export type CategoryVM = {
-  _id: string;
-  name: string;
-  slug?: string;
-  parent?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-};
 
 interface ApiResponse {
   message: string;

@@ -6,20 +6,13 @@ import * as Yup from "yup";
 import { useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-
+import type { CategoryVM } from "./types";
 import AdminInput from "@/components/inputs/adminInput";
 import styles from "./styles.module.scss";
 
 /* ---------- Types ---------- */
 
-export type CategoryVM = {
-  _id: string;
-  name: string;
-  slug?: string;
-  parent?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-};
+
 
 interface CreateProps {
   setCategories: React.Dispatch<React.SetStateAction<CategoryVM[]>>;

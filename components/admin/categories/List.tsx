@@ -1,19 +1,9 @@
-// components/admin/categories/List.tsx
 "use client";
 
+import * as React from "react";
 import ListItem from "./ListItem";
 import styles from "./styles.module.scss";
-import { useMemo } from "react";
-
-/** Match the shape you use across Create/List/etc. */
-export type CategoryVM = {
-  _id: string;
-  name: string;
-  slug?: string;
-  parent?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-};
+import type { CategoryVM } from "./types";
 
 interface ListProps {
   categories: CategoryVM[];
@@ -24,12 +14,9 @@ export default function List({
   categories,
   setCategories,
 }: ListProps): React.JSX.Element {
-  // Optional: memoize to avoid re-renders if the parent passes a new array reference
-  const items = useMemo(() => categories, [categories]);
-
   return (
     <ul className={styles.list}>
-      {items.map((category) => (
+      {categories.map((category: CategoryVM) => (
         <ListItem
           key={category._id}
           category={category}
