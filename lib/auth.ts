@@ -1,5 +1,5 @@
 // lib/auth.ts
-import type { NextAuthOptions, User as NextAuthUser } from "next-auth";
+import type { NextAuthOptions, User as NextAuthUser, Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
@@ -9,53 +9,40 @@ import bcrypt from "bcrypt";
 import clientPromise from "@/lib/mongoClient";
 import User from "@/models/User";
 import { connectDb } from "@/utils/db";
+import type { Role } from "@/types/next-auth"; // <-- import the union type
 
 interface ExtendedUser extends NextAuthUser {
-  role?: string;
+  role: Role;
 }
+
 interface ExtendedToken extends JWT {
-  role?: string;
-  // NextAuth adds these standard fields to the token when using OAuth
+  role: Role;
   name?: string | null;
   email?: string | null;
   picture?: string | null;
 }
 
-// 30 days (in seconds)
 const THIRTY_DAYS = 60 * 60 * 24 * 30;
 const isProd = process.env.NODE_ENV === "production";
 
-export const authOptions: NextAuthOptions & { trustHost?: boolean } = {
-  trustHost: true,
+// Runtime guard – converts anything to a valid Role
+function toRole(value: unknown): Role {
+  return value === "admin" ? "admin" : "customer";
+}
 
-  // Persist users/sessions in MongoDB (fine to combine with JWT sessions)
+export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
 
-  session: {
-    strategy: "jwt",
-    maxAge: THIRTY_DAYS,
-  },
-  jwt: {
-    maxAge: THIRTY_DAYS,
-  },
+  session: { strategy: "jwt", maxAge: THIRTY_DAYS },
+  jwt: { maxAge: THIRTY_DAYS },
 
-  // Explicit cookie config for consistent behavior in dev/prod
   cookies: {
     sessionToken: {
-      name: isProd
-        ? "__Secure-next-auth.session-token"
-        : "next-auth.session-token",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: isProd,
-      },
+      name: isProd ? "__Secure-next-auth.session-token" : "next-auth.session-token",
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: isProd },
     },
     callbackUrl: {
-      name: isProd
-        ? "__Secure-next-auth.callback-url"
-        : "next-auth.callback-url",
+      name: isProd ? "__Secure-next-auth.callback-url" : "next-auth.callback-url",
       options: { sameSite: "lax", path: "/", secure: isProd },
     },
     csrfToken: {
@@ -64,9 +51,7 @@ export const authOptions: NextAuthOptions & { trustHost?: boolean } = {
     },
   },
 
-  // Required secret (ensure set in .env)
   secret: process.env.NEXTAUTH_SECRET,
-
   pages: { signIn: "/login", error: "/login" },
 
   providers: [
@@ -76,41 +61,33 @@ export const authOptions: NextAuthOptions & { trustHost?: boolean } = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials): Promise<ExtendedUser | null> => {
         if (!credentials?.email || !credentials?.password) return null;
 
         await connectDb();
 
         const user = await User.findOne({ email: credentials.email })
-          .select("+password")
-          .lean<{
-            _id: unknown;
-            name?: string | null;
-            email: string;
-            image?: string | null;
-            password?: string;
-            role?: string | null;
-          } | null>();
+          .select("+password name email image role")
+          .lean<{ _id: unknown; name?: string | null; email: string; image?: string | null; password?: string; role?: Role | null } | null>();
 
         if (!user?.password) return null;
 
-        const ok = await bcrypt.compare(credentials.password, user.password);
-        if (!ok) return null;
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) return null;
 
         return {
           id: String(user._id),
           name: user.name ?? null,
           email: user.email,
           image: user.image ?? null,
-          role: user.role ?? "customer",
+          role: toRole(user.role),
         };
       },
     }),
 
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret:
-        process.env.Google_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       httpOptions: { timeout: 30000 },
       profile(profile) {
         return {
@@ -118,61 +95,52 @@ export const authOptions: NextAuthOptions & { trustHost?: boolean } = {
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          role: "customer",
+          role: "customer" as Role,
         };
       },
     }),
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
-      // Typed views (avoid any)
+    async jwt({ token, user }): Promise<ExtendedToken> {
       const t = token as ExtendedToken;
-      const u = (user ?? undefined) as ExtendedUser | undefined;
+      const u = user as ExtendedUser | undefined;
 
-      // Always carry the Mongo _id (not just the provider sub)
-      if (t?.email) {
-        await connectDb();
-
-        // doc is either a lean user or null
-        let doc = await User.findOne({ email: t.email })
-          .select({ _id: 1, role: 1 })
-          .lean<{ _id: unknown; role?: string } | null>();
-
-        if (!doc) {
-          // First-time OAuth signup: create minimal user
-          const created = await User.create({
-            name: t.name ?? u?.name ?? "",
-            email: t.email,
-            image: t.picture ?? u?.image ?? null,
-            role: "customer",
-          });
-          doc = { _id: created._id, role: created.role ?? "customer" };
-        }
-
-        const { _id, role } = doc;
-        t.sub = String(_id); // critical: use Mongo _id
-        t.role = role ?? t.role ?? "customer";
+      if (u) {
+        // On initial sign in, set token fields from user
+        t.sub = u.id;
+        t.role = toRole(u.role);
+        t.name = u.name ?? null;
+        t.email = u.email ?? null;
+        t.picture = u.image ?? null;
+        return t;
       }
 
-      // If credentials flow provided a role, keep it
-      if (u?.role && !t.role) {
-        t.role = u.role;
+      if (t.email) {
+        await connectDb();
+        const doc = await User.findOne({ email: t.email }).select({ _id: 1, role: 1 }).lean<{ _id: unknown; role?: Role | null } | null>();
+
+        if (doc) {
+          t.sub = String(doc._id);
+          t.role = toRole(doc.role);
+        } else {
+          t.role = toRole(t.role);
+        }
+      } else {
+        t.role = toRole(t.role);
       }
 
       return t;
     },
 
-    async session({ session, token }) {
+    async session({ session, token }): Promise<Session> {
       const t = token as ExtendedToken;
 
       if (session.user) {
-        // Mutate the session.user in a typed-safe way
-        (session.user as NextAuthUser & { id?: string; role?: string }).id =
-          token.sub ?? "";
-        (session.user as NextAuthUser & { id?: string; role?: string }).role =
-          t.role ?? "customer";
+        session.user.id = t.sub ?? "";
+        session.user.role = t.role ?? "customer";
       }
+
       return session;
     },
   },
