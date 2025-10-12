@@ -1,4 +1,5 @@
-@use "../components/admin/base" as *;
+//app/styles/products.module.scss
+@use "../../components/admin/_base" as *; 
 .header {
   margin-bottom: 1rem;
 }

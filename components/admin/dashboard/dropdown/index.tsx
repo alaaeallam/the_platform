@@ -41,7 +41,7 @@ export default function Dropdown({ userImage }: DropdownProps): React.JSX.Elemen
   const [show, setShow] = useState<boolean>(false);
 
   const avatarSrc =
-    (typeof userImage === "string" && userImage) || "/images/avatar-placeholder.png";
+    (typeof userImage === "string" && userImage) || "/images/avatar.png";
 
   return (
     <div
@@ -96,7 +96,7 @@ export default function Dropdown({ userImage }: DropdownProps): React.JSX.Elemen
             </Link>
           </div>
           <div className={styles.dropdown__content_icons_icon}>
-            <Link href="/admin/dashboard/product/create" aria-label="Create Product">
+            <Link href="/admin/dashboard/products/create" aria-label="Create Product">
               <BsPatchPlus />
             </Link>
           </div>

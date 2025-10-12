@@ -72,7 +72,7 @@ export default function Notifications(): React.JSX.Element {
               className={styles.dropdown__content_notifications_notification}
             >
               <img
-                src={n.image || "/images/avatar-placeholder.png"}
+                src={n.image || "/images/avatar.png"}
                 alt={`${n.user}'s avatar`}
               />
               {n.type === "order" ? (

@@ -33,18 +33,27 @@ const cartSlice = createSlice({
   reducers: {
     /** Add a new line; if it exists, increment qty (capped by stock). */
     addToCart: (state, action: PayloadAction<CartProduct>) => {
-      const list = ensureItems(state);
-      const incoming = action.payload;
+  const list = ensureItems(state);
+  const incoming = action.payload;
 
-      const idx = list.findIndex((i) => i._uid === incoming._uid);
-      if (idx === -1) {
-        list.push({ ...incoming, qty: Math.max(1, Math.min(incoming.qty, incoming.quantity)) });
-      } else {
-        const item = list[idx];
-        const nextQty = Math.min(item.qty + incoming.qty, item.quantity);
-        list[idx] = { ...item, qty: Math.max(1, nextQty) };
-      }
-    },
+  const idx = list.findIndex((i) => i._uid === incoming._uid);
+  if (idx === -1) {
+    list.push({
+      ...incoming,
+      qty: Math.max(1, Math.min(incoming.qty, incoming.quantity)),
+    });
+  } else {
+    const prev = list[idx];
+    // merge the latest price/discount/shipping/images/etc from incoming
+    const merged = {
+      ...prev,
+      ...incoming,
+      // if you prefer to REPLACE qty with incoming.qty, do: qty: Math.max(1, Math.min(incoming.qty, incoming.quantity))
+      qty: Math.max(1, Math.min(prev.qty + incoming.qty, incoming.quantity)),
+    };
+    list[idx] = merged;
+  }
+},
 
     /** Replace entire cart array (kept for compatibility). */
     updateCart: (state, action: PayloadAction<CartProduct[] | undefined>) => {

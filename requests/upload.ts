@@ -2,7 +2,7 @@
 import axios from "axios";
 
 export async function uploadImages(formData: FormData): Promise<string[]> {
-  const { data } = await axios.post("/api/cloudinary", formData, {
+  const { data } = await axios.post("/api/upload", formData, {
     headers: { "content-type": "multipart/form-data" },
   });
 

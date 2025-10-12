@@ -2,19 +2,18 @@
 import type { CountryGroupsMap } from "./pricing";
 import type { IProduct } from "@/models/Product";
 import type { ProductInfosVM } from "@/components/productPage/infos";
-
+import { computeEffectivePrice, computeRangeForSub, type SubProductSchema, type SizeSchema } from "./pricing";
 /** Per-country override on a size */
 interface CountryPrice {
-  countryISO2: string; // e.g. "US", "EG"
+  country: string;      // ← matches DB + pricing.ts
   price: number;
 }
 
 /** Per-group override on a size (e.g. "LOW_ECONOMY") */
 interface CountryGroupPrice {
-  group: string;
+  groupCode: string;    // ← matches pricing.ts
   price: number;
 }
-
 /** The bits we actually need from product.subProducts[*].sizes[*] */
 interface SizeSource {
   size: string;
@@ -70,10 +69,17 @@ function pickCountryOverride(
   groups: readonly string[],
   size: SizeSource
 ): number | undefined {
-  const direct = size.countryPrices?.find((c) => c.countryISO2 === countryISO2)?.price;
+  // direct country override
+  const direct = size.countryPrices?.find(
+    (c) => c.country?.toUpperCase() === countryISO2.toUpperCase()
+  )?.price;
   if (typeof direct === "number") return direct;
 
-  const groupHit = size.countryGroupPrices?.find((g) => groups.includes(g.group))?.price;
+  // group override
+  const groupHit = size.countryGroupPrices?.find(
+    (g) => groups.includes(g.groupCode)
+  )?.price;
+
   return typeof groupHit === "number" ? groupHit : undefined;
 }
 

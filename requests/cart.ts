@@ -42,6 +42,7 @@ export async function syncCart(payload: CartSyncBody): Promise<CartSyncResponse>
   const res = await fetch("/api/cart/sync", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`sync failed: ${res.status}`);

@@ -51,7 +51,7 @@ export default function Sidebar(): React.JSX.Element {
 
   const userImageSrc =
     (typeof session?.user?.image === "string" && session.user.image) ||
-    "/images/avatar-placeholder.png";
+    "/images/avatar.png";
 
   return (
     <div className={`${styles.sidebar} ${expand ? styles.opened : ""}`}>
@@ -137,8 +137,8 @@ export default function Sidebar(): React.JSX.Element {
               </Link>
             </li>
 
-            <li className={isActive("product/create") ? styles.active : ""}>
-              <Link href="/admin/dashboard/product/create">
+            <li className={isActive("products/create") ? styles.active : ""}>
+              <Link href="/admin/dashboard/products/create">
                 <BsPatchPlus />
                 <span className={styles.show}>Create Product</span>
               </Link>

@@ -64,7 +64,7 @@ const COUNTRY_GROUPS: Record<string, string[]> = {
   LOW_ECONOMY: ["EG", "PK", "BD", "IN", "MA", "TN"],
   // MENA: ["EG","SA","AE","..."], etc
 };
-
+type SyncedCartLine = CartSyncResponse["lines"][number] & { _uid: string };
 export default function CartPage(): React.JSX.Element {
   const router = useRouter();
   const { data: session } = useSession();
@@ -74,7 +74,39 @@ export default function CartPage(): React.JSX.Element {
 
   // server-synced snapshot (prices/qty/shipping)
   const [synced, setSynced] = useState<CartSyncResponse | null>(null);
+  // inside the component, after `const [synced, setSynced] = useState...`
+ const syncedByUid = useMemo(() => {
+  const map = new Map<string, SyncedCartLine>();
+  if (!synced?.lines?.length) return map;
 
+  for (const l of synced.lines) {
+    // allow for servers that may echo back _uid
+    const lWithOptionalUid = l as CartSyncResponse["lines"][number] & { _uid?: string };
+    const echoUid: string | undefined = lWithOptionalUid._uid;
+
+    let uid = echoUid;
+
+    // otherwise, reconstruct by matching against the client's selected lines
+    if (!uid) {
+      const match = selected.find((s) => {
+        const ids = parseIdsFromUid(s._uid);
+        return (
+          ids.productId === l.productId &&
+          ids.style === l.style &&
+          String(s.size) === String(l.size)
+        );
+      });
+      uid = match?._uid;
+    }
+
+    if (uid) {
+      const enriched: SyncedCartLine = { ...(l as CartSyncResponse["lines"][number]), _uid: uid };
+      map.set(uid, enriched);
+    }
+  }
+
+  return map;
+}, [synced, selected]);  // ← depends on both
   // choose the shopper country (hard-code for now or read from profile/IP)
   const COUNTRY = "EG"; // ← change to whatever you detect for the user
 
@@ -126,12 +158,11 @@ export default function CartPage(): React.JSX.Element {
         const res = await syncCart(payload);
         setSynced(res);
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error("cart sync failed:", e);
         setSynced(null);
       }
     })();
-  }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selected]);
 
   // (optional) auto-refresh every 60s while on the page
   useEffect(() => {
@@ -208,7 +239,6 @@ export default function CartPage(): React.JSX.Element {
       if (!res.ok) throw new Error(res.error);
       router.push("/checkout");
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("Failed to save cart:", err);
     }
   };
@@ -231,18 +261,18 @@ export default function CartPage(): React.JSX.Element {
             </div>
           )}
 
-          <div className={styles.cart__products}>
-            {cart.cartItems.map((product) => (
-              <Product
-                key={product._uid}
-                product={product}
-                selected={selected}
-                setSelected={setSelected}
-              />
-            ))}
-          </div>
-
-          <Checkout
+   <div className={styles.cart__products}>
+      {cart.cartItems.map((product) => (
+   <Product
+  key={product._uid}
+  product={product}
+  selected={selected}
+  setSelected={setSelected}
+  syncedLine={syncedByUid.get(product._uid)}   // will be defined
+/>
+      ))}
+    </div>
+            <Checkout
             subtotal={subtotal}
             shippingFee={shippingFee}
             total={total}

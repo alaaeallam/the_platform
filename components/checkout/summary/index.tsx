@@ -1,5 +1,3 @@
-//components/checkout/summary/index.tsx
-
 "use client";
 
 import * as React from "react";
@@ -90,7 +88,7 @@ const InlineStripeForm = React.forwardRef<InlineStripeHandle, { amountCents: num
     return (
       <div className={styles.inlineStripeBox}>
         <label className={styles.inlineStripeLabel}>Card number</label>
-        <CardElement />
+        <CardElement options={{ hidePostalCode: true }} />
       </div>
     );
   };
@@ -129,6 +127,10 @@ export default function Summary({
   // loaders
   const [posting, setPosting] = React.useState<boolean>(false);      // place order
   const [isApplying, setIsApplying] = React.useState<boolean>(false); // coupon apply/remove
+
+  React.useEffect(() => {
+    setOrderError("");
+  }, [paymentMethod, selectedAddress]);
 
   /* ----- Coupon: apply ----- */
   const applyCouponHandler = React.useCallback(async () => {
@@ -206,7 +208,8 @@ const placeOrderHandler = React.useCallback(async () => {
     let paymentInfo: { provider: "stripe"; intentId: string } | undefined;
     if (canonical === "STRIPE") {
       // Confirm card payment first (do not set posting yet to avoid unmounting Element)
-      const amountCents = Math.round((typeof totalAfterDiscount === "number" && !Number.isNaN(totalAfterDiscount) ? totalAfterDiscount : cart.cartTotal) * 100);
+      const finalTotal = displayTotal;
+      const amountCents = Math.round(finalTotal * 100);
       if (!stripeRef.current) throw new Error("Payment form not ready");
       const intentId = await stripeRef.current.confirm();
       paymentInfo = { provider: "stripe", intentId };
@@ -223,7 +226,7 @@ const placeOrderHandler = React.useCallback(async () => {
         shippingAddress: selectedAddress,
         paymentMethod,
         totalBeforeDiscount: cart.cartTotal,
-        total: typeof totalAfterDiscount === "number" && !Number.isNaN(totalAfterDiscount) ? totalAfterDiscount : cart.cartTotal,
+        total: displayTotal,
         couponApplied: discount > 0 ? coupon : undefined,
         userId: user._id,
         payment: paymentInfo, // server can treat presence as paid
@@ -261,6 +264,13 @@ const placeOrderHandler = React.useCallback(async () => {
     totalAfterDiscount > 0 &&
     totalAfterDiscount < cart.cartTotal;
 
+  const displayTotal = React.useMemo(() => {
+    const base = showNewPrice
+      ? Number(totalAfterDiscount)
+      : Number(cart.cartTotal);
+    return Number.isFinite(base) ? base : 0;
+  }, [showNewPrice, totalAfterDiscount, cart.cartTotal]);
+
   /* ----- Render ----- */
   return (
     <div className={styles.summary} aria-busy={posting}>
@@ -276,7 +286,7 @@ const placeOrderHandler = React.useCallback(async () => {
           <h4>Complete your payment</h4>
           <InlineStripeForm
             ref={stripeRef}
-            amountCents={Math.round((showNewPrice ? (totalAfterDiscount as number) : cart.cartTotal) * 100)}
+            amountCents={Math.round(displayTotal * 100)}
           />
         </div>
       )}
@@ -325,7 +335,7 @@ const placeOrderHandler = React.useCallback(async () => {
 
               <div className={styles.infos}>
                 <span>
-                  Total : <b>{cart.cartTotal}$</b>
+                  Total : <b>{Number(cart.cartTotal).toFixed(2)}$</b>
                 </span>
 
                 {discount > 0 && (
@@ -336,7 +346,7 @@ const placeOrderHandler = React.useCallback(async () => {
 
                 {showNewPrice && (
                   <span>
-                    New price : <b>{totalAfterDiscount}$</b>
+                    New price : <b>{Number(totalAfterDiscount).toFixed(2)}$</b>
                   </span>
                 )}
               </div>

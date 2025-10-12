@@ -1,3 +1,4 @@
+// app/components/productCard/index.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -6,12 +7,23 @@ import Link from "next/link";
 import ProductSwiper from "./ProductSwiper";
 import styles from "./styles.module.scss";
 
-/* ---------- Types ---------- */
-type Size = { price: number };
+/* ---------- Types (updated) ---------- */
+type CountryPrice = { country: string; price: number };
+type GroupPrice   = { group: string; price: number };
+
+type Size = {
+  price?: number;            // optional style/size price
+  basePrice?: number;        // legacy base
+  discount?: number;         // percent on this size
+  priceBefore?: number;      // optional “was” price
+  countryPrices?: CountryPrice[];
+  countryGroupPrices?: GroupPrice[];
+};
+
 type SubProduct = {
   images: string[];
   sizes: Size[];
-  discount?: number; // percent
+  discount?: number; // style-level discount (percent)
   color: { image?: string; color?: string };
 };
 export type Product = {
@@ -22,9 +34,33 @@ export type Product = {
 
 type ProductCardProps = { product: Product };
 
+/* ---------- Helpers ---------- */
+const asNum = (v: unknown, d = 0) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : d;
+};
+
+// Prefer country price → group price → size.price → size.basePrice
+function resolveSizePriceForCountry(size: Size, countryISO2: string, groups: string[] = []): number {
+  // 1) Exact country price
+  const cp = (size.countryPrices ?? []).find((x) => x?.country?.toUpperCase() === countryISO2.toUpperCase())?.price;
+  if (cp != null) return asNum(cp);
+
+  // 2) Country-group price (optional; only if you store it)
+  const gp = (size.countryGroupPrices ?? []).find((x) => groups.includes(String(x?.group)))?.price;
+  if (gp != null) return asNum(gp);
+
+  // 3) size.price → 4) basePrice
+  if (size.price != null) return asNum(size.price);
+  return asNum(size.basePrice);
+}
+
 /* ---------- Component ---------- */
 export default function ProductCard({ product }: ProductCardProps): React.JSX.Element {
-  // ✅ Memoize the normalized subProducts to avoid identity changes
+  // TODO: pull these from user/session/cookie later
+  const COUNTRY = "EG";
+  const COUNTRY_GROUPS: string[] = ["LOW_ECONOMY", "MENA"];
+
   const safeSubProducts = useMemo<SubProduct[]>(
     () =>
       Array.isArray(product.subProducts) && product.subProducts.length
@@ -35,33 +71,40 @@ export default function ProductCard({ product }: ProductCardProps): React.JSX.El
 
   const [active, setActive] = useState<number>(0);
 
-  // ✅ Clamp active when product (or count) changes
   useEffect(() => {
     if (active >= safeSubProducts.length) setActive(0);
   }, [active, safeSubProducts.length]);
 
-  // ✅ Memoize the active subProduct
   const activeSub = useMemo(() => safeSubProducts[active], [safeSubProducts, active]);
+
+  // Max of style-level and size-level discounts (if you want to show a badge)
+  const activeDiscount = useMemo(() => {
+    const subLevel = asNum(activeSub?.discount, 0);
+    const sizeMax =
+      (activeSub?.sizes ?? []).reduce((m, s) => Math.max(m, asNum(s.discount, 0)), 0);
+    return Math.max(subLevel, sizeMax);
+  }, [activeSub]);
 
   // Images for the active style
   const images = activeSub?.images ?? [];
 
-  // Sorted price list for the active style
+  // Compute a price per size using COUNTRY/Groups and apply the size discount if present
   const prices = useMemo<number[]>(
     () =>
       (activeSub?.sizes ?? [])
-        .map((s) => s.price)
-        .filter((p): p is number => typeof p === "number" && !Number.isNaN(p))
+        .map((s) => {
+          const base = resolveSizePriceForCountry(s, COUNTRY, COUNTRY_GROUPS);
+          const pct  = asNum(s.discount, 0);                // size-level discount only
+          const val  = base * (1 - pct / 100);
+          return Number(val.toFixed(2));
+        })
+        .filter((p) => Number.isFinite(p) && p > 0)
         .sort((a, b) => a - b),
-    [activeSub]
+    [activeSub, COUNTRY]
   );
 
-  // All style swatches
   const swatches = useMemo(() => safeSubProducts.map((p) => p.color), [safeSubProducts]);
 
-  const hasDiscount = typeof activeSub?.discount === "number" && activeSub.discount! > 0;
-
-  // Price label (USDxx$ | USDxx-yy$)
   const priceLabel = useMemo(() => {
     if (prices.length === 0) return "";
     if (prices.length === 1) return `USD${prices[0]}$`;
@@ -82,7 +125,9 @@ export default function ProductCard({ product }: ProductCardProps): React.JSX.El
           </div>
         </Link>
 
-        {hasDiscount && <div className={styles.product__discount}>-{activeSub!.discount}%</div>}
+        {activeDiscount > 0 && (
+          <div className={styles.product__discount}>-{activeDiscount}%</div>
+        )}
 
         <div className={styles.product__infos}>
           <h1 title={product.name}>
@@ -94,8 +139,6 @@ export default function ProductCard({ product }: ProductCardProps): React.JSX.El
           <div className={styles.product__colors}>
             {swatches.map((style, i) => {
               const isActive = i === active;
-
-              // ✅ Image swatch via Next/Image
               if (style.image) {
                 return (
                   <Image
@@ -104,13 +147,12 @@ export default function ProductCard({ product }: ProductCardProps): React.JSX.El
                     alt={`Style ${i + 1}`}
                     width={24}
                     height={24}
+                    sizes="24px"
                     className={isActive ? styles.active : ""}
                     onMouseOver={() => setActive(i)}
                   />
                 );
               }
-
-              // Color swatch (fallback)
               return (
                 <span
                   key={`swatch-color-${i}`}

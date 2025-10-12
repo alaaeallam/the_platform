@@ -143,7 +143,7 @@ export default function DashboardClient({ users, orders, products }: DashboardPr
                 <tr key={u._id}>
                   <td className={styles.user}>
                     <div className={styles.user__img}>
-                      <img src={u.image || "/images/avatar-placeholder.png"} alt={u.name} width={36} height={36} />
+                      <img src={u.image || "/images/avatar.png"} alt={u.name} width={36} height={36} />
                     </div>
                   </td>
                   <td>

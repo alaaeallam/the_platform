@@ -4,6 +4,9 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import slugify from "slugify";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { authOptions } from "@/lib/auth";
 import { connectDb } from "@/utils/db";
 import Product from "@/models/Product";
@@ -16,6 +19,13 @@ type Role = "admin" | "customer";
 
 type ApiOk<T> = { message: string } & T;
 type ApiErr = { message: string };
+
+// Extra typed helpers for errors
+type ApiErrZod = { message: string; issues: z.ZodIssue[] };
+interface MongoServerError extends Error {
+  code?: number;
+  keyPattern?: Record<string, number>;
+}
 
 /* =========================
    Validation (Zod)
@@ -47,6 +57,7 @@ const CreateProductSchema = z.object({
   questions: z.any().optional(), // replace with strict schema if you have it
   category: z.string().min(1),
   subCategories: SubCategoriesSchema,
+  shipping: z.number().min(0).optional().default(0),
 
   // first subProduct fields
   sku: z.string().min(1),
@@ -82,6 +93,7 @@ export async function POST(req: Request) {
     if (forbidden) return forbidden;
 
     const json = await req.json();
+    console.log("[/api/admin/products] incoming keys:", Object.keys(json));
     const parsed = BodySchema.parse(json);
 
     await connectDb();
@@ -129,6 +141,7 @@ export async function POST(req: Request) {
       slug,
       category: parsed.category,
       subCategories: parsed.subCategories ?? [],
+      shipping: parsed.shipping ?? 0,
       subProducts: [
         {
           sku: parsed.sku,
@@ -145,12 +158,20 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (e) {
-    const message =
-      e instanceof z.ZodError
-        ? e.issues[0]?.message ?? "Invalid input."
-        : e instanceof Error
-        ? e.message
-        : "Failed to process request.";
+    if (e instanceof z.ZodError) {
+      const payload: ApiErrZod = { message: "Invalid input", issues: e.issues };
+      return NextResponse.json<ApiErrZod>(payload, { status: 400 });
+    }
+    // Handle Mongo duplicate key error (e.g., slug unique)
+    const mongoErr = e as MongoServerError;
+    if (mongoErr?.code === 11000) {
+      const field = Object.keys(mongoErr.keyPattern ?? {})[0] || "unique field";
+      return NextResponse.json<ApiErr>(
+        { message: `Duplicate ${field}. Please use a different value.` },
+        { status: 400 }
+      );
+    }
+    const message = e instanceof Error ? e.message : "Failed to process request.";
     return NextResponse.json<ApiErr>({ message }, { status: 400 });
   }
 }

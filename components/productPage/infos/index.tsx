@@ -51,6 +51,12 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
   const sizeIndex = Number(searchParams.get("size") ?? "0");
   const styleIndex = Number(searchParams.get("style") ?? String(product.style ?? 0));
 
+  // country-aware prices coming from the server VM (already resolved there)
+  const displayPrice = Number.isFinite(Number(product.price)) ? Number(product.price) : 0;
+  const displayBefore = Number.isFinite(Number(product.priceBefore))
+    ? Number(product.priceBefore)
+    : undefined;
+
   // ❌ removed unused sizeLabel
   const [qty, setQty] = useState<number>(1);
   const [error, setError] = useState<string>("");
@@ -93,9 +99,10 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
       name: product.name,
       qty,
       quantity: product.quantity,
-      price: product.price,
+      // ✅ ensure we pass the country-aware price to the cart
+      price: displayPrice,
       shipping: product.shipping,
-      priceBefore: product.priceBefore,
+      priceBefore: typeof displayBefore === "number" ? displayBefore : undefined,
       discount: product.discount,
       size: product.sizes[sizeIndex]?.size,
       images: [{ url: product.images?.[0] ?? "" }],
@@ -125,10 +132,16 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
         </div>
 
         <div className={styles.infos__price}>
-          {Number.isNaN(sizeIndex) ? <h2>{product.priceRange}</h2> : <h1>{product.price}$</h1>}
+          {Number.isNaN(sizeIndex) ? (
+            <h2>{product.priceRange}</h2>
+          ) : (
+            <h1>{displayPrice.toFixed(2)}$</h1>
+          )}
           {product.discount > 0 && (
             <h3>
-              {!Number.isNaN(sizeIndex) && <span>{product.priceBefore}$</span>}
+              {!Number.isNaN(sizeIndex) && typeof displayBefore === "number" && (
+                <span>{displayBefore.toFixed(2)}$</span>
+              )}
               <span>(-{product.discount}%)</span>
             </h3>
           )}

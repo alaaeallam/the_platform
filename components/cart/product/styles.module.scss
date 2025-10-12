@@ -18,17 +18,17 @@
   }
   &__image {
     display: grid;
-    grid-template-columns: 30px 100px 1fr;
-    gap: 10px;
-    img {
-      width: 100px;
-      height: 140px;
-      object-fit: cover;
-    }
+    grid-template-columns: 30px 180px 1fr;
+    column-gap: 20px;
+    align-items: center;
+
     h1 {
       font-size: 14px;
       font-weight: 600;
       color: #3a3e4a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .grid {
       display: grid;
@@ -83,6 +83,11 @@
         font-size: 17px;
         font-weight: 600;
       }
+      .before {
+        text-decoration: line-through;
+        color: #bdbdbd;
+        font-size: 14px;
+      }
       .priceBefore {
         text-decoration: line-through;
         color: #cccccc;
@@ -118,9 +123,17 @@
   &__shipping {
     font-size: 12px;
     color: $blue-color;
+    margin-top: 4px;
   }
 }
-
+.thumb {
+  position: relative;
+  width: 180px;  /* keep consistent with grid column */
+  height: 180px; /* square crop looks clean */
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
 .notAvailable {
   color: $redish-color;
   font-size: 15px;

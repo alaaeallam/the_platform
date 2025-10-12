@@ -13,8 +13,12 @@ import ProductCard from "@/components/productCard";
 /* ---------- Types that MATCH ProductCard's expected shape ---------- */
 type CardSize = {
   size: string;
-  price: number;           // ProductCard expects this
-  basePrice?: number;      // optional, we keep it if present
+  price: number;                 // normalized working price for the card
+  basePrice?: number;
+  discount?: number;             // size-level discount (if any)
+  priceBefore?: number;          // optional original price
+  countryPrices?: Array<{ country: string; price: number }>;
+  countryGroupPrices?: Array<{ group: string; price: number }>;
 };
 
 type CardColor = { image?: string; color?: string };
@@ -40,25 +44,63 @@ type CardProduct = {
 function toCardSize(s: unknown): CardSize | null {
   if (typeof s !== "object" || s === null) return null;
   const obj = s as Record<string, unknown>;
+
   const size = typeof obj.size === "string" ? obj.size : "";
-  const basePrice =
-    typeof obj.basePrice === "number"
-      ? obj.basePrice
-      : typeof obj.basePrice === "string" && obj.basePrice.trim() !== ""
-      ? Number(obj.basePrice)
-      : undefined;
 
-  const legacyPrice =
-    typeof obj.price === "number"
-      ? obj.price
-      : typeof obj.price === "string" && obj.price.trim() !== ""
-      ? Number(obj.price)
-      : undefined;
+  // normalize numeric helpers
+  const toNum = (v: unknown): number | undefined => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  };
 
-  const price = legacyPrice ?? basePrice ?? 0;
+  const basePrice = toNum(obj.basePrice);
+  const legacyPrice = toNum(obj.price);
+  const price = (legacyPrice ?? basePrice ?? 0) as number;
+
+  const discount = toNum(obj.discount);
+  const priceBefore = toNum(obj.priceBefore);
+
+  // countryPrices: [{ country, price }]
+  const cpUnknown = (obj as Record<string, unknown>).countryPrices;
+  const countryPrices = Array.isArray(cpUnknown)
+    ? cpUnknown
+        .map((row: unknown) => {
+          if (typeof row !== "object" || row === null) return null;
+          const r = row as Record<string, unknown>;
+          const country = typeof r.country === "string" ? r.country : "";
+          const cp = toNum(r.price);
+          if (!country || cp == null) return null;
+          return { country, price: cp };
+        })
+        .filter((x): x is { country: string; price: number } => x !== null)
+    : undefined;
+
+  // countryGroupPrices: [{ group, price }]
+  const gpUnknown = (obj as Record<string, unknown>).countryGroupPrices;
+  const countryGroupPrices = Array.isArray(gpUnknown)
+    ? gpUnknown
+        .map((row: unknown) => {
+          if (typeof row !== "object" || row === null) return null;
+          const r = row as Record<string, unknown>;
+          const group = typeof r.group === "string" ? r.group : "";
+          const gp = toNum(r.price);
+          if (!group || gp == null) return null;
+          return { group, price: gp };
+        })
+        .filter((x): x is { group: string; price: number } => x !== null)
+    : undefined;
+
   if (!size) return null;
 
-  return { size, basePrice, price };
+  return {
+    size,
+    price,
+    basePrice,
+    discount,
+    priceBefore,
+    countryPrices,
+    countryGroupPrices,
+  };
 }
 
 function toCardSubProduct(sp: unknown): CardSubProduct | null {

@@ -2,13 +2,34 @@
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import type { UploadApiResponse, UploadApiErrorResponse } from "cloudinary";
-
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+console.log(
+  "[cloudinary env]",
+  !!process.env.CLOUDINARY_CLOUD_NAME,
+  !!process.env.CLOUDINARY_API_KEY,
+  !!process.env.CLOUDINARY_API_SECRET
+);
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_NAME,
   api_key: process.env.CLOUDINARY_KEY,
   api_secret: process.env.CLOUDINARY_SECRET,
 });
-
+function ensureCloudinaryConfigured() {
+  const conf = cloudinary.config();
+  // If api_key is missing for any reason (e.g., hot reload), re-apply config
+  if (!conf.api_key) {
+    cloudinary.config({
+      cloud_name:
+        process.env.CLOUDINARY_NAME ?? process.env.CLOUDINARY_CLOUD_NAME ?? "",
+      api_key:
+        process.env.CLOUDINARY_KEY ?? process.env.CLOUDINARY_API_KEY ?? "",
+      api_secret:
+        process.env.CLOUDINARY_SECRET ?? process.env.CLOUDINARY_API_SECRET ?? "",
+      secure: true,
+    });
+  }
+}
 async function fileToBuffer(file: File): Promise<Buffer> {
   const arrayBuffer = await file.arrayBuffer();
   return Buffer.from(arrayBuffer);
@@ -40,7 +61,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const files = formData.getAll("file") as File[];
     const path = (formData.get("path") as string) || "uploads";
-
+    ensureCloudinaryConfigured();
     const uploaded: Array<{ url: string; public_id: string }> = [];
     for (const file of files) {
       const buffer = await fileToBuffer(file);
@@ -62,6 +83,7 @@ export async function DELETE(req: Request) {
     // Use the precise return type from the SDK:
     const result: Awaited<ReturnType<typeof cloudinary.uploader.destroy>> =
       await cloudinary.uploader.destroy(public_id);
+       ensureCloudinaryConfigured();
     return NextResponse.json(result, { status: 200 });
   } catch (error: unknown) {
     console.error("Cloudinary delete error:", error);

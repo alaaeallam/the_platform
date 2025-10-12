@@ -4,8 +4,12 @@ import path from "path";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   sassOptions: {
-    includePaths: [path.join(process.cwd(), "app", "styles")],
-    prependData: `@use "./base" as *;`,
+    includePaths: [
+      path.join(process.cwd(), "app"),          // 👈 so "styles" resolves to app/styles
+      path.join(process.cwd(), "app", "components"),
+      path.join(process.cwd(), "app", "styles"),
+    ],
+     prependData: `@use "styles/base" as *;`,
   },
   images: {
     remotePatterns: [
@@ -19,6 +23,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "gdp.alicdn.com" },
       { protocol: "https", hostname: "assets.stickpng.com" },
       { protocol: "https", hostname: "img.ltwebstatic.com" },
+      { protocol: 'https', hostname: 'www.pngmart.com' },
+      { protocol: 'https', hostname: 'www.freeiconspng.com' },
     ],
   },
 };

@@ -14,6 +14,24 @@
     justify-self: flex-start;
     gap: 10px;
   }
+  /* Main viewer (any direct child not the thumbnails list) */
+  > :not(.swiper__list) {
+    flex: 1 1 auto;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1 / 1; /* keep the whole product visible; change to 4/5 if preferred */
+
+    img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;   /* << ensure full product image fits without cropping */
+      object-position: center;
+    }
+  }
   &__list {
     margin-top: 7px;
     display: flex;

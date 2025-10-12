@@ -1,3 +1,4 @@
+//app/components/productsSwiper/index.tsx
 "use client";
 
 import React from "react";

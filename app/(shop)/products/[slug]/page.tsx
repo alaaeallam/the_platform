@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import dbConnect from "@/lib/mongodb";
 import Product, { type IProduct } from "@/models/Product";
 import Category from "@/models/Category";
@@ -38,7 +39,9 @@ export default async function ProductPage(props: PageProps) {
 
   const product = productDoc.toObject<IProduct>();
 
-  const countryISO2 = (qs?.country ?? "MA").toUpperCase();
+  const cookieStore = await cookies();
+  const cookieCountry = cookieStore.get("country")?.value;
+  const countryISO2 = String(qs?.country ?? cookieCountry ?? "EG").toUpperCase();
   const groups: CountryGroupsMap = {
     MA: ["LOW_ECONOMY", "MENA"],
     EG: ["LOW_ECONOMY", "MENA"],
