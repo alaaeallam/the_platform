@@ -4,13 +4,13 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
-import dbConnect from "@/lib/mongodb";
+
 import Product, { type IProduct } from "@/models/Product";
 import Category from "@/models/Category";
 import SubCategory from "@/models/SubCategory";
 import User from "@/models/User";
 import styles from "@/app/styles/product.module.scss";
-
+import { connectDb } from "@/utils/db";
 import ProductDetailsClient from "@/components/productPage/ProductDetailsClient";
 import { buildProductViewModel } from "@/lib/viewModels";
 import type { CountryGroupsMap } from "@/lib/pricing";
@@ -22,7 +22,7 @@ type PageProps = {
 };
 
 export default async function ProductPage(props: PageProps) {
-  await dbConnect();
+  await connectDb();
 
   const { slug } = await props.params;
   const qs = await props.searchParams;
