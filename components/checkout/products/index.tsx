@@ -1,9 +1,9 @@
-// components/checkout/products/index.tsx
 "use client";
 
 import * as React from "react";
 import styles from "./styles.module.scss";
 import type { CartVM, CartLine } from "@/types/checkout";
+import Image from "next/image";
 
 type ProductsProps = {
   cart: CartVM;
@@ -56,13 +56,25 @@ export default function Products({ cart }: ProductsProps) {
   return (
     <div key={reactKey} className={styles.product}>
       <div className={styles.product__img}>
-        <img src={mainImg} alt={displayName} />
+        <Image
+          src={mainImg}
+          alt={displayName}
+          width={80}
+          height={80}
+          sizes="80px"
+          style={{ width: 80, height: 80, objectFit: "cover" }}
+          priority={false}
+        />
         <div className={styles.product__infos}>
           {colorImg && (
-            <img
+            <Image
               src={colorImg}
               alt="Selected color"
+              width={20}
+              height={20}
+              sizes="20px"
               className={styles.product__color}
+              style={{ width: 20, height: 20, objectFit: "contain" }}
             />
           )}
           {product.size !== undefined && <span>{String(product.size)}</span>}

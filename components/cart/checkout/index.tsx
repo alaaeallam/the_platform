@@ -31,7 +31,6 @@ export default function Checkout({
       await Promise.resolve(saveCartToDbHandler());
       // typically unmounts after router.push in the handler
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("Continue failed:", err);
       setBusy(false);
     }

@@ -3,6 +3,7 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import styles from "@/app/styles/dashboard.module.scss";
 import Dropdown from "@/components/admin/dashboard/dropdown";
 import Notifications from "@/components/admin/dashboard/notifications";
@@ -105,10 +106,14 @@ export default function DashboardClient({ users, orders, products }: DashboardPr
                   <td>{order.user?.name ?? "—"}</td>
                   <td>{currency(order.total)}</td>
                   <td>
-                    <img
+                    <Image
                       src={order.isPaid ? "/images/verified.webp" : "/images/unverified1.png"}
                       alt={order.isPaid ? "Paid" : "Unpaid"}
-                      width={18} height={18}
+                      width={18}
+                      height={18}
+                      sizes="18px"
+                      style={{ width: 18, height: 18 }}
+                      priority={false}
                     />
                   </td>
                   <td>
@@ -143,7 +148,15 @@ export default function DashboardClient({ users, orders, products }: DashboardPr
                 <tr key={u._id}>
                   <td className={styles.user}>
                     <div className={styles.user__img}>
-                      <img src={u.image || "/images/avatar.png"} alt={u.name} width={36} height={36} />
+                      <Image
+                        src={u.image || "/images/avatar.png"}
+                        alt={u.name}
+                        width={36}
+                        height={36}
+                        sizes="36px"
+                        style={{ width: 36, height: 36, borderRadius: 9999 }}
+                        priority={false}
+                      />
                     </div>
                   </td>
                   <td>

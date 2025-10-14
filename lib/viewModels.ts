@@ -2,7 +2,7 @@
 import type { CountryGroupsMap } from "./pricing";
 import type { IProduct } from "@/models/Product";
 import type { ProductInfosVM } from "@/components/productPage/infos";
-import { computeEffectivePrice, computeRangeForSub, type SubProductSchema, type SizeSchema } from "./pricing";
+
 /** Per-country override on a size */
 interface CountryPrice {
   country: string;      // ← matches DB + pricing.ts

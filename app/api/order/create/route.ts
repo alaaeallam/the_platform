@@ -15,6 +15,7 @@ import Order, {
   type IOrderProduct,
   type IShippingAddress,
 } from "@/models/Order";
+import Product from "@/models/Product";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
@@ -44,6 +45,25 @@ type Body = {
 type Ok = { order_id: string };
 type Err = { message: string };
 
+
+type CartLine = {
+  product: unknown;
+  name?: string;
+  image?: string;
+  size?: string | number;
+  qty: number;
+  color?: { color?: string; image?: string };
+  price: number;
+};
+
+interface LeanProduct {
+  _id: string;
+  name?: string;
+  images?: Array<string | { url: string }>;
+  subProducts?: Array<{ images?: string[] }>;
+  color?: { image?: string };
+}
+
 /* ----------------------------- Helpers ----------------------------- */
 
 const toMoney = (n: number) => Math.round(n * 100) / 100;
@@ -64,6 +84,37 @@ function isValidAddress(a?: Partial<IShippingAddress>): a is IShippingAddress {
   return required.every(
     (k) => typeof a[k] === "string" && String(a[k]).trim().length > 0
   );
+}
+
+async function hydrateLine(line: CartLine): Promise<CartLine> {
+  if (line.name && line.image) return line;
+
+  const prodId = line.product ? String(line.product) : undefined;
+  if (!prodId) return line;
+
+  const doc = await Product.findById(prodId)
+    .select("name images subProducts color")
+    .lean<LeanProduct | null>()
+    .exec();
+
+  const imgFromSub = doc?.subProducts?.[0]?.images?.[0];
+  const imgFromImagesArr = (() => {
+    const first = doc?.images?.[0];
+    if (!first) return undefined;
+    return typeof first === "string" ? first : first.url;
+  })();
+  const imgFromColor = doc?.color?.image;
+
+  const firstImage =
+    line.image ??
+    imgFromSub ??
+    imgFromImagesArr ??
+    imgFromColor ??
+    "";
+
+  const name = line.name ?? (doc?.name ?? "Product");
+
+  return { ...line, name, image: firstImage || "" };
 }
 
 /* ------------------------------- POST ------------------------------ */
@@ -107,19 +158,7 @@ export async function POST(req: Request) {
     const userId = new Types.ObjectId(String(user._id));
 
     // Load authoritative cart
-    const cart = await Cart.findOne({ user: userId }).lean<{
-      products: Array<{
-        product: unknown;
-        name: string;
-        image: string;
-        size?: string;
-        qty: number;
-        color?: { color?: string; image?: string };
-        price: number;
-      }>;
-      cartTotal?: number;
-      totalAfterDiscount?: number;
-    } | null>();
+    const cart = await Cart.findOne({ user: userId }).lean<{ products: CartLine[]; cartTotal?: number; totalAfterDiscount?: number } | null>();
 
     if (!cart || !Array.isArray(cart.products) || cart.products.length === 0) {
       return NextResponse.json<Err>({ message: "Your cart is empty." }, { status: 400 });
@@ -139,11 +178,24 @@ export async function POST(req: Request) {
     );
 
     // Map cart lines to order lines
-    const orderProducts: IOrderProduct[] = cart.products.map((p) => ({
+    const hydrated = await Promise.all(cart.products.map(hydrateLine));
+
+    // Validate that each line now has required denormalized fields
+    for (let i = 0; i < hydrated.length; i++) {
+      const l = hydrated[i];
+      if (!l.name || !l.image) {
+        return NextResponse.json<Err>(
+          { message: `Order validation failed: products.${i}.name/image missing after hydration` },
+          { status: 400 }
+        );
+      }
+    }
+
+    const orderProducts: IOrderProduct[] = hydrated.map((p) => ({
       product: new Types.ObjectId(String(p.product)),
-      name: p.name,
-      image: p.image,
-      size: p.size,
+      name: p.name!,
+      image: p.image!,
+      size: p.size != null ? String(p.size) : undefined,
       qty: Number(p.qty || 0),
       color: p.color ? { color: p.color.color, image: p.color.image } : undefined,
       price: Number(p.price || 0),

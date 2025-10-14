@@ -1,3 +1,4 @@
+"use client";
 // ---- Strong types for pricing lookups on cart line ----
 interface CountryPriceEntry { country: string; price: number }
 interface CountryGroupPriceEntry { group?: string; price: number }
@@ -23,7 +24,6 @@ type CartLineLike = CartProduct & {
   discount?: number;
 };
 // components/cart/product/index.tsx
-"use client";
 
 import * as React from "react";
 import Image from "next/image";

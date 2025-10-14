@@ -4,9 +4,9 @@
 import * as React from "react";
 import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
 
-type Props = { clientSecret: string; orderId: string; onSuccess?: () => void };
+type Props = { clientSecret: string; onSuccess?: () => void };
 
-export default function Form({ clientSecret, orderId, onSuccess }: Props) {
+export default function Form({ clientSecret, onSuccess }: Props) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = React.useState(false);

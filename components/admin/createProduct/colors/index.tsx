@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import NextImage from "next/image";
 import { useEffect, useState } from "react";
 import { useField, ErrorMessage } from "formik";
 import ColorThief from "color-thief-browser";
@@ -40,17 +41,15 @@ export default function Colors({
   // Extract colors from the image whenever it changes
   useEffect(() => {
     if (!colorImage) return;
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
+    const img: HTMLImageElement = document.createElement("img");
+    img.crossOrigin = "anonymous";
     img.src = colorImage;
 
     img.onload = () => {
       try {
         const thief = new ColorThief();
-        const paletteRGB = thief.getPalette(img, 6);
-        const paletteHex = paletteRGB.map(
-          ([r, g, b]) => `rgb(${r}, ${g}, ${b})`
-        );
+        const paletteRGB: number[][] = thief.getPalette(img, 6);
+        const paletteHex = paletteRGB.map(([r, g, b]) => `rgb(${r}, ${g}, ${b})`);
         setPalette(paletteHex);
       } catch (err) {
         console.error("Color extraction failed:", err);
@@ -69,7 +68,15 @@ export default function Colors({
     <div className={styles.colors}>
       <div className={`${styles.header} ${meta.error ? styles.header__error : ""}`}>
         <div className={styles.flex}>
-          {meta.error && <img src="/images/warning.png" alt="Warning" />}
+          {meta.error && (
+            <NextImage
+              src="/images/warning.png"
+              alt="Warning"
+              width={16}
+              height={16}
+              priority
+            />
+          )}
           Pick a product color
         </div>
         {meta.touched && meta.error && (

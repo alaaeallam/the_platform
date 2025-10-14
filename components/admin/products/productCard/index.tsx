@@ -2,6 +2,7 @@
 
 import styles from "./styles.module.scss";
 import Link from "next/link";
+import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules"; 
 import "swiper/css";
@@ -83,7 +84,16 @@ export default function ProductCard({ product }: Props) {
                 <div className={styles.product__item_img}>
                   {/* Use <img> so you don't need next.config image domains */}
                   {img ? (
-                    <img src={img} alt={product.name} loading="lazy" />
+                    <Image
+                      src={img}
+                      alt={product.name}
+                      width={120}
+                      height={120}
+                      sizes="120px"
+                      style={{ width: 120, height: 120, objectFit: "cover", borderRadius: 8 }}
+                      unoptimized
+                      priority={false}
+                    />
                   ) : (
                     <div
                       style={{

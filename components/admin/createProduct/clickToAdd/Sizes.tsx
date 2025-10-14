@@ -41,7 +41,7 @@ type Props = {
 
 /* ---------- Component ---------- */
 
-const Sizes: React.FC<Props> = ({ sizes, product, setProduct }) => {
+const Sizes: React.FC<Props> = ({ sizes, setProduct }) => {
   const [noSize, setNoSize] = React.useState<boolean>(false);
 
   // controls the modal for a specific size row
@@ -131,9 +131,9 @@ const Sizes: React.FC<Props> = ({ sizes, product, setProduct }) => {
               onChange={(e) => handleSizeField(i, e)}
             >
               <option value="">Select a size</option>
-              {sizesList.map((s) => (
-                <option value={s} key={s}>
-                  {s}
+              {sizesList.map((size) => (
+                <option value={size} key={size}>
+                  {size}
                 </option>
               ))}
             </select>

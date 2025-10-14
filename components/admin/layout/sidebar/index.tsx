@@ -2,6 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";   // ✅ App Router
 import { useSession } from "next-auth/react";
@@ -79,7 +80,14 @@ export default function Sidebar(): React.JSX.Element {
         </div>
 
         <div className={styles.sidebar__user}>
-          <img src={userImageSrc} alt={session?.user?.name ?? "User"} />
+          <Image
+            src={userImageSrc}
+            alt={session?.user?.name ?? "User"}
+            width={48}
+            height={48}
+            className={styles.sidebar__avatar}
+            priority
+          />
           <div className={styles.show}>
             <span>Welcome back 👋</span>
             <span>{session?.user?.name ?? "Admin"}</span>

@@ -11,12 +11,10 @@ type Cached = {
   promise: Promise<typeof mongoose> | null;
 };
 
-/* eslint-disable no-var */
 declare global {
   // Node global cache for the Mongoose connection (type declaration only)
   var _mongooseCached: Cached | undefined;
 }
-/* eslint-enable no-var */
 
 // Allow TS to “see” the augmented global property
 const g = global as typeof globalThis & { _mongooseCached?: Cached };

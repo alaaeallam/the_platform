@@ -6,6 +6,7 @@ import { useRef } from "react";
 import { useField, ErrorMessage } from "formik";
 import { useAppDispatch } from "@/store"; // ✅ typed dispatch hook
 import { showDialog } from "@/store/DialogSlice";
+import Image from "next/image";
 
 import styles from "./styles.module.scss";
 
@@ -27,7 +28,6 @@ interface StyleProps {
   product: ProductShape;
   setProduct: React.Dispatch<React.SetStateAction<ProductShape>>;
   name: string;
-  colorImage?: string;
 }
 
 type AcceptableMime = "image/jpeg" | "image/png" | "image/webp";
@@ -47,7 +47,6 @@ export default function Style({
   product,
   setProduct,
   name,
-  colorImage,
 }: StyleProps): React.JSX.Element {
   const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -101,7 +100,7 @@ export default function Style({
       {/* Header */}
       <div className={`${styles.header} ${meta.error ? styles.header__error : ""}`}>
         <div className={styles.flex}>
-          {meta.error && <img src="/images/warning.png" alt="Warning" />}
+          {meta.error && <Image src="/images/warning.png" alt="Warning" width={16} height={16} priority />}
           Pick a Product Style Image
         </div>
         {meta.touched && meta.error && (

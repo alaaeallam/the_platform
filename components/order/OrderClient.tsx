@@ -164,7 +164,7 @@ export default function OrderClient({
   
   order,
   paypalClientId,
-  stripePublicKey,
+  
 }: Props): React.JSX.Element {
   const [state, dispatch] = useReducer(reducer, {
     loading: false, success: false, error: null,

@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import clsx from "clsx";
-import { useTheme } from "@mui/material/styles";
+import { useField, ErrorMessage } from "formik";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
 import Input from "@mui/material/Input";
@@ -12,7 +12,7 @@ import Select, { SelectChangeEvent } from "@mui/material/Select";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import ListItemText from "@mui/material/ListItemText";
-import { useField, ErrorMessage } from "formik";
+import Image from "next/image";
 import styles from "./styles.module.scss";
 
 /* ---------- Types ---------- */
@@ -53,7 +53,6 @@ export default function MultipleSelect({
   disabled,
   ...rest
 }: MultipleSelectProps): React.JSX.Element {
-  const theme = useTheme();
   const [, meta] = useField<string[]>({ name });
 
   // Build fast lookup of _id -> name
@@ -75,7 +74,15 @@ export default function MultipleSelect({
       {/* Header + inline error */}
       <div className={clsx(styles.header, hasError && styles.header__error)}>
         <div className={styles.flex}>
-          {hasError && <img src="../../../images/warning.png" alt="Warning" />}
+          {hasError && (
+            <Image
+              src="/images/warning.png"
+              alt="Warning"
+              width={16}
+              height={16}
+              className={styles.warningIcon}
+            />
+          )}
           {header}
         </div>
         <span>

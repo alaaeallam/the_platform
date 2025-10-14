@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import styles from "./styles.module.scss";
@@ -56,7 +57,14 @@ export default function Dropdown({ userImage }: DropdownProps): React.JSX.Elemen
         aria-expanded={show}
         aria-label="Open admin quick menu"
       >
-        <img src={avatarSrc} alt="User avatar" />
+        <Image
+          src={avatarSrc}
+          alt="User avatar"
+          width={40}
+          height={40}
+          className={styles.dropdown__avatar}
+          priority
+        />
       </button>
 
       <div

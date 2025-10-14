@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { TextField, MenuItem } from "@mui/material";
 import { ErrorMessage, useField } from "formik";
 import styles from "./styles.module.scss";
@@ -36,7 +37,15 @@ export default function SingularSelect({
       {header && (
         <div className={`${styles.header} ${hasError ? styles.header__error : ""}`}>
           <div className={styles.flex}>
-            {hasError && <img src="../../../images/warning.png" alt="warning" />}
+            {hasError && (
+              <Image
+                src="/images/warning.png"
+                alt="Warning"
+                width={16}
+                height={16}
+                className={styles.warningIcon}
+              />
+            )}
             {header}
           </div>
         </div>

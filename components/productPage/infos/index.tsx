@@ -2,13 +2,16 @@
 "use client";
 import { addToCart } from "@/store/cartSlice";
 import type { CartProduct } from "@/types/cart";
-import { useAppDispatch } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { toggleWishlist } from "@/store/wishlistSlice";
+import type { WishItem } from "@/types/wishlist";
+import { makeWishKey } from "@/utils/wishlist";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image"; // ✅
 import { useSearchParams } from "next/navigation";
 import { TbPlus, TbMinus } from "react-icons/tb";
-import { BsHandbagFill, BsHeart } from "react-icons/bs";
+import { BsHandbagFill, BsHeart, BsHeartFill } from "react-icons/bs";
 import styles from "./styles.module.scss";
 import Rating from "@mui/material/Rating";
 
@@ -77,7 +80,41 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
     if (qty > product.quantity) setQty(product.quantity);
   }, [sizeIndex, product.quantity, qty]);
 
+  // ---------- Wishlist helpers ----------
+  const wishKey = useMemo(() => {
+    return makeWishKey({
+      productId: product._id,
+      subProductId: String(styleIndex),
+      size: product.sizes?.[sizeIndex]?.size,
+      color: product.colors?.[styleIndex]?.color,
+    });
+  }, [product._id, styleIndex, sizeIndex, product.sizes, product.colors]);
+
+  const wishItem: WishItem = useMemo(() => {
+    return {
+      key: "", // will be set just-in-time
+      productId: product._id,
+      slug: product.slug,
+      name: product.name,
+      image: product.images?.[0] ?? "",
+      priceSnapshot: displayPrice,
+      subProductId: String(styleIndex),
+      size: product.sizes?.[sizeIndex]?.size,
+      color: product.colors?.[styleIndex]?.color,
+      addedAt: new Date().toISOString(),
+    };
+  }, [product, styleIndex, sizeIndex, displayPrice]);
+
   const dispatch = useAppDispatch();
+
+  const isInWishlist = useAppSelector((s) =>
+    s.wishlist.items.some((i) => i.key === wishKey)
+  );
+
+  const onToggleWish = () => {
+    const withKey: WishItem = { ...wishItem, key: wishKey };
+    dispatch(toggleWishlist(withKey));
+  };
 
   /* Add to cart handler */
   const addToCartHandler = (): void => {
@@ -223,12 +260,12 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
             <b>ADD TO CART</b>
           </button>
           <button
-            disabled={product.quantity < 1}
-            style={{ cursor: product.quantity < 1 ? "not-allowed" : undefined }}
-            onClick={addToCartHandler}
+            aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+            aria-pressed={isInWishlist}
+            onClick={onToggleWish}
           >
-            <BsHeart />
-            WISHLIST
+            {isInWishlist ? <BsHeartFill /> : <BsHeart />}
+            {isInWishlist ? "IN WISHLIST" : "WISHLIST"}
           </button>
         </div>
 

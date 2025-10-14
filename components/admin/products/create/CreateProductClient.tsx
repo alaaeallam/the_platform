@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import axios from "axios";
 import * as Yup from "yup";
 import { Form, Formik } from "formik";
@@ -122,7 +123,6 @@ const CreateProductClient: React.FC<Props> = ({ parents, categories }) => {
 
   // dataURLs picked in the UI (must be non-undefined for the Images prop types)
   const [images, setImages] = useState<string[]>([]);
-  const [descriptionImages, setDescriptionImages] = useState<string[]>([]);
 
   // options for sub-categories (normalize to {_id, name})
   const [subs, setSubs] = useState<Option[]>([]);
@@ -359,10 +359,13 @@ const createProductHandler = async () => {
 
           <div className={styles.flex}>
             {product.color.image && (
-              <img
+              <Image
                 src={product.color.image}
-                className={styles.image_span}
                 alt="Selected style"
+                width={80}
+                height={80}
+                sizes="80px"
+                className={styles.image_span}
               />
             )}
             {product.color.color && (
@@ -385,7 +388,6 @@ const createProductHandler = async () => {
       name="styleInput"
       product={product}
       setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-      colorImage={colorImage}
     />
 
           <SingularSelect

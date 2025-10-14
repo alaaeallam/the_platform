@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import styles from "./styles.module.scss";
 import { Form, Formik } from "formik";
 import * as Yup from "yup";
@@ -88,7 +89,9 @@ export default function Shipping({
   const [form, setForm] = React.useState<Omit<Address, "_id">>(emptyForm);
 
   // show the create form only when there are no saved addresses
-  const hasAnyAddress = Array.isArray(user?.address) && user.address.length > 0;
+  const hasAnyAddress =
+    (Array.isArray(addresses) && addresses.length > 0) ||
+    (Array.isArray(user?.address) && user.address.length > 0);
   const [visible, setVisible] = React.useState<boolean>(!hasAnyAddress);
 
   const handleChange = (
@@ -110,7 +113,6 @@ export default function Shipping({
       setVisible(false);
       setForm(emptyForm);
     } else {
-      // eslint-disable-next-line no-console
       console.error(res.error);
     }
   };
@@ -167,7 +169,14 @@ export default function Shipping({
                 aria-label={`Select address for ${address.firstName} ${address.lastName}`}
               >
                 <div className={styles.address__side}>
-                  <img src={avatarSrc || "/avatar.png"} alt="User avatar" />
+                  <Image
+                    src={avatarSrc || "/avatar.png"}
+                    alt="User avatar"
+                    width={48}
+                    height={48}
+                    style={{ borderRadius: "50%", objectFit: "cover" }}
+                    priority={false}
+                  />
                 </div>
 
                 <div className={styles.address__col}>
@@ -294,3 +303,5 @@ export default function Shipping({
     </div>
   );
 }
+
+// Remove accidental duplicate client component below

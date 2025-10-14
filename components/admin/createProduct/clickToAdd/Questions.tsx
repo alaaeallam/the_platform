@@ -19,7 +19,6 @@ type Props<T extends { questions: QA[] }> = {
 
 export default function Questions<T extends { questions: QA[] }>({
   questions,
-  product,
   setProduct,
 }: Props<T>) {
   const addQuestion = () => {

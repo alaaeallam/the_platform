@@ -27,6 +27,7 @@ import axios from "axios";
 import { toast } from 'react-toastify';
 
 import styles from './styles.module.scss';
+import Image from "next/image";
 
 /* ============= Types from page props ============= */
 
@@ -327,7 +328,15 @@ export default function EnhancedTable({ rows }: Props) {
 
                     <TableCell component="th" id={labelId} scope="row" padding="none" style={{ paddingTop: 5 }}>
                       {row.image ? (
-                        <img src={row.image} alt="" className={styles.table__img} />
+                        <Image
+                          src={row.image}
+                          alt={row.name || "User avatar"}
+                          width={36}
+                          height={36}
+                          sizes="36px"
+                          className={styles.table__img}
+                          priority={false}
+                        />
                       ) : (
                         <div className={styles.table__img} />
                       )}
@@ -337,21 +346,28 @@ export default function EnhancedTable({ rows }: Props) {
                     <TableCell align="right">{row.email}</TableCell>
 
                     <TableCell align="right">
-                      <img
+                      <Image
                         src={row.verified ? '/images/verified.png' : '/images/unverified.png'}
                         alt={row.verified ? 'Verified' : 'Unverified'}
+                        width={18}
+                        height={18}
+                        sizes="18px"
                         className={styles.ver}
+                        priority={false}
                       />
                     </TableCell>
 
                     <TableCell align="right">
-                      <img
+                      <Image
                         src={row.admin ? '/images/verified.png' : '/images/unverified.png'}
                         alt={row.admin ? 'Admin' : 'Not admin'}
+                        width={18}
+                        height={18}
+                        sizes="18px"
                         className={styles.ver}
+                        priority={false}
                       />
                     </TableCell>
-
                     <TableCell align="right">
                       <button
     type="button"

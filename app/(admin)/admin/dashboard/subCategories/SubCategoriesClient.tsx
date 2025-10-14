@@ -5,7 +5,7 @@ import Create from "@/components/admin/subCategories/Create";
 import List from "@/components/admin/subCategories/List";
 import type { CategoryVM, SubCategoryVM, SubCategoryServer } from "@/components/admin/subCategories/types";
 import { toClient } from "@/components/admin/subCategories/types";
-import Layout from "@/components/admin/layout";
+
 
 interface Props {
   categories: CategoryVM[];

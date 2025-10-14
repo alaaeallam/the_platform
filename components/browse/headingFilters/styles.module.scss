@@ -1,0 +1,361 @@
+/* =========================
+   LAYOUT (sidebar + products)
+   ========================= */
+.browse__store {
+  display: grid;
+  grid-template-columns: 280px 1fr; /* wider sidebar for tidy rows */
+  gap: 24px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.browse__store_filters {
+  position: sticky;
+  top: 96px; /* adjust to your header height */
+  align-self: start;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+
+  padding: 14px 12px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: #fff;
+
+  /* nuke bullets globally in the sidebar */
+  ul, li, section {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.browse__store_products_wrap { min-width: 0; }
+.browse__store_products {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+
+  @media (max-width: 1200px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 640px)  { grid-template-columns: 1fr; }
+}
+
+/* =========================
+   TOP FILTER BAR (kept as-is, just minor polish)
+   ========================= */
+.filters {
+  /* 3 columns: left controls | toggles | sort */
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  column-gap: 20px;
+  row-gap: 14px;
+  margin-bottom: 24px;
+  position: relative;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+    .filters__sort { justify-self: start; }
+  }
+
+  /* generic row wrapper for left side */
+  &__row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 14px;
+    min-height: 40px;
+  }
+
+  input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: #111;
+    cursor: pointer;
+  }
+
+  /* Price (label + inputs) */
+  &__price {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    span { font-size: 14px; color: #333; }
+
+    input {
+      width: 78px;
+      height: 34px;
+      padding: 0 8px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      &:focus { outline: none; border-color: #111; }
+      /* normalize number input on webkit */
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+      &[type=number] { -moz-appearance: textfield; }
+    }
+  }
+
+  /* little histogram/quick price buttons */
+  &__priceBtns {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  /* shipping + rating toggles block (middle column) */
+  &__toggles {
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  &__shipping {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    label { font-size: 14px; color: #333; cursor: pointer; }
+  }
+
+  &__rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      margin-top: 1px;
+      font-size: 14px;
+      color: #333;
+      svg { fill: #fe4d4d; }
+    }
+  }
+
+  /* sort (right column) */
+  &__sort {
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    span { font-size: 14px; color: #333; }
+
+    &_list {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+
+      button {
+        height: 40px;
+        min-width: 180px;
+        padding: 0 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 14px;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        cursor: pointer;
+        > div { transition: transform .25s ease; }
+      }
+
+      ul {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        width: 100%;
+        max-height: 260px;
+        overflow-y: auto;
+        background: #fff;
+        padding: 8px;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.04);
+        transform-origin: top;
+        transform: scale3d(1,0,1);
+        transition: transform .18s ease;
+
+        li {
+          height: 40px;
+          display: flex;
+          align-items: center;
+          border-radius: 8px;
+          padding: 0 8px;
+          font-size: 13px;
+          color: #333;
+          cursor: pointer;
+
+          a {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+          }
+
+          .check { display: none; }
+          &:hover { background: #f7f7f7; .check { display: block; } }
+        }
+      }
+    }
+  }
+}
+
+/* quick price button visual */
+.tooltip_btn {
+  position: relative;
+  width: 30px;
+  height: 37px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid #eee;
+  border-radius: 6px;
+
+  span {
+    position: absolute;
+    left: -2px;
+    bottom: 0;
+    width: 29px;
+    height: 25%;
+    background: #ff00005f;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    transition: background .15s ease, height .15s ease;
+  }
+
+  &:hover span { background: #ff0000; }
+}/* =========================
+   SIDEBAR FILTER BLOCKS
+   ========================= */
+.filter {
+  border-bottom: 1px solid #f2f2f2; padding: 10px 0;
+  &:last-of-type { border-bottom: 0; }
+
+  /* header (clickable) */
+  h3 {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0; padding: 6px 2px;
+    font-size: 15px; font-weight: 600; color: #222; cursor: pointer;
+
+    span {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border: 1px solid #e6e6e6; border-radius: 6px; color: #666;
+      svg { width: 12px; height: 12px; }
+    }
+  }
+
+  /* shared bodies */
+  &__sizes, &__colors, &__brand, &__group, &__list { margin-top: 6px; }
+
+  /* remove any default grey background from rows/labels/links */
+  &__row,
+  &__row label,
+  &__row a,
+  &__list label,
+  &__list a {
+    background: transparent !important;
+  }
+
+  /* also prevent tap/keyboard focus from painting grey boxes */
+  &__row * {
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* keep the intentional hover style only */
+  &__row:hover {
+    background: #f7f7f7;
+  }
+
+  /* vertical lists (category/gender/material/pattern…) */
+  &__list {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+
+  /* each row with input + label */
+  &__row, &__sizes_size, &__brand {
+    background: #fff;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 6px; border-radius: 8px; cursor: pointer; color: #333; font-size: 14px;
+    &:hover { background: #f7f7f7; }
+
+    input[type="radio"], input[type="checkbox"] {
+      width: 16px; height: 16px; accent-color: #111; cursor: pointer;
+    }
+    label { cursor: pointer; user-select: none; }
+  }
+
+  /* sizes grid: neat, two columns */
+  &__sizes {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;
+
+    .filter__sizes_size {
+      display: flex; align-items: center; gap: 8px;
+      border: 1px solid #eee; border-radius: 8px; padding: 8px 10px; background: #fff;
+      &:hover { border-color: #ddd; background: #fafafa; }
+    }
+
+    /* reset default button look inside sizes grid (avoids grey highlight) */
+    > button {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      box-shadow: none;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      cursor: pointer;
+    }
+  }
+
+  /* colors: tidy dots */
+  &__colors {
+    display: grid; grid-template-columns: repeat(8, 20px); gap: 8px;
+
+    button {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 1px solid #ddd; cursor: pointer; outline: none; background: #fff;
+      &.activeFilterColor { box-shadow: 0 0 0 2px #111 inset; }
+    }
+  }
+
+  /* brands: small tiles */
+  &__brand {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+
+    button {
+      border: 1px solid #eee; background: #fff; border-radius: 10px;
+      padding: 6px 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      &:hover { border-color: #ddd; background: #fafafa; }
+      img { max-height: 20px; display: block; }
+      &.activeFilter { border-color: #111; }
+    }
+  }
+
+  /* generic active state (text chips etc.) */
+  .activeFilter { background: #111; color: #fff; label { color: #fff; } }
+}
+
+/* breadcrumbs + tags */
+.browse__path { font-size: 13px; color: #666; margin-bottom: 8px; }
+.browse__tags {
+  display: flex; flex-wrap: wrap; gap: 8px 10px; margin-bottom: 16px;
+  a { padding: 6px 10px; border: 1px solid #eee; border-radius: 999px; color: #333; font-size: 13px; background: #fff;
+      &:hover { border-color: #ddd; background: #fafafa; } }
+}
+
+/* pagination */
+.pagination { display: flex; justify-content: center; margin: 24px 0 8px; }
+
+/* Ensure sidebar anchors never carry a background */
+.filter a {
+  text-decoration: none;
+  color: inherit;
+  background: transparent !important;
+}

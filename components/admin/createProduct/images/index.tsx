@@ -7,6 +7,8 @@ import { useField } from "formik";
 import { useAppDispatch } from "@/store"; // typed hooks you’re already using elsewhere
 import { showDialog } from "@/store/DialogSlice";
 
+import Image from "next/image";
+
 import { RiDeleteBin7Fill, RiShape2Line } from "react-icons/ri";
 import { GiExtractionOrb } from "react-icons/gi";
 
@@ -128,7 +130,7 @@ export default function Images({
       {/* Header + inline error */}
       <div className={`${styles.header} ${meta.error ? styles.header__error : ""}`}>
         <div className={styles.flex}>
-          {meta.error && <img src="/images/warning.png" alt="Warning" />}
+          {meta.error && <Image src="/images/warning.png" alt="Warning" width={16} height={16} />}
           {header}
         </div>
         <span>
@@ -171,12 +173,12 @@ export default function Images({
           }`}
         >
           {!images.length ? (
-            <img src="/images/no_image.png" alt="No image" />
+            <Image src="/images/no_image.png" alt="No image" width={220} height={160} />
           ) : (
             images.map((img, i) => (
               <div className={styles.images__main_grid_wrap} key={`${img}-${i}`}>
                 <div className={styles.blur} />
-                <img src={img} alt={`Product image ${i + 1}`} />
+                <Image src={img} alt={`Product image ${i + 1}`} width={400} height={400} style={{ objectFit: "cover" }} />
                 <div className={styles.images__main_grid_actions}>
                   <button type="button" onClick={() => handleRemove(img)} aria-label="Remove image">
                     <RiDeleteBin7Fill />

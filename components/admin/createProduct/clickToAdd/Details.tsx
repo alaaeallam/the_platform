@@ -22,7 +22,6 @@ type Props<T extends { details: DetailRow[] }> = {
 
 export default function Details<T extends { details: DetailRow[] }>({
   details,
-  product,
   setProduct,
 }: Props<T>) {
   const addDetail = (): void => {

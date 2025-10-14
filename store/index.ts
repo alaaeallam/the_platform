@@ -17,6 +17,7 @@ import type { WebStorage } from "redux-persist/es/types";
 import cartReducer from "./cartSlice";
 import dialogReducer from "./DialogSlice";
 import expandReducer from "./ExpandSlice"; // ✅ add your sidebar slice
+import wishlistReducer from "./wishlistSlice";
 
 /* ======================================
    SSR-safe storage for redux-persist
@@ -38,6 +39,7 @@ const rootReducer = combineReducers({
   cart: cartReducer,
   dialog: dialogReducer,
   expandSidebar: expandReducer, // ✅ not persisted
+  wishlist: wishlistReducer,    // ✅ add wishlist slice
 });
 export type RootReducerState = ReturnType<typeof rootReducer>;
 
@@ -47,7 +49,7 @@ export type RootReducerState = ReturnType<typeof rootReducer>;
 const persistConfig: PersistConfig<RootReducerState> = {
   key: "root",
   storage,
-  whitelist: ["cart"], // ✅ persist cart only
+  whitelist: ["cart", "wishlist"], // ✅ persist cart + wishlist
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

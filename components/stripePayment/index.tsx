@@ -33,7 +33,7 @@ export default function StripePayment({ orderId }: { orderId: string }) {
 
   return (
     <Elements stripe={stripePromise} options={options}>
-      <Form clientSecret={clientSecret} orderId={orderId} />
+      <Form clientSecret={clientSecret} />
     </Elements>
   );
 }

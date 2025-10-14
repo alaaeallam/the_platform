@@ -208,8 +208,7 @@ const placeOrderHandler = React.useCallback(async () => {
     let paymentInfo: { provider: "stripe"; intentId: string } | undefined;
     if (canonical === "STRIPE") {
       // Confirm card payment first (do not set posting yet to avoid unmounting Element)
-      const finalTotal = displayTotal;
-      const amountCents = Math.round(finalTotal * 100);
+     
       if (!stripeRef.current) throw new Error("Payment form not ready");
       const intentId = await stripeRef.current.confirm();
       paymentInfo = { provider: "stripe", intentId };

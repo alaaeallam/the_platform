@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { IoNotificationsSharp } from "react-icons/io5";
 import styles from "./styles.module.scss";
@@ -71,9 +72,13 @@ export default function Notifications(): React.JSX.Element {
               key={i}
               className={styles.dropdown__content_notifications_notification}
             >
-              <img
+              <Image
                 src={n.image || "/images/avatar.png"}
                 alt={`${n.user}'s avatar`}
+                width={40}
+                height={40}
+                className={styles.dropdown__avatar}
+                priority
               />
               {n.type === "order" ? (
                 <p>

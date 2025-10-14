@@ -58,8 +58,8 @@ function resolveSizePriceForCountry(size: Size, countryISO2: string, groups: str
 /* ---------- Component ---------- */
 export default function ProductCard({ product }: ProductCardProps): React.JSX.Element {
   // TODO: pull these from user/session/cookie later
-  const COUNTRY = "EG";
-  const COUNTRY_GROUPS: string[] = ["LOW_ECONOMY", "MENA"];
+  const COUNTRY = "EG" as const;
+  const COUNTRY_GROUPS = React.useMemo<string[]>(() => ["LOW_ECONOMY", "MENA"], []);
 
   const safeSubProducts = useMemo<SubProduct[]>(
     () =>
@@ -100,7 +100,7 @@ export default function ProductCard({ product }: ProductCardProps): React.JSX.El
         })
         .filter((p) => Number.isFinite(p) && p > 0)
         .sort((a, b) => a - b),
-    [activeSub, COUNTRY]
+    [activeSub, COUNTRY, COUNTRY_GROUPS]
   );
 
   const swatches = useMemo(() => safeSubProducts.map((p) => p.color), [safeSubProducts]);
