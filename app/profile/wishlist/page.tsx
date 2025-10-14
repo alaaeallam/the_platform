@@ -1,38 +1,57 @@
 // app/profile/wishlist/page.tsx
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+
+import { authOptions } from "@/lib/auth";
+import { connectDb } from "@/utils/db";
+
 import Layout from "@/components/profile/layout";
+import WishlistClient from "@/components/profile/wishlist/WishlistClient";
+
 import User from "@/models/User";
+
+export const metadata: Metadata = {
+  title: "My Wishlist",
+};
+
+// ---------------- Types ----------------
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+type WishlistEntryLean = {
+  _id?: unknown;
+  product?: {
+    _id?: unknown;
+    name?: string;
+    slug?: string;
+    subProducts?: Array<{ images?: string[] }>;
+  } | null;
+  style?: unknown; // string | number | undefined
+};
 
 function getUserId(u: unknown): string | null {
   if (typeof u === "object" && u !== null && "id" in u) {
-    const id = (u as { id: unknown }).id;
+    const id = (u as { id?: unknown }).id;
     if (typeof id === "string") return id;
   }
   return null;
 }
-import { connectDb } from "@/utils/db";
-import styles from "@/app/styles/profile.module.scss";
-import WishlistClient from "@/components/profile/wishlist/WishlistClient";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-export const metadata = {
-  title: "My Wishlist",
-};
-
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-
+// --------------- Page ---------------
 export default async function WishlistPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
+  // Ensure session
   const session = await getServerSession(authOptions);
   if (!session) redirect("/signin?callbackUrl=/profile/wishlist");
 
+  // Parse tab
   const sp = await searchParams;
   const tabParam = sp?.tab;
   const tab =
@@ -42,40 +61,42 @@ export default async function WishlistPage({
       ? Number(tabParam[0]) || 0
       : 0;
 
+  // DB connection (important on Vercel)
   await connectDb();
 
-  // fetch user's wishlist items
+  // User id
   const userId = getUserId(session.user);
   if (!userId) redirect("/signin?callbackUrl=/profile/wishlist");
 
+  // Fetch wishlist (lean + selective populate)
   const userDoc = await User.findById(userId)
     .select("wishlist")
-    .populate("wishlist.product")
-    .lean();
+    .populate({
+      path: "wishlist.product",
+      select: "name slug subProducts",
+    })
+    .lean<{ wishlist?: WishlistEntryLean[] } | null>();
 
-  type WishlistEntryLean = {
-    _id?: unknown;
-    product?: {
-      _id?: unknown;
-      name?: string;
-      slug?: string;
-      subProducts?: Array<{ images?: string[] }>;
-    } | null;
-    style?: unknown; // may be string or number
-  };
-
-  const wishlistRaw: unknown = (userDoc && typeof userDoc === "object" && "wishlist" in userDoc)
-    ? (userDoc as { wishlist?: unknown }).wishlist
-    : undefined;
-  const wishlistArr: WishlistEntryLean[] = Array.isArray(wishlistRaw)
-    ? (wishlistRaw as WishlistEntryLean[])
+  const wishlistArr: WishlistEntryLean[] = Array.isArray(userDoc?.wishlist)
+    ? userDoc!.wishlist!
     : [];
 
+  // Shape to plain client data
   const wishlist = wishlistArr.map((item) => {
     const styleIdxRaw = item?.style;
-    const styleIdx = typeof styleIdxRaw === "string" ? Number(styleIdxRaw) : Number(styleIdxRaw ?? 0);
+    const styleIdx =
+      typeof styleIdxRaw === "string"
+        ? Number(styleIdxRaw)
+        : typeof styleIdxRaw === "number"
+        ? styleIdxRaw
+        : 0;
+
     const prod = item?.product ?? undefined;
-    const firstImage = prod?.subProducts?.[Number.isFinite(styleIdx) ? styleIdx : 0]?.images?.[0] ?? "";
+    const firstImage =
+      prod?.subProducts?.[
+        Number.isFinite(styleIdx) && styleIdx >= 0 ? styleIdx : 0
+      ]?.images?.[0] ?? "";
+
     return {
       _id: String(item?._id ?? ""),
       productId: String(prod?._id ?? ""),
@@ -86,9 +107,11 @@ export default async function WishlistPage({
     };
   });
 
+  // Render
   return (
     <Layout user={session.user} tab={tab}>
-      <div className={styles.header}>
+      <div className="sr-only" aria-hidden />{/* keep header spacing minimal */}
+      <div className="profileHeader">
         <h1>MY WISHLIST</h1>
       </div>
       <WishlistClient wishlist={wishlist} />
