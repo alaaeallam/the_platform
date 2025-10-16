@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:banners": "node -r dotenv/config scripts/seedBanners.js dotenv_config_path=.env"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",
@@ -25,6 +26,7 @@
     "color-thief-browser": "^2.0.2",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.18",
+    "dotenv": "^17.2.3",
     "formik": "^2.4.6",
     "fs": "^0.0.1-security",
     "i18n-iso-countries": "^7.14.0",
@@ -49,6 +51,7 @@
     "slugify": "^1.6.6",
     "stripe": "^19.1.0",
     "swiper": "^11.2.10",
+    "swr": "^2.3.6",
     "yup": "^1.7.0",
     "zod": "^4.1.5"
   },

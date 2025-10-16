@@ -15,6 +15,7 @@ import styles from "./styles.module.scss";
 // Icons
 import {
   MdArrowForwardIos,
+  MdCollections,
   MdOutlineCategory,
   MdSpaceDashboard,
 } from "react-icons/md";
@@ -194,7 +195,21 @@ export default function Sidebar(): React.JSX.Element {
             </li>
           </ul>
         </div>
+         {/* Banners */}
+        <div className={styles.sidebar__dropdown}>
+          <div className={styles.sidebar__dropdown_heading}>
+            <div className={styles.show}>Banners</div>
+          </div>
 
+          <ul className={styles.sidebar__list}>
+            <li className={isActive("banners") ? styles.active : ""}>
+              <Link href="/admin/dashboard/banners">
+                <MdCollections size={22} />
+                <span className={styles.show}>Banners</span>
+              </Link>
+            </li>
+          </ul>
+        </div>
         {/* Footer nav icons */}
         <nav>
           <ul

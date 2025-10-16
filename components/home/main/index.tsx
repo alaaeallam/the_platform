@@ -1,32 +1,4 @@
-"use client";
-
-
-
-// Styles & Components
-import styles from "./styles.module.scss";
-import MainSwiper from "./swiper";
-import Offers from "./offers";
-import Menu from "./Menu";
-import User from "./User";
-import Header from "./Header";
-
-
-// Swiper
-
-import "swiper/css";
-import "swiper/css/effect-cards";
-
-import React from "react";
-
-export default function Main(): React.JSX.Element {
-
-  return (
-    <div className={styles.main}>
-      <Header />
-      <Menu />
-      <MainSwiper />
-      <Offers />
-      <User />
-    </div>
-  );
-}
+// components/home/main/index.tsx
+// Re-export the client component from its location under /app.
+// This avoids importing server-only code into client trees.
+export { default } from "@/components/home/main/HomeMainClient";

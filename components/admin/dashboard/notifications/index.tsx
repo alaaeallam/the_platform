@@ -79,6 +79,7 @@ export default function Notifications(): React.JSX.Element {
                 height={40}
                 className={styles.dropdown__avatar}
                 priority
+                unoptimized
               />
               {n.type === "order" ? (
                 <p>
