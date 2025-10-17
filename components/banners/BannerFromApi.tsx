@@ -1,15 +1,20 @@
-// components/banners/BannerFromApi.tsx
 "use client";
 
+import React from "react";
 import useSWR from "swr";
-import HeroBannerClient from "./HeroBannerClient";
+import HeroBannerClient, { HeroSlide } from "./HeroBannerClient";
 
-type Slide = { image: string; alt?: string };
-type ApiBanner = { image: string; alt?: string };
-type ApiResponse = { banners?: ApiBanner[] };
+type ApiBanner = {
+  image: string;
+  alt?: string;
+  title?: string;
+  subtitle?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  theme?: { bg?: string; fg?: string; align?: "left" | "center" | "right" };
+};
 
-const fetcher = async (url: string): Promise<ApiResponse> =>
-  fetch(url).then((r) => r.json() as Promise<ApiResponse>);
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 export default function BannerFromApi({
   placement = "home-hero",
@@ -18,19 +23,26 @@ export default function BannerFromApi({
   placement?: string;
   locale?: string;
 }) {
-  const { data } = useSWR<ApiResponse>(
-    `/api/banners?placement=${encodeURIComponent(placement)}${
-      locale ? `&locale=${locale}` : ""
-    }`,
+  const { data } = useSWR<{ banners: ApiBanner[] }>(
+    `/api/banners?placement=${encodeURIComponent(placement)}${locale ? `&locale=${encodeURIComponent(locale)}` : ""}`,
     fetcher,
     { revalidateOnFocus: false }
   );
 
-  const slides: Slide[] = (data?.banners ?? []).map((b) => ({
-    image: b.image,
-    alt: b.alt,
-  }));
+  const slides: HeroSlide[] =
+    data?.banners?.map((b) => ({
+      image: b.image,
+      alt: b.alt ?? b.title ?? "Banner",
+      href: b.ctaHref || undefined,   // <-- keep CTA
+      label: b.ctaLabel || undefined, // <-- keep CTA
+    })) ?? [];
 
-  if (!slides.length) return null; // or show a skeleton
+  // Debug: verify href exists
+  if (slides.length) {
+    // eslint-disable-next-line no-console
+    console.log("[BannerFromApi] slides:", slides);
+  }
+
+  if (!slides.length) return null;
   return <HeroBannerClient slides={slides} />;
 }

@@ -1,10 +1,9 @@
 // utils/db.ts
 import mongoose from "mongoose";
-import { env } from "@/lib/env";
 
 type Cached = {
-  conn: mongoose.Mongoose | null;
-  isConnected: number; // 0 = disconnected, 1 = connected
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
 };
 
 // Reuse a global cache in dev to survive HMR
@@ -13,50 +12,81 @@ declare global {
   var _mongooseCache: Cached | undefined;
 }
 
-const cached: Cached = global._mongooseCache ?? { conn: null, isConnected: 0 };
+const cached: Cached =
+  global._mongooseCache ?? { conn: null, promise: null };
+
 if (!global._mongooseCache) {
   global._mongooseCache = cached;
 }
 
 function resolveMongoUri(): string {
-  // Support either key (Auth.js samples often use MONGODB_URI)
-  const uri = process.env.MONGODB_URI ?? (process.env.MONGODB_URI as string | undefined);
+  const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("Please define MONGODB_URI in environment variables");
   return uri;
 }
 
-export async function connectDb() {
-  if (cached.isConnected === 1 && cached.conn) {
-    // Already connected
-    return;
+// Optional: quiet deprecated behaviour noise and align with strictness
+mongoose.set("strictQuery", true);
+
+const CONNECT_OPTS: mongoose.ConnectOptions = {
+  bufferCommands: false,
+  // tune networking a bit to avoid transient timeouts on cold start
+  serverSelectionTimeoutMS: 30000,
+  connectTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  maxPoolSize: 10,
+};
+
+async function tryConnect(uri: string, attempt = 1): Promise<typeof mongoose> {
+  try {
+    return await mongoose.connect(uri, CONNECT_OPTS);
+  } catch (err) {
+    if (attempt >= 3) throw err;
+    // small backoff between retries
+    await new Promise((r) => setTimeout(r, attempt * 1000));
+    return tryConnect(uri, attempt + 1);
+  }
+}
+
+export async function connectDb(): Promise<typeof mongoose> {
+  // Fast path: already connected
+  if (cached.conn && cached.conn.connection.readyState === 1) {
+    return cached.conn;
+  }
+
+  // If there is an inflight connection promise, await it
+  if (cached.promise) {
+    cached.conn = await cached.promise;
+    return cached.conn;
+  }
+
+  // Ensure we don't keep a bad half-open connection around
+  if (mongoose.connections.length > 0 && mongoose.connections[0].readyState === 2) {
+    // 2 = connecting; let it finish
+    // do nothing; we will still create a promise below if needed
+  } else if (mongoose.connections.length > 0 && mongoose.connections[0].readyState > 2) {
+    // 3 = disconnecting, 0 = disconnected
+    // allow reconnect
   }
 
   const uri = resolveMongoUri();
 
-  // If a prior instance exists but isn't connected, disconnect first
-  if (mongoose.connections.length > 0 && mongoose.connections[0].readyState !== 1) {
-    await mongoose.disconnect();
-  }
+  cached.promise = tryConnect(uri).then((m) => {
+    cached.conn = m;
+    return m;
+  });
 
-  try {
-    const db = await mongoose.connect(uri);
-    cached.conn = db;
-    cached.isConnected = db.connections[0].readyState; // 1 = connected
-  } catch (err) {
-    console.error("MongoDB connection error:", err);
-    throw err;
-  }
+  cached.conn = await cached.promise;
+  return cached.conn;
 }
 
-export async function disconnectDb() {
-  if (cached.isConnected && process.env.NODE_ENV === "production") {
-    await mongoose.disconnect();
+export async function disconnectDb(): Promise<void> {
+  // Keep DB open in dev for HMR speed; close only in prod
+  if (process.env.NODE_ENV === "production") {
+    await mongoose.disconnect().catch(() => {});
     cached.conn = null;
-    cached.isConnected = 0;
-  } else {
-    // Keep connection open in dev for faster HMR
+    cached.promise = null;
   }
 }
 
-const db = { connectDb, disconnectDb };
-export default db;
+export default { connectDb, disconnectDb };
