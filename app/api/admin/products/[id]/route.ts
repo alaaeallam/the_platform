@@ -116,7 +116,7 @@ export async function PATCH(
     .map((id) => new mongoose.Types.ObjectId(id));
     existing.shipping = parsed.shipping ?? 0;
 
-    existing.subProducts = [
+    existing.set("subProducts", [
       {
         sku: parsed.sku,
         color: parsed.color,
@@ -127,7 +127,7 @@ export async function PATCH(
         sold: existing.subProducts?.[0]?.sold ?? 0,
         marketingTags: existing.subProducts?.[0]?.marketingTags ?? [],
       },
-    ] as any;
+    ]);
 
     await existing.save();
 

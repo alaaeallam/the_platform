@@ -58,7 +58,7 @@ export default function ProductCard({ product }: Props) {
       <div style={{ display: "grid", gap: 10 }}>
         <div style={{ fontWeight: 600 }}>Delete product?</div>
         <div style={{ fontSize: 14 }}>
-          Delete "{product.name}"? This cannot be undone.
+          Delete &quot;{product.name}&quot;? This cannot be undone.
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <button
