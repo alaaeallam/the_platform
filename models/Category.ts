@@ -4,6 +4,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface ICategory extends Document {
   name: string;
   slug: string;
+  image?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -26,6 +27,11 @@ const categorySchema = new Schema<ICategory>(
       index: true,
       trim: true,
     },
+    image: {
+  type: String,
+  trim: true,
+  default: "",
+},
   },
   { timestamps: true }
 );

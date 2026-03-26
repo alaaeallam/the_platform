@@ -40,7 +40,13 @@ export default function Main() {
     <div className={styles.main}>
       <div className={styles.main__container}>
         <Link href="/" className={styles.logo}>
-          <Image src="/silhouett.jpg" alt="Logo" width={170} height={170} />
+          <Image
+  src="/images/berwaz.jpg"
+  alt="Logo"
+  width={80}
+  height={80}
+  style={{ width: "80px", height: "80px", objectFit: "contain" }}
+/>
         </Link>
 
         <form onSubmit={handleSearch} className={styles.search}>

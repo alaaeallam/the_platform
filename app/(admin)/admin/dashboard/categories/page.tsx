@@ -9,6 +9,7 @@ export interface CategoryVM {
   _id: string;
   name: string;
   slug?: string;
+  image?: string;
   parent?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -24,6 +25,7 @@ async function getCategories(): Promise<CategoryVM[]> {
         _id: unknown;
         name: string;
         slug?: string;
+        image?: string;
         parent?: string | null;
         createdAt?: Date;
         updatedAt?: Date;
@@ -34,6 +36,7 @@ async function getCategories(): Promise<CategoryVM[]> {
     _id: String(c._id),
     name: c.name,
     slug: c.slug,
+    image: c.image,
     parent: c.parent ?? null,
     createdAt: c.createdAt?.toISOString(),
     updatedAt: c.updatedAt?.toISOString(),

@@ -1,7 +1,8 @@
 "use client";
-
+///components/admin/products/create/CreateProductClient.tsx
 import * as React from "react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import axios from "axios";
 import * as Yup from "yup";
@@ -113,13 +114,40 @@ const initialState: ProductDraft = {
 
 /* ---------- Props ---------- */
 
+
 type Props = {
   parents: ParentVM[];
   categories: CategoryVM[];
+  mode?: "create" | "edit";
+  productId?: string;
+  initialProduct?: ProductDraft;
 };
 
-const CreateProductClient: React.FC<Props> = ({ parents, categories }) => {
-  const [product, setProduct] = useState<ProductDraft>(initialState);
+// Helper to check if a string is a remote URL (http/https)
+const isRemoteUrl = (value: string): boolean => /^https?:\/\//i.test(value);
+
+const CreateProductClient: React.FC<Props> = ({
+  parents,
+  categories,
+  mode = "create",
+  productId,
+  initialProduct,
+}) => {
+  const router = useRouter();
+  const [product, setProduct] = useState<ProductDraft>(initialProduct ?? initialState);
+  useEffect(() => {
+  if (initialProduct) {
+    setProduct(initialProduct);
+    setImages(
+      Array.isArray(initialProduct.images)
+        ? initialProduct.images
+            .map((img) => (typeof img === "string" ? img : img?.url ?? ""))
+            .filter(Boolean)
+        : []
+    );
+    setColorImage(initialProduct.color?.image ?? "");
+  }
+}, [initialProduct]);
 
   // dataURLs picked in the UI (must be non-undefined for the Images prop types)
   const [images, setImages] = useState<string[]>([]);
@@ -227,23 +255,28 @@ useEffect(() => {
 const createProductHandler = async () => {
   setLoading(true);
 
-  // 1) Upload carousel images and return URLs only
-  let imageUrls: string[] = [];
-  if (images.length) {
-    const blobs = images.map((img) => dataURItoBlob(img));
+  // 1) Keep existing remote URLs, upload only new local/dataURI images
+  const existingImageUrls = images.filter(isRemoteUrl);
+  const newImageInputs = images.filter((img) => !isRemoteUrl(img));
+
+  let imageUrls: string[] = [...existingImageUrls];
+  if (newImageInputs.length) {
+    const blobs = newImageInputs.map((img) => dataURItoBlob(img));
     const formData = new FormData();
     formData.append("path", "product images");
     blobs.forEach((file) => formData.append("file", file));
 
     const res = (await uploadImages(formData)) as Array<string | { url?: string }>;
-    imageUrls = res
+    const uploadedUrls = res
       .map((r) => (typeof r === "string" ? r : r?.url ?? ""))
       .filter((u): u is string => !!u);
+
+    imageUrls = [...existingImageUrls, ...uploadedUrls];
   }
 
-  // 2) Upload style image (optional) → URL
-  let styleImg = "";
-  if (product.color.image) {
+  // 2) Keep existing remote style image URL, upload only if it's a new local/dataURI image
+  let styleImg = product.color.image || "";
+  if (product.color.image && !isRemoteUrl(product.color.image)) {
     const styleBlob = dataURItoBlob(product.color.image);
     const fd = new FormData();
     fd.append("path", "product style images");
@@ -289,15 +322,33 @@ const createProductHandler = async () => {
           ...subFields,
         };
 
-    // 5) POST
-    const { data } = await axios.post<{ message?: string; productId?: string }>(
-      "/api/admin/products",
-      payload
+    const endpoint =
+      mode === "edit" && productId
+        ? `/api/admin/products/${productId}`
+        : "/api/admin/products";
+
+    const response =
+      mode === "edit" && productId
+        ? await axios.patch<{ message?: string; productId?: string }>(endpoint, payload)
+        : await axios.post<{ message?: string; productId?: string }>(endpoint, payload);
+
+    const data = response.data;
+    toast.success(
+      data?.message ??
+        (mode === "edit"
+          ? "Product updated successfully."
+          : appendMode
+          ? "Sub-product added."
+          : "Product created.")
     );
 
-    toast.success(data?.message ?? (appendMode ? "Sub-product added." : "Product created."));
+    if (mode === "edit") {
+      router.push("/admin/dashboard/products/all");
+      router.refresh();
+      return;
+    }
   } catch (err: unknown) {
-    let msg = "Failed to create product.";
+    let msg = mode === "edit" ? "Failed to update product." : "Failed to create product.";
     if (axios.isAxiosError(err)) {
       // If Zod threw, server sends { message: "Invalid input", issues: [...] }
       const data = err.response?.data as unknown;
@@ -494,7 +545,13 @@ const createProductHandler = async () => {
             type="submit"
             disabled={loading}
           >
-            {loading ? "Creating..." : "Create Product"}
+            {loading
+  ? mode === "edit"
+    ? "Updating..."
+    : "Creating..."
+  : mode === "edit"
+  ? "Update Product"
+  : "Create Product"}
           </button>
 
           <DialogModal />

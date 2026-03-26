@@ -1,4 +1,3 @@
-// app/(shop)/HomePageClient.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -38,6 +37,12 @@ type CardProduct = {
   rating: number;
   numReviews: number;
   createdAt: string;
+};
+type HomeCategoryVM = {
+  _id: string;
+  name: string;
+  slug?: string;
+  image?: string;
 };
 
 /* ---------- Type-safe converters from unknown ---------- */
@@ -161,8 +166,39 @@ function toCardProduct(p: unknown): CardProduct | null {
   return { _id, name, slug, subProducts, rating, numReviews, createdAt };
 }
 
-export default function Home(): React.JSX.Element {
+export default function Home({
+  initialCategories,
+  menuCategories,
+}: {
+  initialCategories: HomeCategoryVM[];
+  menuCategories: HomeCategoryVM[];
+}): React.JSX.Element {
   const [products, setProducts] = useState<CardProduct[]>([]);
+  const categoryBackgrounds = ["#5a31f4", "#3c811f", "#000"];
+
+  const dbCategories = initialCategories.slice(0, 3).map((category, index) => ({
+    header: category.name,
+    background: categoryBackgrounds[index] ?? "#111",
+    products: category.image
+      ? [
+          {
+            id: category._id,
+            image: category.image,
+            link: category.slug ? `/browse?category=${category.slug}` : "/browse",
+          },
+        ]
+      : [],
+  }));
+
+  const fallbackCategories = [
+    { header: "Dresses", products: women_dresses, background: "#5a31f4" },
+    { header: "Shoes", products: women_shoes, background: "#3c811f" },
+    { header: "Accessories", products: women_accessories, background: "#000" },
+  ];
+
+  const homepageCategories = dbCategories.some((category) => category.products.length > 0)
+    ? dbCategories
+    : fallbackCategories;
 
   useEffect(() => {
     (async () => {
@@ -182,14 +218,19 @@ export default function Home(): React.JSX.Element {
   return (
     <div className={styles.home}>
       <div className={styles.container}>
-        <Main />
+        <Main categories={menuCategories} />
         
         <FlashDeals />
-        <div className={styles.home__category}>
-          <Category header="Dresses" products={women_dresses} background="#5a31f4" />
-          <Category header="Shoes" products={women_shoes} background="#3c811f" />
-          <Category header="Accessories" products={women_accessories} background="#000" />
-        </div>
+            <div className={styles.home__category}>
+      {homepageCategories.map((category, index) => (
+        <Category
+          key={`${category.header}-${index}`}
+          header={category.header}
+          products={category.products}
+          background={category.background}
+        />
+      ))}
+    </div>
         <ProductsSwiper products={women_swiper} />
         <div className={styles.products}>
           {products.map((p) => (

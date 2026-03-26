@@ -18,6 +18,7 @@ type CategoryLean = {
   _id: unknown;
   name: string;
   slug?: string;
+  image?: string;
   parent?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -27,6 +28,7 @@ type CategoryVM = {
   _id: string;
   name: string;
   slug?: string;
+  image?: string;
   parent?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -42,11 +44,13 @@ type ApiErr = { message: string };
 const CreateSchema = z.object({
   name: z.string().min(2, "Category name must be between 2 and 30 characters.")
     .max(30, "Category name must be between 2 and 30 characters."),
+  image: z.string().optional().default(""),
 });
 
 const UpdateSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(2).max(30),
+  image: z.string().optional().default(""),
 });
 
 const DeleteSchema = z.object({
@@ -62,6 +66,7 @@ function serialize(cats: CategoryLean[]): CategoryVM[] {
     _id: String(c._id),
     name: c.name,
     slug: c.slug,
+    image: c.image,
     parent: c.parent ?? null,
     createdAt: c.createdAt ? c.createdAt.toISOString() : undefined,
     updatedAt: c.updatedAt ? c.updatedAt.toISOString() : undefined,
@@ -108,8 +113,7 @@ export async function POST(req: Request) {
     if (forbidden) return forbidden;
 
     const body = await req.json();
-    const { name } = CreateSchema.parse(body);
-
+    const { name, image } = CreateSchema.parse(body);
     await connectDb();
 
     const exists = await Category.findOne({ name }).lean();
@@ -120,7 +124,7 @@ export async function POST(req: Request) {
       );
     }
 
-    await Category.create({ name, slug: slugify(name) });
+    await Category.create({ name, slug: slugify(name), image: image ?? "" });
 
     const docs = await Category.find({}).sort({ updatedAt: -1 }).lean<CategoryLean[]>();
     return NextResponse.json<ApiOk<{ categories: CategoryVM[] }>>(
@@ -149,10 +153,10 @@ export async function PUT(req: Request) {
     if (forbidden) return forbidden;
 
     const body = await req.json();
-    const { id, name } = UpdateSchema.parse(body);
+    const { id, name, image } = UpdateSchema.parse(body);
 
     await connectDb();
-    await Category.findByIdAndUpdate(id, { name, slug: slugify(name) });
+    await Category.findByIdAndUpdate(id, { name, slug: slugify(name), image: image ?? "" });
 
     const docs = await Category.find({}).sort({ updatedAt: -1 }).lean<CategoryLean[]>();
     return NextResponse.json<ApiOk<{ categories: CategoryVM[] }>>(

@@ -51,7 +51,10 @@ export default async function CreateProductPage(): Promise<React.JSX.Element> {
     return (
       <Layout>
         <div className={styles.header}>Create Product</div>
-        <CreateProductClient parents={parents} categories={categories} />
+        <CreateProductClient parents={parents}
+        categories={categories}
+        mode="create"
+/>
       </Layout>
     );
   } catch (err) {

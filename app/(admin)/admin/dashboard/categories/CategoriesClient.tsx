@@ -4,19 +4,11 @@
 import { useState } from "react";
 import Create from "@/components/admin/categories/Create";
 import List from "@/components/admin/categories/List";
-
+import type { CategoryVM } from "@/components/admin/categories/types";
 
 // Duplicate or import the shared type.
 // If you keep the source of truth in a single file (recommended),
 // move CategoryVM into "@/types/category.ts" and import it from there.
-export interface CategoryVM {
-  _id: string;
-  name: string;
-  slug?: string;
-  parent?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-}
 
 interface CategoriesClientProps {
   initialCategories: CategoryVM[];

@@ -3,7 +3,7 @@
 import React from "react";
 import styles from "./styles.module.scss";
 import Link from "next/link";
-import { menuArray } from "@/data/home";
+
 
 // Icons
 import {
@@ -25,33 +25,42 @@ import { AiOutlineSecurityScan } from "react-icons/ai";
 import { BsPhoneVibrate } from "react-icons/bs";
 
 // Types
-interface MenuItem {
+type MenuCategory = {
+  _id: string;
   name: string;
-  link: string;
-}
-
-// Icon mapping for cleaner JSX
-const iconMap: Record<number, React.ReactElement> = {
-  0: <GiLargeDress />,
-  1: <GiClothes />,
-  2: <GiHeadphones />,
-  3: <GiWatch />,
-  4: <HiOutlineHome />,
-  5: <GiHealthCapsule />,
-  6: <GiBallerinaShoes />,
-  7: <GiBigDiamondRing />,
-  8: <GiSportMedal />,
-  9: <FaBaby />,
-  10: <BiCameraMovie />,
-  11: <MdOutlineSportsEsports />,
-  12: <BsPhoneVibrate />,
-  13: <MdOutlineSmartToy />,
-  14: <BiGift />,
-  15: <Gi3dHammer />,
-  16: <AiOutlineSecurityScan />,
+  slug?: string;
+  image?: string;
 };
 
-export default function Menu(): React.ReactElement {
+// Icon mapping for cleaner JSX
+function getCategoryIcon(name: string): React.ReactElement {
+  const value = name.toLowerCase();
+
+  if (value.includes("women") || value.includes("dress")) return <GiLargeDress />;
+  if (value.includes("men") || value.includes("fashion") || value.includes("cloth")) return <GiClothes />;
+  if (value.includes("electronic") || value.includes("audio")) return <GiHeadphones />;
+  if (value.includes("watch")) return <GiWatch />;
+  if (value.includes("home") || value.includes("appliance")) return <HiOutlineHome />;
+  if (value.includes("beauty") || value.includes("health")) return <GiHealthCapsule />;
+  if (value.includes("shoe") || value.includes("sneaker") || value.includes("heel")) return <GiBallerinaShoes />;
+  if (value.includes("accessor") || value.includes("jewel")) return <GiBigDiamondRing />;
+  if (value.includes("sport")) return <GiSportMedal />;
+  if (value.includes("kid") || value.includes("bab")) return <FaBaby />;
+  if (value.includes("movie") || value.includes("television") || value.includes("tv")) return <BiCameraMovie />;
+  if (value.includes("gaming") || value.includes("video game") || value.includes("game")) return <MdOutlineSportsEsports />;
+  if (value.includes("phone") || value.includes("telecommunication") || value.includes("mobile")) return <BsPhoneVibrate />;
+  if (value.includes("toy") || value.includes("hobbies")) return <MdOutlineSmartToy />;
+  if (value.includes("gift") || value.includes("craft")) return <BiGift />;
+  if (value.includes("machinery")) return <Gi3dHammer />;
+  if (value.includes("security") || value.includes("safety")) return <AiOutlineSecurityScan />;
+
+  return <BiCategory />;
+}
+export default function Menu({
+  categories,
+}: {
+  categories: MenuCategory[];
+}): React.ReactElement {
   return (
     <div className={styles.menu}>
       <ul>
@@ -62,10 +71,13 @@ export default function Menu(): React.ReactElement {
           </span>
         </li>
         <ul className={styles.menu__list}>
-          {menuArray.map((item: MenuItem, i: number) => (
-            <li key={i}>
-              <Link href={item.link} className={styles.menu__link}>
-                {iconMap[i] ?? null}
+                    {categories.map((item) => (
+            <li key={item._id}>
+              <Link
+                href={item.slug ? `/browse?category=${item.slug}` : "/browse"}
+                className={styles.menu__link}
+              >
+                {getCategoryIcon(item.name)}
                 <span>{item.name}</span>
               </Link>
             </li>

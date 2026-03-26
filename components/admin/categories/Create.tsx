@@ -3,7 +3,8 @@
 
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import { useState } from "react";
+import { ChangeEvent, useMemo, useState } from "react";
+import { uploadImages } from "@/requests/upload";
 import axios from "axios";
 import { toast } from "react-toastify";
 import type { CategoryVM } from "./types";
@@ -20,6 +21,7 @@ interface CreateProps {
 
 interface FormValues {
   name: string;
+  image?: string;
 }
 
 interface CreateCategoryResponse {
@@ -41,26 +43,57 @@ const validationSchema = Yup.object({
 
 export default function Create({ setCategories }: CreateProps): React.JSX.Element {
   const [name, setName] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+const [imagePreview, setImagePreview] = useState<string>("");
+const [loading, setLoading] = useState<boolean>(false);
+
+const previewLabel = useMemo(() => (imagePreview ? "Change image" : "Upload image"), [imagePreview]);
+const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0] ?? null;
+  setImageFile(file);
+  if (!file) {
+    setImagePreview("");
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  setImagePreview(url);
+};
 
   const submitHandler = async () => {
-    try {
-      const { data } = await axios.post<CreateCategoryResponse>(
-        "/api/admin/categories",
-        { name }
-      );
-      setCategories(data.categories);
-      setName("");
-      toast.success(data.message);
-    } catch (err) {
-      const message =
-        (axios.isAxiosError(err) && err.response?.data?.message) ||
-        (err as Error).message ||
-        "Failed to create category.";
-      toast.error(message);
-    }
-  };
+  try {
+    setLoading(true);
 
-  const initialValues: FormValues = { name };
+    let image = "";
+    if (imageFile) {
+      const formData = new FormData();
+      formData.append("path", "category images");
+      formData.append("file", imageFile);
+      const uploaded = (await uploadImages(formData)) as Array<string | { url?: string }>;
+      const first = uploaded?.[0];
+      image = typeof first === "string" ? first : first?.url ?? "";
+    }
+
+    const { data } = await axios.post<CreateCategoryResponse>(
+      "/api/admin/categories",
+      { name, image }
+    );
+    setCategories(data.categories);
+    setName("");
+    setImageFile(null);
+    setImagePreview("");
+    toast.success(data.message);
+  } catch (err) {
+    const message =
+      (axios.isAxiosError(err) && err.response?.data?.message) ||
+      (err as Error).message ||
+      "Failed to create category.";
+    toast.error(message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const initialValues: FormValues = { name, image: imagePreview };
 
   return (
     <Formik<FormValues>
@@ -83,10 +116,20 @@ export default function Create({ setCategories }: CreateProps): React.JSX.Elemen
               setName(e.target.value)
             }
           />
-
+               <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+       <label style={{ fontWeight: 600 }}>Image</label>
+       <input type="file" accept="image/*" onChange={handleImageChange} />
+       {imagePreview ? (
+         <img
+           src={imagePreview}
+           alt="Category preview"
+           style={{ width: 88, height: 88, objectFit: "cover", borderRadius: 10, border: "1px solid #e5e7eb" }}
+         />
+       ) : null}
+     </div>
           <div className={styles.btnWrap}>
             <button type="submit" className={styles.btn}>
-              <span>Add Category</span>
+              <span>{loading ? "Saving..." : "Add Category"}</span>
             </button>
           </div>
         </Form>

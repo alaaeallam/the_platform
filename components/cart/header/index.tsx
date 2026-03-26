@@ -13,7 +13,7 @@ export default function Header(): React.JSX.Element {
         <div className={styles.header__left}>
           <Link href="/" aria-label="Go to homepage">
             <Image
-              src="/silhouett.jpg"
+              src="/images/berwaz.jpg"
               alt="Shop logo"
               width={60}
               height={40}

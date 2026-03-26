@@ -1,3 +1,4 @@
+//app/(admin)/admin/dashboard/products/all/page.tsx
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
