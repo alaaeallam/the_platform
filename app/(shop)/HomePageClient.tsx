@@ -174,11 +174,18 @@ export default function Home({
   menuCategories: HomeCategoryVM[];
 }): React.JSX.Element {
   const [products, setProducts] = useState<CardProduct[]>([]);
-  const categoryBackgrounds = ["#5a31f4", "#3c811f", "#000"];
+  const categoryBackgrounds = [
+    "#5a31f4",
+    "#3c811f",
+    "#000",
+    "#c2410c",
+    "#0f766e",
+    "#7c3aed",
+  ];
 
-  const dbCategories = initialCategories.slice(0, 3).map((category, index) => ({
+  const dbCategories = initialCategories.map((category, index) => ({
     header: category.name,
-    background: categoryBackgrounds[index] ?? "#111",
+    background: categoryBackgrounds[index % categoryBackgrounds.length] ?? "#111",
     products: category.image
       ? [
           {
@@ -196,9 +203,8 @@ export default function Home({
     { header: "Accessories", products: women_accessories, background: "#000" },
   ];
 
-  const homepageCategories = dbCategories.some((category) => category.products.length > 0)
-    ? dbCategories
-    : fallbackCategories;
+  const homepageCategories = dbCategories.filter((category) => category.products.length > 0);
+  const visibleHomepageCategories = homepageCategories.length > 0 ? homepageCategories : fallbackCategories;
 
   useEffect(() => {
     (async () => {
@@ -221,16 +227,98 @@ export default function Home({
         <Main categories={menuCategories} />
         
         <FlashDeals />
-            <div className={styles.home__category}>
-      {homepageCategories.map((category, index) => (
-        <Category
-          key={`${category.header}-${index}`}
-          header={category.header}
-          products={category.products}
-          background={category.background}
-        />
-      ))}
-    </div>
+        <section
+          style={{
+            marginTop: 24,
+            marginBottom: 16,
+            display: "grid",
+            gap: 18,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "space-between",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "grid", gap: 6 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: 1.2,
+                  textTransform: "uppercase",
+                  color: "#6b7280",
+                }}
+              >
+                Featured Collections
+              </span>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 28,
+                  lineHeight: 1.1,
+                  fontWeight: 800,
+                  color: "#111827",
+                }}
+              >
+                Swipe Through Categories
+              </h2>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  color: "#6b7280",
+                  maxWidth: 560,
+                }}
+              >
+                Browse premium collections in a swipe-friendly rail on mobile and a smooth horizontal carousel on larger screens.
+              </p>
+            </div>
+            <a
+              href="/browse"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: 42,
+                padding: "0 16px",
+                borderRadius: 999,
+                textDecoration: "none",
+                background: "#111827",
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Explore All
+            </a>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 16,
+              overflowX: "auto",
+              paddingBottom: 8,
+              scrollSnapType: "x mandatory",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            {visibleHomepageCategories.map((category, index) => (
+              <Category
+                key={`${category.header}-${index}`}
+                header={category.header}
+                products={category.products}
+                background={category.background}
+              />
+            ))}
+          </div>
+        </section>
         <ProductsSwiper products={women_swiper} />
         <div className={styles.products}>
           {products.map((p) => (

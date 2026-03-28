@@ -22,10 +22,11 @@ export type CategoryProps = {
 };
 
 export default function Category({ header, products, background }: CategoryProps) {
-  const isMedium = useMediaQuery({ query: "(max-width:1300px)" });
+  const isLargeTablet = useMediaQuery({ query: "(max-width:1300px)" });
+  const isTablet = useMediaQuery({ query: "(max-width:900px)" });
   const isMobile = useMediaQuery({ query: "(max-width:550px)" });
 
-  const take = isMobile ? 6 : isMedium ? 4 : 6;
+  const take = isMobile ? 4 : isTablet ? 4 : isLargeTablet ? 5 : 6;
   const visible = products.slice(0, take);
 
   return (
@@ -42,8 +43,8 @@ export default function Category({ header, products, background }: CategoryProps
             <Image
               src={product.image}
               alt={header}
-              width={220}
-              height={220}
+              width={150}
+              height={150}
               className={styles.product__img}
               unoptimized
             />

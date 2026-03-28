@@ -20,7 +20,7 @@ async function getHomeCategories(): Promise<HomeCategoryVM[]> {
 
   const categories = await Category.find({})
     .sort({ updatedAt: -1 })
-    .limit(3)
+    .limit(6)
     .lean<Array<{ _id: unknown; name?: string; slug?: string; image?: string }>>();
 
   return categories.map((category) => ({
