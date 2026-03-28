@@ -5,6 +5,7 @@ export interface ICategory extends Document {
   name: string;
   slug: string;
   image?: string;
+  iconKey: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -31,6 +32,10 @@ const categorySchema = new Schema<ICategory>(
   type: String,
   trim: true,
   default: "",
+},
+iconKey: {
+  type: String,
+  default: "generic",
 },
   },
   { timestamps: true }

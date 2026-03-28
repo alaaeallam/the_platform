@@ -8,6 +8,7 @@ type CategoryLean = {
   name?: string;
   slug?: string;
   image?: string;
+  iconKey?: string;
   parent?: string | null;
 };
 
@@ -26,6 +27,7 @@ export async function GET() {
           name: category.name ?? "Category",
           slug: category.slug ?? "",
           image: category.image ?? "",
+          iconKey: category.iconKey ?? "generic",
           parent: category.parent ?? null,
         })),
       },

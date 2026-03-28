@@ -3,7 +3,7 @@
 
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { uploadImages } from "@/requests/upload";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -22,6 +22,7 @@ interface CreateProps {
 interface FormValues {
   name: string;
   image?: string;
+  iconKey: string;
 }
 
 interface CreateCategoryResponse {
@@ -46,8 +47,8 @@ export default function Create({ setCategories }: CreateProps): React.JSX.Elemen
   const [imageFile, setImageFile] = useState<File | null>(null);
 const [imagePreview, setImagePreview] = useState<string>("");
 const [loading, setLoading] = useState<boolean>(false);
+const [iconKey, setIconKey] = useState<string>("generic");
 
-const previewLabel = useMemo(() => (imagePreview ? "Change image" : "Upload image"), [imagePreview]);
 const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0] ?? null;
   setImageFile(file);
@@ -75,12 +76,13 @@ const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
 
     const { data } = await axios.post<CreateCategoryResponse>(
       "/api/admin/categories",
-      { name, image }
+      { name, image, iconKey }
     );
     setCategories(data.categories);
     setName("");
     setImageFile(null);
     setImagePreview("");
+    setIconKey("generic");
     toast.success(data.message);
   } catch (err) {
     const message =
@@ -93,7 +95,7 @@ const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
   }
 };
 
-  const initialValues: FormValues = { name, image: imagePreview };
+  const initialValues: FormValues = { name, image: imagePreview, iconKey };
 
   return (
     <Formik<FormValues>
@@ -116,6 +118,33 @@ const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
               setName(e.target.value)
             }
           />
+          <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+            <label style={{ fontWeight: 600 }}>Icon</label>
+            <select
+              name="iconKey"
+              value={iconKey}
+              onChange={(e) => setIconKey(e.target.value)}
+              style={{
+                height: 42,
+                borderRadius: 8,
+                border: "1px solid #d1d5db",
+                padding: "0 12px",
+                background: "#fff",
+              }}
+            >
+              <option value="bag">Bag</option>
+              <option value="clothes">Clothes</option>
+              <option value="wall-art">Wall Art</option>
+              <option value="caricature">Caricature</option>
+              <option value="gift">Gift</option>
+              <option value="kids">Kids</option>
+              <option value="seasonal">Seasonal</option>
+              <option value="ramadan">Ramadan</option>
+              <option value="valentine">Valentine</option>
+              <option value="summer">Summer</option>
+              <option value="generic">Generic</option>
+            </select>
+          </div>
                <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
        <label style={{ fontWeight: 600 }}>Image</label>
        <input type="file" accept="image/*" onChange={handleImageChange} />

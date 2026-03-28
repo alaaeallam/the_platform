@@ -7,22 +7,15 @@ import Link from "next/link";
 
 // Icons
 import {
-  GiLargeDress,
+  GiShoppingBag,
   GiClothes,
-  Gi3dHammer,
-  GiWatch,
-  GiBallerinaShoes,
-  GiHeadphones,
-  GiHealthCapsule,
-  GiSportMedal,
-  GiBigDiamondRing,
+  GiPaintBrush,
+  GiDiamondRing,
 } from "react-icons/gi";
-import { MdOutlineSportsEsports, MdOutlineSmartToy } from "react-icons/md";
-import { BiCameraMovie, BiGift, BiCategory } from "react-icons/bi";
-import { FaBaby } from "react-icons/fa";
-import { HiOutlineHome } from "react-icons/hi";
-import { AiOutlineSecurityScan } from "react-icons/ai";
-import { BsPhoneVibrate } from "react-icons/bs";
+import { FaChild, FaHeart } from "react-icons/fa";
+import { BiGift } from "react-icons/bi";
+import { BsSun } from "react-icons/bs";
+import { MdCelebration, MdOutlineCategory } from "react-icons/md";
 
 // Types
 type MenuCategory = {
@@ -30,31 +23,51 @@ type MenuCategory = {
   name: string;
   slug?: string;
   image?: string;
+  iconKey?: string;
 };
 
-// Icon mapping for cleaner JSX
-function getCategoryIcon(name: string): React.ReactElement {
-  const value = name.toLowerCase();
+function normalizeIconKey(key?: string): string {
+  const normalized = (key ?? "generic").trim().toLowerCase();
 
-  if (value.includes("women") || value.includes("dress")) return <GiLargeDress />;
-  if (value.includes("men") || value.includes("fashion") || value.includes("cloth")) return <GiClothes />;
-  if (value.includes("electronic") || value.includes("audio")) return <GiHeadphones />;
-  if (value.includes("watch")) return <GiWatch />;
-  if (value.includes("home") || value.includes("appliance")) return <HiOutlineHome />;
-  if (value.includes("beauty") || value.includes("health")) return <GiHealthCapsule />;
-  if (value.includes("shoe") || value.includes("sneaker") || value.includes("heel")) return <GiBallerinaShoes />;
-  if (value.includes("accessor") || value.includes("jewel")) return <GiBigDiamondRing />;
-  if (value.includes("sport")) return <GiSportMedal />;
-  if (value.includes("kid") || value.includes("bab")) return <FaBaby />;
-  if (value.includes("movie") || value.includes("television") || value.includes("tv")) return <BiCameraMovie />;
-  if (value.includes("gaming") || value.includes("video game") || value.includes("game")) return <MdOutlineSportsEsports />;
-  if (value.includes("phone") || value.includes("telecommunication") || value.includes("mobile")) return <BsPhoneVibrate />;
-  if (value.includes("toy") || value.includes("hobbies")) return <MdOutlineSmartToy />;
-  if (value.includes("gift") || value.includes("craft")) return <BiGift />;
-  if (value.includes("machinery")) return <Gi3dHammer />;
-  if (value.includes("security") || value.includes("safety")) return <AiOutlineSecurityScan />;
+  switch (normalized) {
+    case "bags":
+      return "bag";
+    case "clothing":
+      return "clothes";
+    case "kids-wall-art":
+      return "kids";
+    case "cards":
+      return "gift";
+    default:
+      return normalized || "generic";
+  }
+}
 
-  return <BiCategory />;
+function getCategoryIconByKey(key?: string): React.ReactElement {
+  switch (normalizeIconKey(key)) {
+    case "bag":
+      return <GiShoppingBag />;
+    case "clothes":
+      return <GiClothes />;
+    case "wall-art":
+    case "caricature":
+      return <GiPaintBrush />;
+    case "gift":
+      return <BiGift />;
+    case "kids":
+      return <FaChild />;
+    case "seasonal":
+      return <MdCelebration />;
+    case "ramadan":
+      return <GiDiamondRing />;
+    case "valentine":
+      return <FaHeart />;
+    case "summer":
+      return <BsSun />;
+    case "generic":
+    default:
+      return <MdOutlineCategory />;
+  }
 }
 export default function Menu({
   categories,
@@ -66,7 +79,7 @@ export default function Menu({
       <ul>
         <li>
           <span className={styles.menu__header}>
-            <BiCategory />
+            <MdOutlineCategory />
             <b>Categories</b>
           </span>
         </li>
@@ -77,7 +90,23 @@ export default function Menu({
                 href={item.slug ? `/browse?category=${item.slug}` : "/browse"}
                 className={styles.menu__link}
               >
-                {getCategoryIcon(item.name)}
+                {item.image ? (
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    width={20}
+                    height={20}
+                    style={{
+                      width: 20,
+                      height: 20,
+                      objectFit: "cover",
+                      borderRadius: 4,
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  getCategoryIconByKey(item.iconKey)
+                )}
                 <span>{item.name}</span>
               </Link>
             </li>

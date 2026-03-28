@@ -19,6 +19,7 @@ type CategoryLean = {
   name: string;
   slug?: string;
   image?: string;
+  iconKey: string;
   parent?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -29,6 +30,7 @@ type CategoryVM = {
   name: string;
   slug?: string;
   image?: string;
+  iconKey?: string;
   parent?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -45,12 +47,14 @@ const CreateSchema = z.object({
   name: z.string().min(2, "Category name must be between 2 and 30 characters.")
     .max(30, "Category name must be between 2 and 30 characters."),
   image: z.string().optional().default(""),
+  iconKey: z.string().optional().default("generic"),
 });
 
 const UpdateSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(2).max(30),
   image: z.string().optional().default(""),
+  iconKey: z.string().optional().default("generic"),
 });
 
 const DeleteSchema = z.object({
@@ -67,6 +71,7 @@ function serialize(cats: CategoryLean[]): CategoryVM[] {
     name: c.name,
     slug: c.slug,
     image: c.image,
+    iconKey: c.iconKey,
     parent: c.parent ?? null,
     createdAt: c.createdAt ? c.createdAt.toISOString() : undefined,
     updatedAt: c.updatedAt ? c.updatedAt.toISOString() : undefined,
@@ -113,7 +118,7 @@ export async function POST(req: Request) {
     if (forbidden) return forbidden;
 
     const body = await req.json();
-    const { name, image } = CreateSchema.parse(body);
+    const { name, image, iconKey } = CreateSchema.parse(body);
     await connectDb();
 
     const exists = await Category.findOne({ name }).lean();
@@ -124,7 +129,12 @@ export async function POST(req: Request) {
       );
     }
 
-    await Category.create({ name, slug: slugify(name), image: image ?? "" });
+    await Category.create({
+      name,
+      slug: slugify(name, { lower: true, strict: true }),
+      image: image ?? "",
+      iconKey: iconKey ?? "generic",
+    });
 
     const docs = await Category.find({}).sort({ updatedAt: -1 }).lean<CategoryLean[]>();
     return NextResponse.json<ApiOk<{ categories: CategoryVM[] }>>(
@@ -153,10 +163,15 @@ export async function PUT(req: Request) {
     if (forbidden) return forbidden;
 
     const body = await req.json();
-    const { id, name, image } = UpdateSchema.parse(body);
+    const { id, name, image, iconKey } = UpdateSchema.parse(body);
 
     await connectDb();
-    await Category.findByIdAndUpdate(id, { name, slug: slugify(name), image: image ?? "" });
+    await Category.findByIdAndUpdate(id, {
+      name,
+      slug: slugify(name, { lower: true, strict: true }),
+      image: image ?? "",
+      iconKey: iconKey ?? "generic",
+    });
 
     const docs = await Category.find({}).sort({ updatedAt: -1 }).lean<CategoryLean[]>();
     return NextResponse.json<ApiOk<{ categories: CategoryVM[] }>>(

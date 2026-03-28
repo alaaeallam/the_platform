@@ -34,6 +34,7 @@ export default function ListItem({
   const [name, setName] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(category.image ?? "");
+  const [iconKey, setIconKey] = useState<string>(category.iconKey ?? "generic");
   const [saving, setSaving] = useState<boolean>(false);
   const input = useRef<HTMLInputElement | null>(null);
 
@@ -82,11 +83,13 @@ const handleUpdate = async (id: string): Promise<void> => {
       id,
       name: name || category.name,
       image,
+      iconKey,
     });
     setCategories(data.categories);
     setOpen(false);
     setName("");
     setImageFile(null);
+    setIconKey(category.iconKey ?? "generic");
     toast.success(data.message);
   } catch (err) {
     const msg =
@@ -141,6 +144,36 @@ const handleUpdate = async (id: string): Promise<void> => {
       />
 
       {open && (
+        <div style={{ display: "grid", gap: 8, minWidth: 180 }}>
+          <label style={{ fontWeight: 600, fontSize: 13 }}>Icon</label>
+          <select
+            name="iconKey"
+            value={iconKey}
+            onChange={(e) => setIconKey(e.target.value)}
+            style={{
+              height: 40,
+              borderRadius: 8,
+              border: "1px solid #d1d5db",
+              padding: "0 12px",
+              background: "#fff",
+            }}
+          >
+            <option value="bag">Bag</option>
+            <option value="clothes">Clothes</option>
+            <option value="wall-art">Wall Art</option>
+            <option value="caricature">Caricature</option>
+            <option value="gift">Gift</option>
+            <option value="kids">Kids</option>
+            <option value="seasonal">Seasonal</option>
+            <option value="ramadan">Ramadan</option>
+            <option value="valentine">Valentine</option>
+            <option value="summer">Summer</option>
+            <option value="generic">Generic</option>
+          </select>
+        </div>
+      )}
+
+      {open && (
         <div className={styles.list__item_expand}>
           <button
             type="button"
@@ -151,10 +184,13 @@ const handleUpdate = async (id: string): Promise<void> => {
           </button>
           <button
             type="button"
-            className={styles.btn}
+            className={styles.btn} 
             onClick={() => {
               setOpen(false);
               setName("");
+              setImageFile(null);
+              setImagePreview(category.image ?? "");
+              setIconKey(category.iconKey ?? "generic");
             }}
           >
             Cancel
@@ -169,6 +205,9 @@ const handleUpdate = async (id: string): Promise<void> => {
             aria-label="Edit category"
             onClick={() => {
               setOpen(true);
+              setName(category.name);
+              setImagePreview(category.image ?? "");
+              setIconKey(category.iconKey ?? "generic");
               input.current?.focus();
             }}
           />
