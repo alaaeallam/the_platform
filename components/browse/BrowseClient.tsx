@@ -29,6 +29,7 @@ type DeleteParam = Record<string, never>;
 interface CategoryLite {
   _id: string;
   name: string;
+  slug?: string;
 }
 
 
@@ -44,6 +45,11 @@ export interface BrowseInitialPayload {
   materials: string[];
   paginationCount: number;
   country: CountryInfo;
+  activeCategory: {
+    id: string;
+    name: string;
+    query: string;
+  } | null;
 }
 
 interface Props {
@@ -140,9 +146,14 @@ export default function BrowseClient({ initial }: Props): React.JSX.Element {
       <div ref={el}>
         <div className={styles.browse__path}>Home / Browse</div>
         <div className={styles.browse__tags}>
-          {initial.categories.map((c) => (
-            <Link href={"/browse?category=" + c._id} key={String(c._id)}>{c.name}</Link>
-          ))}
+          {initial.categories.map((c) => {
+            const categoryValue = c.slug || c._id;
+            return (
+              <Link href={`/collection/${encodeURIComponent(categoryValue)}`} key={String(c._id)}>
+                {c.name}
+              </Link>
+            );
+          })}
         </div>
       </div>
 

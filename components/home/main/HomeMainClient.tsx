@@ -27,7 +27,7 @@ export default function Main({
 }): React.JSX.Element {
   return (
     <div className={styles.main}>
-      <Header />
+      <Header categories={categories}/>
       <Menu categories={categories} />
       <BannerFromApi placement="home-hero" locale="en" />
       <Offers />

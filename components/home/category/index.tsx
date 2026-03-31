@@ -5,7 +5,7 @@ import { BsArrowRightCircle } from "react-icons/bs";
 import styles from "./styles.module.scss";
 import { useMediaQuery } from "react-responsive";
 import Image from "next/image";
-
+import Link from "next/link";
 export type CategoryItem = {
   id?: string | number;
   image: string;
@@ -19,9 +19,10 @@ export type CategoryProps = {
   header: string;
   products: CategoryItem[];
   background?: string;
+   link?: string;
 };
 
-export default function Category({ header, products, background }: CategoryProps) {
+export default function Category({ header, products, background, link }: CategoryProps) {
   const isLargeTablet = useMediaQuery({ query: "(max-width:1300px)" });
   const isTablet = useMediaQuery({ query: "(max-width:900px)" });
   const isMobile = useMediaQuery({ query: "(max-width:550px)" });
@@ -33,7 +34,9 @@ export default function Category({ header, products, background }: CategoryProps
     <div className={styles.category} style={background ? { background } : undefined}>
       <div className={styles.category__header}>
         <h1>{header}</h1>
-        <BsArrowRightCircle />
+        <Link href={link || "/browse"} aria-label={`Browse ${header}`}>
+        <BsArrowRightCircle className={styles.arrow} />
+      </Link>
       </div>
 
       <div className={styles.category__products}>

@@ -8,6 +8,7 @@ import Product from "@/models/Product";
 import Category from "@/models/Category";
 import SubCategory from "@/models/SubCategory";
 import { filterArray, randomize, removeDuplicates } from "@/utils/arrays_utils";
+import { Types } from "mongoose";
 
 import type { Metadata } from "next";
 
@@ -26,6 +27,13 @@ interface PageProps {
   searchParams: Promise<SearchParams>;
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeCategoryValue(value: string) {
+  return decodeURIComponent(value).trim().toLowerCase();
+}
 
 export default async function BrowsePage({ searchParams }: PageProps) {
   const sp = await searchParams;
@@ -40,7 +48,7 @@ export default async function BrowsePage({ searchParams }: PageProps) {
       : [];
 
   const searchQuery = getStr("search");
-  const categoryQuery = getStr("category");
+  const categoryQueryRaw = getStr("category");
   const genderQuery = getStr("gender");
   const priceQuery = getStr("price");
   const shippingQuery = getStr("shipping");
@@ -71,6 +79,12 @@ export default async function BrowsePage({ searchParams }: PageProps) {
   const colorRegex = createRegex(colorQuery, colorQuery[0] || "");
 type SortSpec = Record<string, 1 | -1>;
 
+let resolvedCategoryId = "";
+let resolvedCategoryName = "";
+const normalizedCategoryQuery = categoryQueryRaw
+  ? normalizeCategoryValue(categoryQueryRaw)
+  : "";
+
 const sortSpec = ((): SortSpec => {
   switch (sortQuery) {
     case "popular":
@@ -94,7 +108,6 @@ const sortSpec = ((): SortSpec => {
   const search = searchQuery
     ? { name: { $regex: searchQuery, $options: "i" } }
     : {};
-  const category = categoryQuery ? { category: categoryQuery } : {};
   const style = styleQuery.length
     ? { "details.value": { $regex: styleRegex, $options: "i" } }
     : {};
@@ -130,6 +143,42 @@ const sortSpec = ((): SortSpec => {
   // --------------------------- Fetch data ---------------------------
   await connectDb();
 
+  if (categoryQueryRaw) {
+    const categoryOrConditions: Record<string, unknown>[] = [];
+
+    if (Types.ObjectId.isValid(categoryQueryRaw)) {
+      categoryOrConditions.push({ _id: categoryQueryRaw });
+    }
+
+    if (normalizedCategoryQuery) {
+      categoryOrConditions.push({ slug: normalizedCategoryQuery });
+      categoryOrConditions.push({
+        name: {
+          $regex: `^${escapeRegex(normalizedCategoryQuery.replace(/-/g, " "))}$`,
+          $options: "i",
+        },
+      });
+    }
+
+    if (categoryOrConditions.length) {
+      const matchedCategory = await Category.findOne({
+        $or: categoryOrConditions,
+      })
+        .select("_id name slug")
+        .lean();
+
+      if (matchedCategory?._id) {
+        resolvedCategoryId = String(matchedCategory._id);
+        resolvedCategoryName = String(matchedCategory.name || "");
+      }
+    }
+  }
+
+  const category = resolvedCategoryId ? { category: resolvedCategoryId } : {};
+
+  const invalidCategoryFilter =
+    categoryQueryRaw && !resolvedCategoryId ? { _id: { $in: [] } } : {};
+
   let query = Product.find({
     ...search,
     ...category,
@@ -143,6 +192,7 @@ const sortSpec = ((): SortSpec => {
     ...price,
     ...shipping,
     ...rating,
+    ...invalidCategoryFilter,
   })
     .skip(pageSize * (page - 1))
     .limit(pageSize);
@@ -159,14 +209,14 @@ const sortSpec = ((): SortSpec => {
     .populate({ path: "parent", model: Category })
     .lean();
 
-  const colors = (await Product.find({ ...category }).distinct(
+  const colors = (await Product.find({ ...category, ...invalidCategoryFilter }).distinct(
     "subProducts.color.color"
   )) as string[];
-  const brandsDb = (await Product.find({ ...category }).distinct("brand")) as string[];
-  const sizes = (await Product.find({ ...category }).distinct(
+  const brandsDb = (await Product.find({ ...category, ...invalidCategoryFilter }).distinct("brand")) as string[];
+  const sizes = (await Product.find({ ...category, ...invalidCategoryFilter }).distinct(
     "subProducts.sizes.size"
   )) as string[];
-  const details = await Product.find({ ...category }).distinct("details");
+  const details = await Product.find({ ...category, ...invalidCategoryFilter }).distinct("details");
   const stylesDb = filterArray(details, "Style");
   const patternsDb = filterArray(details, "Pattern Type");
   const materialsDb = filterArray(details, "Material");
@@ -189,6 +239,7 @@ const sortSpec = ((): SortSpec => {
     ...price,
     ...shipping,
     ...rating,
+    ...invalidCategoryFilter,
   });
 
   const paginationCount = Math.ceil(totalProducts / pageSize);
@@ -216,6 +267,13 @@ const sortSpec = ((): SortSpec => {
           patterns,
           materials,
           paginationCount,
+          activeCategory: resolvedCategoryId
+            ? {
+                id: resolvedCategoryId,
+                name: resolvedCategoryName,
+                query: categoryQueryRaw,
+              }
+            : null,
           country,
         }}
       />
