@@ -13,12 +13,19 @@ type Role = "admin" | "customer";
 
 type CouponLean = {
   _id: unknown;
-  coupon: string;
-  discount: number;
+  coupon?: string | null;
+  code?: string | null;
+  discount?: number | null;
   startDate?: Date | string | null;
   endDate?: Date | string | null;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
+  isActive?: boolean | null;
+  isFeatured?: boolean | null;
+  usageLimit?: number | null;
+  usedCount?: number | null;
+  description?: string | null;
+  href?: string | null;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
 };
 
 type CouponVM = {
@@ -27,6 +34,12 @@ type CouponVM = {
   discount: number;
   startDate?: string | null;
   endDate?: string | null;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  usageLimit?: number | null;
+  usedCount?: number | null;
+  description?: string | null;
+  href?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 };
@@ -81,6 +94,7 @@ const CreateSchema = z.object({
   discount: z.number().min(0).max(100),
   startDate: DateInput,
   endDate: DateInput,
+  usageLimit: z.number().int().min(1).optional().nullable(),
 });
 
 const UpdateSchema = z.object({
@@ -89,6 +103,12 @@ const UpdateSchema = z.object({
   discount: z.number().min(0).max(100),
   startDate: DateInput,
   endDate: DateInput,
+  isActive: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+  usageLimit: z.number().int().min(1).optional().nullable(),
+  usedCount: z.number().int().min(0).optional().nullable(),
+  description: z.string().optional().nullable(),
+  href: z.string().optional().nullable(),
 });
 
 const DeleteSchema = z.object({ id: z.string().min(1) });
@@ -98,12 +118,18 @@ const DeleteSchema = z.object({ id: z.string().min(1) });
 function serialize(docs: CouponLean[]): CouponVM[] {
   return docs.map((d) => ({
     _id: String(d._id),
-    coupon: d.coupon,
-    discount: Number(d.discount),
+    coupon: String(d.coupon ?? d.code ?? ""),
+    discount: Number(d.discount ?? 0),
     startDate: toIso(d.startDate) ?? null,
     endDate: toIso(d.endDate) ?? null,
-    createdAt: toIso(d.createdAt),
-    updatedAt: toIso(d.updatedAt),
+    isActive: Boolean(d.isActive ?? true),
+    isFeatured: Boolean(d.isFeatured ?? false),
+    usageLimit: d.usageLimit ?? null,
+    usedCount: d.usedCount ?? 0,
+    description: d.description ?? null,
+    href: d.href ?? null,
+    createdAt: toIso(d.createdAt) ?? null,
+    updatedAt: toIso(d.updatedAt) ?? null,
   }));
 }
 
@@ -143,7 +169,11 @@ export async function POST(req: Request) {
     const parsed = CreateSchema.parse(await req.json());
     await connectDb();
 
-    const exists = await Coupon.findOne({ coupon: parsed.coupon }).lean();
+    const normalizedCoupon = parsed.coupon.trim().toUpperCase();
+
+    const exists = await Coupon.findOne({
+      $or: [{ coupon: normalizedCoupon }, { code: normalizedCoupon }],
+    }).lean();
     if (exists) {
       return NextResponse.json<ApiErr>(
         { message: "Coupon already exists. Try a different code." },
@@ -151,18 +181,23 @@ export async function POST(req: Request) {
       );
     }
     const start = parsed.startDate ? startOfDay(new Date(parsed.startDate)) : undefined;
-const end   = parsed.endDate   ? endOfDay(new Date(parsed.endDate))   : undefined;
-await Coupon.create({
-  coupon: parsed.coupon,
-  discount: parsed.discount,
-  startDate: start,
-  endDate: end,
-});
+    const end = parsed.endDate ? endOfDay(new Date(parsed.endDate)) : undefined;
+
+    await Coupon.create({
+      coupon: normalizedCoupon,
+      discount: parsed.discount,
+      startDate: start,
+      endDate: end,
+      usageLimit: parsed.usageLimit ?? null,
+      usedCount: 0,
+      isActive: true,
+      isFeatured: false,
+    });
 
     const docs = await Coupon.find({}).sort({ updatedAt: -1 }).lean<CouponLean[]>();
     return NextResponse.json<ApiOk<{ coupons: CouponVM[] }>>(
       {
-        message: `Coupon "${parsed.coupon}" has been created successfully.`,
+        message: `Coupon "${normalizedCoupon}" has been created successfully.`,
         coupons: serialize(docs),
       },
       { status: 201 }
@@ -187,11 +222,19 @@ export async function PUT(req: Request) {
     const parsed = UpdateSchema.parse(await req.json());
     await connectDb();
 
+    const normalizedCoupon = parsed.coupon.trim().toUpperCase();
+
     await Coupon.findByIdAndUpdate(parsed.id, {
-      coupon: parsed.coupon,
+      coupon: normalizedCoupon,
       discount: parsed.discount,
-      startDate: parsed.startDate ?? null,
-      endDate: parsed.endDate ?? null,
+      startDate: parsed.startDate ? startOfDay(new Date(parsed.startDate)) : null,
+      endDate: parsed.endDate ? endOfDay(new Date(parsed.endDate)) : null,
+      isActive: parsed.isActive ?? true,
+      isFeatured: parsed.isFeatured ?? false,
+      usageLimit: parsed.usageLimit ?? null,
+      usedCount: parsed.usedCount ?? 0,
+      description: parsed.description ?? null,
+      href: parsed.href ?? null,
     });
 
     const docs = await Coupon.find({}).sort({ updatedAt: -1 }).lean<CouponLean[]>();

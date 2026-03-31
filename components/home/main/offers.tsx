@@ -10,6 +10,7 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 
 type Offer = {
   id?: string | number;
@@ -20,9 +21,53 @@ type Offer = {
   title?: string;
 };
 
+type ActiveCoupon = {
+  code: string;
+  discountPercent?: number | null;
+  description?: string | null;
+  href?: string | null;
+};
+
 const FALLBACK_IMG = "/images/no_image.png";
 
 export default function Offers(): React.JSX.Element {
+  const [activeCoupon, setActiveCoupon] = useState<ActiveCoupon | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFeaturedCoupon() {
+      try {
+        const res = await fetch("/api/coupons/featured", {
+          cache: "no-store",
+        });
+
+        if (!res.ok) return;
+
+        const data = (await res.json()) as ActiveCoupon | null;
+        if (!cancelled && data?.code) {
+          setActiveCoupon(data);
+        }
+      } catch {
+        // keep graceful fallback UI
+      }
+    }
+
+    loadFeaturedCoupon();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const couponCode = activeCoupon?.code?.trim() || "MHAJJI";
+  const couponDiscount = activeCoupon?.discountPercent ?? 30;
+  const couponHref = activeCoupon?.href?.trim() || "/browse";
+  const couponDescription = useMemo(() => {
+    if (activeCoupon?.description?.trim()) return activeCoupon.description.trim();
+    return `for ${couponDiscount}% off all products.`;
+  }, [activeCoupon?.description, couponDiscount]);
+
   const offers = (offersAarray as Offer[]).filter(
     (o) => typeof o.image === "string" && o.image.trim() !== ""
   );
@@ -31,9 +76,9 @@ export default function Offers(): React.JSX.Element {
     <div className={styles.offers}>
       <div className={styles.offers__text}>
         <p>
-          use code <b>“MHAJJI”</b> for 30% off all products.
+          Use Code <b>“{couponCode}”</b> {couponDescription}
         </p>
-        <Link href="/browse">Shop now</Link>
+        <Link href={couponHref}>Shop now</Link>
       </div>
 
       <Swiper

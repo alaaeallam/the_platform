@@ -109,19 +109,101 @@
     height: 40px;
     display: flex;
     align-items: center;
+    position: relative;
+    z-index: 20;
     @media (max-width: 730px) {
       display: none !important;
     }
-    ul {
+
+    .nav {
       display: flex;
       align-items: center;
-      gap: 1rem;
-      li {
+      gap: 1.5rem;
+      width: 100%;
+
+      .navItem {
+        position: relative;
         height: 100%;
         display: flex;
         align-items: center;
-        font-size: 19px;
+        font-size: 17px;
         color: $blue-color;
+
+        > a {
+          display: flex;
+          align-items: center;
+          height: 40px;
+          font-weight: 600;
+          color: $blue-color;
+          transition: color 0.2s ease;
+
+          &:hover {
+            color: #111;
+          }
+        }
+
+        .megaMenu {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          min-width: 240px;
+          padding-top: 8px;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(10px);
+          transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
+          pointer-events: none;
+
+          .megaContent {
+            background: #fff;
+            border-radius: 14px;
+            padding: 1rem 1.2rem;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+          }
+        }
+
+        &:hover .megaMenu {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+      }
+    }
+
+    .megaContent {
+      h4 {
+        margin-bottom: 0.85rem;
+        font-size: 14px;
+        font-weight: 700;
+        color: #111;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      ul {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+
+      li {
+        width: 100%;
+        display: block;
+        font-size: 14px;
+      }
+
+      a {
+        color: #444;
+        font-weight: 500;
+        transition: color 0.2s ease, transform 0.2s ease;
+
+        &:hover {
+          color: $blue-color;
+          transform: translateX(2px);
+        }
       }
     }
   }

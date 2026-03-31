@@ -1,34 +1,37 @@
 // models/Coupon.ts
 import mongoose, { Schema, Document, Model } from "mongoose";
 
-/** Supports BOTH legacy and new field names so TS stays happy. */
+/** Supports current admin CRUD + public latest-active API safely. */
 export interface ICoupon extends Document {
   // identifiers
-  coupon?: string; // legacy
-  code?: string;   // new
+  coupon?: string; // primary current field
+  code?: string;   // legacy / compatibility field
 
-  // date window (new shape uses Date)
-  startAt?: Date;
-  endAt?: Date;
+  // preferred active window fields
+  startDate?: Date | null;
+  endDate?: Date | null;
 
-  // legacy date fields kept for compatibility (strings)
-  startDate?: string;
-  endDate?: string;
+  // legacy compatibility fields
+  startAt?: Date | null;
+  endAt?: Date | null;
 
   // activation + limits
   isActive?: boolean;
+  isFeatured?: boolean;
   minOrder?: number;
   maxDiscount?: number;
-  usageLimit?: number;
+  usageLimit?: number | null;
+  usedCount?: number | null;
   perUserLimit?: number;
 
   // discount value
-  type?: "PERCENT" | "AMOUNT"; // new
-  value?: number;              // new
-  discount?: number;           // legacy percent
+  type?: "PERCENT" | "AMOUNT";
+  value?: number;
+  discount?: number;
 
   // misc
   description?: string;
+  href?: string;
   appliesTo?: Record<string, unknown>;
 
   createdAt?: Date;
@@ -37,7 +40,6 @@ export interface ICoupon extends Document {
 
 const couponSchema = new Schema<ICoupon>(
   {
-    // identifiers (allow either). Keep both sparse so only one needs to exist.
     coupon: {
       type: String,
       trim: true,
@@ -57,28 +59,28 @@ const couponSchema = new Schema<ICoupon>(
       maxlength: 32,
     },
 
-    // new date fields (preferred)
-    startAt: { type: Date },
-    endAt: { type: Date },
+    // preferred date fields used by admin CRUD + public homepage API
+    startDate: { type: Date, default: null },
+    endDate: { type: Date, default: null },
 
-    // legacy string date fields (kept for compatibility)
-    startDate: { type: String },
-    endDate: { type: String },
+    // legacy compatibility date fields
+    startAt: { type: Date, default: null },
+    endAt: { type: Date, default: null },
 
-    // activation + limits
     isActive: { type: Boolean, default: true },
+    isFeatured: { type: Boolean, default: false },
     minOrder: { type: Number },
     maxDiscount: { type: Number },
-    usageLimit: { type: Number },
+    usageLimit: { type: Number, default: null },
+    usedCount: { type: Number, default: 0 },
     perUserLimit: { type: Number },
 
-    // discount value
     type: { type: String, enum: ["PERCENT", "AMOUNT"], default: "PERCENT" },
-    value: { type: Number },     // amount or percent depending on `type`
-    discount: { type: Number },  // legacy percent-only
+    value: { type: Number },
+    discount: { type: Number, min: 0, max: 100 },
 
-    // misc
-    description: { type: String },
+    description: { type: String, trim: true },
+    href: { type: String, trim: true },
     appliesTo: { type: Schema.Types.Mixed },
   },
   { timestamps: true }

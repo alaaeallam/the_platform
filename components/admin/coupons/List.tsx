@@ -16,10 +16,24 @@ export default function List({ coupons, setCoupons }: Props): React.JSX.Element 
   }
 
   return (
-    <ul className={styles.list}>
-      {coupons.map((c) => (
-        <ListItem key={c._id} coupon={c} setCoupons={setCoupons} />
-      ))}
-    </ul>
+    <div>
+      {/* Header */}
+      <div className={styles.list__header}>
+        <span>Code</span>
+        <span>Discount</span>
+        <span>Status</span>
+        <span>Featured</span>
+        <span>Dates</span>
+        <span>Usage</span>
+        <span>Actions</span>
+      </div>
+
+      {/* List */}
+      <ul className={styles.list}>
+        {coupons.map((c) => (
+          <ListItem key={c._id} coupon={c} setCoupons={setCoupons} />
+        ))}
+      </ul>
+    </div>
   );
 }

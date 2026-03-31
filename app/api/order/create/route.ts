@@ -16,6 +16,7 @@ import Order, {
   type IShippingAddress,
 } from "@/models/Order";
 import Product from "@/models/Product";
+import Coupon from "@/models/Coupon";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
@@ -68,6 +69,12 @@ interface LeanProduct {
 
 const toMoney = (n: number) => Math.round(n * 100) / 100;
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Server error");
+
+function normalizeCouponCode(value?: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.trim().toUpperCase();
+  return normalized.length ? normalized : null;
+}
 
 function isValidAddress(a?: Partial<IShippingAddress>): a is IShippingAddress {
   if (!a) return false;
@@ -228,7 +235,7 @@ export async function POST(req: Request) {
       paymentMethod: canonicalPaymentMethod,
       total: effectiveTotal,
       totalBeforeDiscount: subtotalRounded,
-      couponApplied: body.couponApplied,
+      couponApplied: normalizeCouponCode(body.couponApplied) ?? undefined,
       shippingPrice: 0,
       taxPrice: 0,
       isPaid: false,
@@ -278,6 +285,49 @@ export async function POST(req: Request) {
       } catch (e) {
         return NextResponse.json<Err>(
           { message: `Unable to verify payment: ${errMsg(e)}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (payload.couponApplied) {
+      const now = new Date();
+
+      const couponUpdate = await Coupon.findOneAndUpdate(
+        {
+          coupon: payload.couponApplied,
+          isActive: true,
+          $and: [
+            {
+              $or: [
+                { startDate: { $exists: false } },
+                { startDate: null },
+                { startDate: { $lte: now } },
+              ],
+            },
+            {
+              $or: [
+                { endDate: { $exists: false } },
+                { endDate: null },
+                { endDate: { $gte: now } },
+              ],
+            },
+            {
+              $or: [
+                { usageLimit: { $exists: false } },
+                { usageLimit: null },
+                { $expr: { $lt: ["$usedCount", "$usageLimit"] } },
+              ],
+            },
+          ],
+        },
+        { $inc: { usedCount: 1 } },
+        { new: true }
+      );
+
+      if (!couponUpdate) {
+        return NextResponse.json<Err>(
+          { message: "Coupon is no longer available. Please remove it and try again." },
           { status: 400 }
         );
       }
