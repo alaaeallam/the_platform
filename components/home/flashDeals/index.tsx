@@ -10,56 +10,41 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 
 import { Navigation } from "swiper/modules";
-import { flashDealsArray } from "../../../data/home";
 import FlashCard from "./Card";
 
-// ---- Types ----
-// What your data source currently looks like (strings)
-type SourceProduct = {
-  id?: string | number;
-  link: string;
-  image: string;
-  price: string;     // <-- string in your data
-  discount: string;  // <-- string in your data
-  sold: string;      // <-- string in your data
-};
-
-// What the UI components expect (numbers)
-export type Product = {
-  id?: string | number;
+export type FlashDealProduct = {
+  id: string;
   link: string;
   image: string;
   price: number;
-  discount: number; // e.g., 20 for 20%
-  sold: number;     // e.g., 75 for 75%
+  discount: number;
+  sold: number;
 };
 
-// small helper to coerce strings/numbers safely
-const toNum = (v: string | number | undefined | null): number =>
-  Number.parseFloat(String(v ?? 0)) || 0;
+type Props = {
+  products: FlashDealProduct[];
+  countdownDate?: string | null;
+};
 
-export default function FlashDeals(): React.JSX.Element {
-  // Normalize incoming strings -> numbers for the UI
-  const products: Product[] = (flashDealsArray as SourceProduct[]).map((p, i) => ({
-    id: p.id ?? i,
-    link: p.link,
-    image: p.image,
-    price: toNum(p.price),
-    discount: toNum(p.discount),
-    sold: Math.max(0, Math.min(100, toNum(p.sold))), // clamp 0–100 for the bar
-  }));
+export default function FlashDeals({
+  products,
+  countdownDate,
+}: Props): React.JSX.Element | null {
+  if (!products.length) return null;
+
+  const countdownTarget = countdownDate
+    ? new Date(countdownDate)
+    : new Date(Date.now() + 1000 * 60 * 60 * 24);
 
   return (
     <div className={styles.flashDeals}>
-      {/* Header */}
       <div className={styles.flashDeals__header}>
         <h1>
           FLASH SALE <MdFlashOn />
         </h1>
-        <Countdown date={new Date(2025, 11, 30)} />
+        <Countdown date={countdownTarget} />
       </div>
 
-      {/* Swiper */}
       <Swiper
         slidesPerView={1}
         spaceBetween={10}
@@ -67,9 +52,9 @@ export default function FlashDeals(): React.JSX.Element {
         modules={[Navigation]}
         className="flashDeals__swiper"
         breakpoints={{
-          450:  { slidesPerView: 2 },
-          630:  { slidesPerView: 3 },
-          920:  { slidesPerView: 4 },
+          450: { slidesPerView: 2 },
+          630: { slidesPerView: 3 },
+          920: { slidesPerView: 4 },
           1232: { slidesPerView: 5 },
           1520: { slidesPerView: 6 },
         }}

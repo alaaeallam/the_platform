@@ -39,7 +39,7 @@ import type {
 
 /* ---------- Local types ---------- */
 
-type Option = { _id: string; name: string }; // what the selects want
+type Option = { _id: string; name: string };
 
 type UploadedImageLike = { url: string; [k: string]: unknown };
 
@@ -47,25 +47,32 @@ type CountryPriceRowUI = { country: string; price: string };
 type CountryGroupPriceRowUI = { groupCode: string; price: string };
 
 type SizeRow = {
-  /** leave empty string when product has no size */
   size?: string;
-  /** keep as string because <input type="number" /> yields string values */
   qty: string;
-
-  /** renamed from price -> basePrice to match schema */
   basePrice: string;
-
-  /** per-size discount (optional, overrides subProduct discount) */
   discount?: string;
-
-  /** regional pricing arrays */
   countryPrices: CountryPriceRowUI[];
   countryGroupPrices: CountryGroupPriceRowUI[];
 };
+
 type DetailRow = { name: string; value: string };
 type QA = { question: string; answer: string };
-
 type ColorState = { color: string; image: string };
+type MarketingTagValue =
+  | "FLASH_SALE"
+  | "NEW_ARRIVAL"
+  | "BLACK_FRIDAY"
+  | "BEST_SELLER"
+  | "LIMITED";
+
+type MarketingTagDraft = {
+  tag: MarketingTagValue | "";
+  isActive: boolean;
+  startAt: string;
+  endAt: string;
+  badgeText: string;
+  priority: string;
+};
 
 export type ProductDraft = {
   name: string;
@@ -73,7 +80,7 @@ export type ProductDraft = {
   brand: string;
   sku: string;
   discount: number;
-  images: UploadedImageLike[]; // normalized urls sent to API
+  images: UploadedImageLike[];
   description_images: UploadedImageLike[] | string;
   parent: string;
   category: string;
@@ -82,6 +89,8 @@ export type ProductDraft = {
   sizes: SizeRow[];
   details: DetailRow[];
   questions: QA[];
+  tags: string[];
+  marketingTags: MarketingTagDraft[];
   shippingFee: string | number | "";
 };
 
@@ -99,21 +108,24 @@ const initialState: ProductDraft = {
   category: "",
   subCategories: [],
   color: { color: "", image: "" },
-  sizes: [{
-    size: "",
-    qty: "",
-    basePrice: "",
-    discount: "",
-    countryPrices: [],
-    countryGroupPrices: [],
-  }],
+  sizes: [
+    {
+      size: "",
+      qty: "",
+      basePrice: "",
+      discount: "",
+      countryPrices: [],
+      countryGroupPrices: [],
+    },
+  ],
   details: [{ name: "", value: "" }],
   questions: [{ question: "", answer: "" }],
+  tags: [],
+  marketingTags: [],
   shippingFee: "",
 };
 
 /* ---------- Props ---------- */
-
 
 type Props = {
   parents: ParentVM[];
@@ -123,7 +135,6 @@ type Props = {
   initialProduct?: ProductDraft;
 };
 
-// Helper to check if a string is a remote URL (http/https)
 const isRemoteUrl = (value: string): boolean => /^https?:\/\//i.test(value);
 
 const CreateProductClient: React.FC<Props> = ({
@@ -134,60 +145,61 @@ const CreateProductClient: React.FC<Props> = ({
   initialProduct,
 }) => {
   const router = useRouter();
+  const dispatch = useDispatch();
+
   const [product, setProduct] = useState<ProductDraft>(initialProduct ?? initialState);
-  useEffect(() => {
-  if (initialProduct) {
-    setProduct(initialProduct);
-    setImages(
-      Array.isArray(initialProduct.images)
-        ? initialProduct.images
-            .map((img) => (typeof img === "string" ? img : img?.url ?? ""))
-            .filter(Boolean)
-        : []
-    );
-    setColorImage(initialProduct.color?.image ?? "");
-  }
-}, [initialProduct]);
+  const [tagsInput, setTagsInput] = useState<string>(
+    (initialProduct?.tags ?? []).join(", ")
+  );
 
-  // dataURLs picked in the UI (must be non-undefined for the Images prop types)
   const [images, setImages] = useState<string[]>([]);
-
-  // options for sub-categories (normalize to {_id, name})
   const [subs, setSubs] = useState<Option[]>([]);
-
   const [colorImage, setColorImage] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
-  const dispatch = useDispatch();
-
   /* ---------- Effects ---------- */
 
-useEffect(() => {
-  async function getParentData() {
-    const id = product.parent?.trim();
-    if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) return; // only fetch if valid ObjectId
-
-    try {
-      // app/api/products/route.ts is non-dynamic → pass ?id=
-      const { data } = await axios.get("/api/products", { params: { id } });
-      if (data) {
-        setProduct((prev) => ({
-          ...prev,
-          name: data.name ?? "",
-          description: data.description ?? "",
-          brand: data.brand ?? "",
-          category: data.category ?? "",
-          subCategories: Array.isArray(data.subCategories) ? data.subCategories : [],
-          questions: [],
-          details: [],
-        }));
-      }
-    } catch (e) {
-      console.error("Failed to load parent product", e);
+  useEffect(() => {
+    if (initialProduct) {
+      setProduct(initialProduct);
+      setImages(
+        Array.isArray(initialProduct.images)
+          ? initialProduct.images
+              .map((img) => (typeof img === "string" ? img : img?.url ?? ""))
+              .filter(Boolean)
+          : []
+      );
+      setColorImage(initialProduct.color?.image ?? "");
+      setTagsInput((initialProduct.tags ?? []).join(", "));
     }
-  }
-  getParentData();
-}, [product.parent]);
+  }, [initialProduct]);
+
+  useEffect(() => {
+    async function getParentData() {
+      const id = product.parent?.trim();
+      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) return;
+
+      try {
+        const { data } = await axios.get("/api/products", { params: { id } });
+        if (data) {
+          setProduct((prev) => ({
+            ...prev,
+            name: data.name ?? "",
+            description: data.description ?? "",
+            brand: data.brand ?? "",
+            category: data.category ?? "",
+            subCategories: Array.isArray(data.subCategories) ? data.subCategories : [],
+            questions: [],
+            details: [],
+          }));
+        }
+      } catch (e) {
+        console.error("Failed to load parent product", e);
+      }
+    }
+
+    getParentData();
+  }, [product.parent]);
 
   useEffect(() => {
     async function getSubs() {
@@ -195,13 +207,15 @@ useEffect(() => {
         setSubs([]);
         return;
       }
+
       const { data } = await axios.get<Array<{ _id: string; name?: string }>>(
         "/api/admin/sub-categories",
         { params: { category: product.category } }
       );
-      // normalize name to string
+
       setSubs((data ?? []).map((d) => ({ _id: d._id, name: d.name ?? "" })));
     }
+
     getSubs();
   }, [product.category]);
 
@@ -214,7 +228,60 @@ useEffect(() => {
     setProduct((prev) => ({ ...prev, [name]: value }));
   };
 
-  // for SingularSelect which expects (value: string) => void
+  const handleTagsChange: React.ChangeEventHandler<
+    HTMLInputElement | HTMLTextAreaElement
+  > = (e) => {
+    const value = e.target.value;
+    setTagsInput(value);
+
+    const normalizedTags = [
+      ...new Set(
+        value
+          .split(",")
+          .map((tag) => tag.trim().toLowerCase())
+          .filter(Boolean)
+      ),
+    ];
+
+    setProduct((prev) => ({ ...prev, tags: normalizedTags }));
+  };
+    const addMarketingTag = () => {
+    setProduct((prev) => ({
+      ...prev,
+      marketingTags: [
+        ...(prev.marketingTags ?? []),
+        {
+          tag: "",
+          isActive: true,
+          startAt: "",
+          endAt: "",
+          badgeText: "",
+          priority: "",
+        },
+      ],
+    }));
+  };
+
+  const removeMarketingTag = (index: number) => {
+    setProduct((prev) => ({
+      ...prev,
+      marketingTags: prev.marketingTags.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateMarketingTag = (
+    index: number,
+    field: keyof MarketingTagDraft,
+    value: string | boolean
+  ) => {
+    setProduct((prev) => ({
+      ...prev,
+      marketingTags: prev.marketingTags.map((row, i) =>
+        i === index ? { ...row, [field]: value } : row
+      ),
+    }));
+  };
+
   const setField = (name: keyof ProductDraft) => (value: string) =>
     setProduct((prev) => ({ ...prev, [name]: value }));
 
@@ -231,11 +298,9 @@ useEffect(() => {
   });
 
   const createProduct = async () => {
-    // exact validator shape
     const toValidate: ProductForValidation = {
       color: product.color,
       sizes: product.sizes.map((s) => ({
-        // validator expects price, not basePrice
         size: s.size ?? "",
         qty: s.qty,
         price: s.basePrice,
@@ -252,127 +317,129 @@ useEffect(() => {
     }
   };
 
-const createProductHandler = async () => {
-  setLoading(true);
+  const createProductHandler = async () => {
+    setLoading(true);
+    
+    const existingImageUrls = images.filter(isRemoteUrl);
+    const newImageInputs = images.filter((img) => !isRemoteUrl(img));
 
-  // 1) Keep existing remote URLs, upload only new local/dataURI images
-  const existingImageUrls = images.filter(isRemoteUrl);
-  const newImageInputs = images.filter((img) => !isRemoteUrl(img));
+    let imageUrls: string[] = [...existingImageUrls];
+    if (newImageInputs.length) {
+      const blobs = newImageInputs.map((img) => dataURItoBlob(img));
+      const formData = new FormData();
+      formData.append("path", "product images");
+      blobs.forEach((file) => formData.append("file", file));
 
-  let imageUrls: string[] = [...existingImageUrls];
-  if (newImageInputs.length) {
-    const blobs = newImageInputs.map((img) => dataURItoBlob(img));
-    const formData = new FormData();
-    formData.append("path", "product images");
-    blobs.forEach((file) => formData.append("file", file));
+      const res = (await uploadImages(formData)) as Array<string | { url?: string }>;
+      const uploadedUrls = res
+        .map((r) => (typeof r === "string" ? r : r?.url ?? ""))
+        .filter((u): u is string => !!u);
 
-    const res = (await uploadImages(formData)) as Array<string | { url?: string }>;
-    const uploadedUrls = res
-      .map((r) => (typeof r === "string" ? r : r?.url ?? ""))
-      .filter((u): u is string => !!u);
-
-    imageUrls = [...existingImageUrls, ...uploadedUrls];
-  }
-
-  // 2) Keep existing remote style image URL, upload only if it's a new local/dataURI image
-  let styleImg = product.color.image || "";
-  if (product.color.image && !isRemoteUrl(product.color.image)) {
-    const styleBlob = dataURItoBlob(product.color.image);
-    const fd = new FormData();
-    fd.append("path", "product style images");
-    fd.append("file", styleBlob);
-
-    const res = (await uploadImages(fd)) as Array<string | { url?: string }>;
-    const first = res?.[0];
-    styleImg = typeof first === "string" ? first : first?.url ?? "";
-  }
-
-  try {
-    // 3) Normalize sizes to numbers / uppercase codes
-    const normalizedSizes = normalizeSizesForPayload(product.sizes);
-
-    // 4) Build payload that matches the Zod union:
-    const appendMode = !!product.parent?.trim();
-
-    // Sub-product fields (common)
-    const subFields = {
-      sku: product.sku,
-      color: { image: styleImg, color: product.color.color },
-      images: imageUrls,            // <-- string[]
-      sizes: normalizedSizes,
-      discount: Number(product.discount || 0),
-      // description_images: []      // (optional, not required by your Zod schema)
-    };
-
-    // New product OR append to parent
-    const payload = appendMode
-      ? {
-          parent: product.parent.trim(),
-          ...subFields,
-        }
-      : {
-          name: product.name,
-          description: product.description,
-          brand: product.brand,
-          details: (product.details || []).filter((d) => d.name || d.value),
-          questions: (product.questions || []).filter((q) => q.question || q.answer),
-          category: product.category,
-          subCategories: product.subCategories,
-          shipping: Number(product.shippingFee || 0),
-          ...subFields,
-        };
-
-    const endpoint =
-      mode === "edit" && productId
-        ? `/api/admin/products/${productId}`
-        : "/api/admin/products";
-
-    const response =
-      mode === "edit" && productId
-        ? await axios.patch<{ message?: string; productId?: string }>(endpoint, payload)
-        : await axios.post<{ message?: string; productId?: string }>(endpoint, payload);
-
-    const data = response.data;
-    toast.success(
-      data?.message ??
-        (mode === "edit"
-          ? "Product updated successfully."
-          : appendMode
-          ? "Sub-product added."
-          : "Product created.")
-    );
-
-    if (mode === "edit") {
-      router.push("/admin/dashboard/products/all");
-      router.refresh();
-      return;
+      imageUrls = [...existingImageUrls, ...uploadedUrls];
     }
-  } catch (err: unknown) {
-    let msg = mode === "edit" ? "Failed to update product." : "Failed to create product.";
-    if (axios.isAxiosError(err)) {
-      // If Zod threw, server sends { message: "Invalid input", issues: [...] }
-      const data = err.response?.data as unknown;
-      const serverMsg =
-        data && typeof data === "object" && "message" in data
-          ? String((data as { message?: unknown }).message ?? "")
-          : "";
-      if (serverMsg) msg = serverMsg;
-    } else if (err instanceof Error) {
-      msg = err.message || msg;
+
+    let styleImg = product.color.image || "";
+    if (product.color.image && !isRemoteUrl(product.color.image)) {
+      const styleBlob = dataURItoBlob(product.color.image);
+      const fd = new FormData();
+      fd.append("path", "product style images");
+      fd.append("file", styleBlob);
+
+      const res = (await uploadImages(fd)) as Array<string | { url?: string }>;
+      const first = res?.[0];
+      styleImg = typeof first === "string" ? first : first?.url ?? "";
     }
-    toast.error(msg);
-  } finally {
-    setLoading(false);
-  }
-};
+
+    try {
+      const normalizedSizes = normalizeSizesForPayload(product.sizes);
+      const appendMode = !!product.parent?.trim();
+
+      const subFields = {
+        sku: product.sku,
+        color: { image: styleImg, color: product.color.color },
+        images: imageUrls,
+        sizes: normalizedSizes,
+        discount: Number(product.discount || 0),
+      };
+
+      const payload = appendMode
+        ? {
+            parent: product.parent.trim(),
+            ...subFields,
+          }
+        : {
+            name: product.name,
+            description: product.description,
+            brand: product.brand,
+            details: (product.details || []).filter((d) => d.name || d.value),
+            questions: (product.questions || []).filter((q) => q.question || q.answer),
+            category: product.category,
+            subCategories: product.subCategories,
+            tags: product.tags,
+             marketingTags: (product.marketingTags ?? [])
+            .filter((row) => row.tag)
+            .map((row) => ({
+              tag: row.tag,
+              isActive: row.isActive,
+              startAt: row.startAt ? row.startAt : undefined,
+              endAt: row.endAt ? row.endAt : undefined,
+              badgeText: row.badgeText.trim() || undefined,
+              priority: row.priority ? Number(row.priority) : 0,
+            })),
+            shipping: Number(product.shippingFee || 0),
+            ...subFields,
+          };
+
+      const endpoint =
+        mode === "edit" && productId
+          ? `/api/admin/products/${productId}`
+          : "/api/admin/products";
+
+      const response =
+        mode === "edit" && productId
+          ? await axios.patch<{ message?: string; productId?: string }>(endpoint, payload)
+          : await axios.post<{ message?: string; productId?: string }>(endpoint, payload);
+
+      const data = response.data;
+      toast.success(
+        data?.message ??
+          (mode === "edit"
+            ? "Product updated successfully."
+            : appendMode
+            ? "Sub-product added."
+            : "Product created.")
+      );
+
+      if (mode === "edit") {
+        router.push("/admin/dashboard/products/all");
+        router.refresh();
+        return;
+      }
+    } catch (err: unknown) {
+      let msg = mode === "edit" ? "Failed to update product." : "Failed to create product.";
+      if (axios.isAxiosError(err)) {
+        const data = err.response?.data as unknown;
+        const serverMsg =
+          data && typeof data === "object" && "message" in data
+            ? String((data as { message?: unknown }).message ?? "")
+            : "";
+        if (serverMsg) msg = serverMsg;
+      } else if (err instanceof Error) {
+        msg = err.message || msg;
+      }
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /* ---------- Render ---------- */
 
-  // normalize parents/categories to Option[]
   const parentOptions: Option[] = parents.map((p) => ({
     _id: p._id,
     name: p.name ?? "",
   }));
+
   const categoryOptions: Option[] = categories.map((c) => ({
     _id: c._id,
     name: c.name ?? "",
@@ -391,6 +458,7 @@ const createProductHandler = async () => {
         sku: product.sku,
         discount: product.discount,
         color: product.color.color,
+        tags: tagsInput,
         imageInputFile: "",
         styleInput: "",
       }}
@@ -404,7 +472,7 @@ const createProductHandler = async () => {
             header="Product Carousel Images"
             text="Add images"
             images={images}
-            setImages={setImages} // setter type now matches because images is string[]
+            setImages={setImages}
             setColorImage={setColorImage}
           />
 
@@ -427,19 +495,18 @@ const createProductHandler = async () => {
             )}
           </div>
 
-          {/* If your child components still have stricter ProductShape types,
-              pass the setter as any (or update those components to be generic). */}
-    <Colors
-      name="color"
-      product={product}
-      setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-      colorImage={colorImage}
-    />
-    <Style
-      name="styleInput"
-      product={product}
-      setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-    />
+          <Colors
+            name="color"
+            product={product}
+            setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
+            colorImage={colorImage}
+          />
+
+          <Style
+            name="styleInput"
+            product={product}
+            setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
+          />
 
           <SingularSelect
             name="parent"
@@ -467,7 +534,6 @@ const createProductHandler = async () => {
               header="Select SubCategories"
               name="subCategories"
               disabled={!!product.parent}
-              // MUI-style signature: (event) => void
               handleChange={(event: { target: { value: unknown } }) => {
                 const value = event.target.value as string[];
                 setProduct((prev) => ({ ...prev, subCategories: value }));
@@ -500,6 +566,14 @@ const createProductHandler = async () => {
           />
           <AdminInput
             type="text"
+            label="Tags"
+            name="tags"
+            placeholder="black, oversized, cotton, streetwear"
+            value={tagsInput}
+            onChange={handleTagsChange}
+          />
+          <AdminInput
+            type="text"
             label="Sku"
             name="sku"
             placeholder="Product sku/ number"
@@ -513,45 +587,186 @@ const createProductHandler = async () => {
             onChange={handleChange}
           />
 
-    <Sizes
-      sizes={product.sizes}
-      product={product}
-      setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-    />
-    <Details
-      details={product.details}
-      product={product}
-      setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-    />
-    <Questions
-      questions={product.questions}
-      product={product}
-      setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-    />
-
-          {/* Description images (optional)
-          <Images
-            name="imageDescInputFile"
-            header="Product Description Images"
-            text="Add images"
-            images={descriptionImages}
-            setImages={setDescriptionImages}
-            setColorImage={setColorImage}
+          <Sizes
+            sizes={product.sizes}
+            product={product}
+            setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
           />
-          */}
+          <Details
+            details={product.details}
+            product={product}
+            setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
+          />
+          <Questions
+            questions={product.questions}
+            product={product}
+            setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
+          />
+                    <div className={styles.header}>Marketing Tags</div>
 
+          <div style={{ display: "grid", gap: 12, marginBottom: 20 }}>
+            {(product.marketingTags ?? []).map((row, index) => (
+              <div
+                key={`marketing-tag-${index}`}
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  padding: 16,
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 12,
+                  background: "#fff",
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  <div>
+                    <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                      Tag
+                    </label>
+                    <select
+                      value={row.tag}
+                      onChange={(e) =>
+                        updateMarketingTag(index, "tag", e.target.value)
+                      }
+                      style={{
+                        width: "100%",
+                        height: 44,
+                        borderRadius: 10,
+                        border: "1px solid #d1d5db",
+                        padding: "0 12px",
+                      }}
+                    >
+                      <option value="">Select tag</option>
+                      <option value="FLASH_SALE">FLASH_SALE</option>
+                      <option value="NEW_ARRIVAL">NEW_ARRIVAL</option>
+                      <option value="BLACK_FRIDAY">BLACK_FRIDAY</option>
+                      <option value="BEST_SELLER">BEST_SELLER</option>
+                      <option value="LIMITED">LIMITED</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                      Active
+                    </label>
+                    <select
+                      value={row.isActive ? "true" : "false"}
+                      onChange={(e) =>
+                        updateMarketingTag(index, "isActive", e.target.value === "true")
+                      }
+                      style={{
+                        width: "100%",
+                        height: 44,
+                        borderRadius: 10,
+                        border: "1px solid #d1d5db",
+                        padding: "0 12px",
+                      }}
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
+
+                  <AdminInput
+                    type="datetime-local"
+                    label="Start At"
+                    name={`marketing-start-${index}`}
+                    value={row.startAt}
+                    onChange={(e) =>
+                      updateMarketingTag(index, "startAt", e.target.value)
+                    }
+                  />
+
+                  <AdminInput
+                    type="datetime-local"
+                    label="End At"
+                    name={`marketing-end-${index}`}
+                    value={row.endAt}
+                    onChange={(e) =>
+                      updateMarketingTag(index, "endAt", e.target.value)
+                    }
+                  />
+
+                  <AdminInput
+                    type="text"
+                    label="Badge Text"
+                    name={`marketing-badge-${index}`}
+                    placeholder="Flash Sale"
+                    value={row.badgeText}
+                    onChange={(e) =>
+                      updateMarketingTag(index, "badgeText", e.target.value)
+                    }
+                  />
+
+                  <AdminInput
+                    type="number"
+                    label="Priority"
+                    name={`marketing-priority-${index}`}
+                    placeholder="10"
+                    value={row.priority}
+                    onChange={(e) =>
+                      updateMarketingTag(index, "priority", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => removeMarketingTag(index)}
+                    style={{
+                      height: 40,
+                      padding: "0 14px",
+                      borderRadius: 10,
+                      border: "1px solid #ef4444",
+                      background: "#fff",
+                      color: "#ef4444",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Remove Tag
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <div>
+              <button
+                type="button"
+                onClick={addMarketingTag}
+                style={{
+                  height: 42,
+                  padding: "0 16px",
+                  borderRadius: 10,
+                  border: "1px solid #111827",
+                  background: "#111827",
+                  color: "#fff",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Add Marketing Tag
+              </button>
+            </div>
+          </div>
           <button
             className={`${styles.btn} ${styles.btn__primary} ${styles.submit_btn}`}
             type="submit"
             disabled={loading}
           >
             {loading
-  ? mode === "edit"
-    ? "Updating..."
-    : "Creating..."
-  : mode === "edit"
-  ? "Update Product"
-  : "Create Product"}
+              ? mode === "edit"
+                ? "Updating..."
+                : "Creating..."
+              : mode === "edit"
+              ? "Update Product"
+              : "Create Product"}
           </button>
 
           <DialogModal />

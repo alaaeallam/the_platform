@@ -84,6 +84,7 @@ export interface IProduct extends Document {
   numReviews: number;
   shipping: number;
   subProducts: ISubProduct[];
+  tags: string[];
   marketingTags?: IMarketingTag[];
 
   createdAt?: Date;
@@ -258,6 +259,20 @@ const productSchema = new Schema<IProduct>(
     numReviews: { type: Number, required: true, default: 0, min: 0 },
     shipping: { type: Number, required: true, default: 0, min: 0 },
     subProducts: { type: [subProductSchema], default: [] },
+    tags: {
+      type: [String],
+      default: [],
+      index: true,
+      set: (values: unknown) => {
+        if (!Array.isArray(values)) return [];
+        return [...new Set(
+          values
+            .filter((v): v is string => typeof v === "string")
+            .map((v) => v.trim().toLowerCase())
+            .filter(Boolean)
+        )];
+      },
+    },
     marketingTags: { type: [marketingTagSchema], default: [] },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }

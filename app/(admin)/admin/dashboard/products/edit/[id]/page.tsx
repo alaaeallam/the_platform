@@ -46,10 +46,20 @@ type LeanProduct = {
   brand?: string;
   category?: unknown;
   subCategories?: unknown[];
+  tags?: string[];
   details?: Array<{ name?: string; value?: string }>;
   questions?: Array<{ question?: string; answer?: string }>;
+  marketingTags?: LeanMarketingTag[];
   shipping?: number;
   subProducts?: LeanSubProduct[];
+};
+type LeanMarketingTag = {
+  tag?: "FLASH_SALE" | "NEW_ARRIVAL" | "BLACK_FRIDAY" | "BEST_SELLER" | "LIMITED";
+  startAt?: Date | string | null;
+  endAt?: Date | string | null;
+  badgeText?: string;
+  priority?: number;
+  isActive?: boolean;
 };
 
 function toImageUrl(img: LeanImage): string {
@@ -59,7 +69,7 @@ function toImageUrl(img: LeanImage): string {
 
 function mapProductToDraft(product: LeanProduct): ProductDraft {
   const firstSub = product.subProducts?.[0];
-
+  
   return {
     name: product.name ?? "",
     description: product.description ?? "",
@@ -77,6 +87,27 @@ function mapProductToDraft(product: LeanProduct): ProductDraft {
     category: product.category ? String(product.category) : "",
     subCategories: Array.isArray(product.subCategories)
       ? product.subCategories.map((id) => String(id))
+      : [],
+    tags: Array.isArray(product.tags)
+      ? product.tags
+          .filter((tag): tag is string => typeof tag === "string")
+          .map((tag) => tag.trim().toLowerCase())
+          .filter(Boolean)
+      : [],
+        marketingTags: Array.isArray(product.marketingTags)
+      ? product.marketingTags.map((row) => ({
+          tag: row.tag ?? "",
+          isActive: typeof row.isActive === "boolean" ? row.isActive : true,
+          startAt: row.startAt
+            ? new Date(row.startAt).toISOString().slice(0, 16)
+            : "",
+          endAt: row.endAt
+            ? new Date(row.endAt).toISOString().slice(0, 16)
+            : "",
+          badgeText: row.badgeText ?? "",
+          priority:
+            typeof row.priority === "number" ? String(row.priority) : "",
+        }))
       : [],
     color: {
       color: firstSub?.color?.color ?? "",

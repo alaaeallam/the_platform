@@ -31,7 +31,26 @@ async function assertAdminOrResponse() {
 
 const ColorSchema = z.any();
 const SizeSchema = z.any();
+const MarketingTagEnum = z.enum([
+  "FLASH_SALE",
+  "NEW_ARRIVAL",
+  "BLACK_FRIDAY",
+  "BEST_SELLER",
+  "LIMITED",
+]);
 
+const MarketingTagSchema = z.object({
+  tag: MarketingTagEnum,
+  startAt: z.string().optional(),
+  endAt: z.string().optional(),
+  badgeText: z.string().optional(),
+  priority: z.number().optional().default(0),
+  isActive: z.boolean().optional(),
+}).transform((value) => ({
+  ...value,
+  startAt: value.startAt ? new Date(value.startAt) : undefined,
+  endAt: value.endAt ? new Date(value.endAt) : undefined,
+}));
 const UpdateProductSchema = z.object({
   name: z.string().min(2).max(140),
   description: z.string().min(1),
@@ -40,6 +59,8 @@ const UpdateProductSchema = z.object({
   questions: z.any().optional(),
   category: z.string().min(1),
   subCategories: z.array(z.string().min(1)).optional(),
+  tags: z.array(z.string().min(1)).optional().default([]),
+  marketingTags: z.array(MarketingTagSchema).optional().default([]),
   shipping: z.number().min(0).optional().default(0),
 
   sku: z.string().min(1),
@@ -112,8 +133,10 @@ export async function PATCH(
     existing.slug = nextSlug;
     existing.category = new mongoose.Types.ObjectId(parsed.category);
     existing.subCategories = (parsed.subCategories ?? [])
-    .filter((id) => mongoose.Types.ObjectId.isValid(id))
-    .map((id) => new mongoose.Types.ObjectId(id));
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+    existing.tags = parsed.tags ?? [];
+    existing.marketingTags = parsed.marketingTags ?? [];
     existing.shipping = parsed.shipping ?? 0;
 
     existing.set("subProducts", [

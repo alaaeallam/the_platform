@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from "react";
 import styles from "../styles/Home.module.scss";
 import Main from "@/components/home/main";
-import FlashDeals from "@/components/home/flashDeals";
 import Category from "@/components/home/category";
 import { women_dresses, women_shoes, women_accessories, women_swiper } from "@/data/home";
 import ProductsSwiper from "@/components/productsSwiper";
 import ProductCard from "@/components/productCard";
+import FlashDeals, { type FlashDealProduct } from "@/components/home/flashDeals";
 
 /* ---------- Types that MATCH ProductCard's expected shape ---------- */
 type CardSize = {
@@ -169,9 +169,13 @@ function toCardProduct(p: unknown): CardProduct | null {
 export default function Home({
   initialCategories,
   menuCategories,
+  flashSaleProducts,
+  flashSaleEndsAt,
 }: {
   initialCategories: HomeCategoryVM[];
   menuCategories: HomeCategoryVM[];
+  flashSaleProducts: FlashDealProduct[];
+  flashSaleEndsAt: string | null;
 }): React.JSX.Element {
   const [products, setProducts] = useState<CardProduct[]>([]);
   const categoryBackgrounds = [
@@ -226,7 +230,10 @@ export default function Home({
       <div className={styles.container}>
         <Main categories={menuCategories} />
         
-        <FlashDeals />
+        <FlashDeals
+  products={flashSaleProducts}
+  countdownDate={flashSaleEndsAt}
+/>
         <section
           style={{
             marginTop: 24,

@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 import { authOptions } from "@/lib/auth";
 import db from "@/utils/db";
@@ -61,7 +61,12 @@ interface LeanProduct {
   _id: string;
   name?: string;
   images?: Array<string | { url: string }>;
-  subProducts?: Array<{ images?: string[] }>;
+  subProducts?: Array<{
+    images?: string[];
+    color?: { color?: string; image?: string };
+    sizes?: Array<{ size?: string; qty?: number }>;
+    sold?: number;
+  }>;
   color?: { image?: string };
 }
 
@@ -122,6 +127,105 @@ async function hydrateLine(line: CartLine): Promise<CartLine> {
   const name = line.name ?? (doc?.name ?? "Product");
 
   return { ...line, name, image: firstImage || "" };
+}
+
+function normalizeText(value?: string | number | null): string {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function scoreSubProductMatch(
+  sub: {
+    color?: { color?: string; image?: string };
+    sizes?: Array<{ size?: string; qty?: number }>;
+  },
+  line: Pick<IOrderProduct, "size" | "color">
+): number {
+  let score = 0;
+
+  const wantedColorImage = normalizeText(line.color?.image);
+  const wantedColorName = normalizeText(line.color?.color);
+  const wantedSize = normalizeText(line.size);
+
+  const subColorImage = normalizeText(sub.color?.image);
+  const subColorName = normalizeText(sub.color?.color);
+
+  if (wantedColorImage && subColorImage && wantedColorImage === subColorImage) {
+    score += 5;
+  }
+
+  if (wantedColorName && subColorName && wantedColorName === subColorName) {
+    score += 3;
+  }
+
+  if (
+    wantedSize &&
+    Array.isArray(sub.sizes) &&
+    sub.sizes.some((size) => normalizeText(size.size) === wantedSize)
+  ) {
+    score += 2;
+  }
+
+  return score;
+}
+
+function findMatchingSubProductIndex(
+  subProducts: Array<{
+    color?: { color?: string; image?: string };
+    sizes?: Array<{ size?: string; qty?: number }>;
+  }>,
+  line: Pick<IOrderProduct, "size" | "color">
+): number {
+  if (!subProducts.length) return -1;
+
+  let bestIndex = 0;
+  let bestScore = -1;
+
+  subProducts.forEach((sub, index) => {
+    const score = scoreSubProductMatch(sub, line);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  });
+
+  return bestIndex;
+}
+
+async function syncInventoryFromOrderLines(lines: IOrderProduct[]): Promise<void> {
+  for (const line of lines) {
+    const productId = String(line.product);
+    if (!mongoose.Types.ObjectId.isValid(productId)) continue;
+
+    const productDoc = await Product.findById(productId);
+    if (!productDoc || !Array.isArray(productDoc.subProducts) || !productDoc.subProducts.length) {
+      continue;
+    }
+
+    const subIndex = findMatchingSubProductIndex(productDoc.subProducts, line);
+    if (subIndex < 0) continue;
+
+    const subProduct = productDoc.subProducts[subIndex];
+    const wantedSize = normalizeText(line.size);
+
+    let sizeIndex = Array.isArray(subProduct.sizes)
+      ? subProduct.sizes.findIndex((size) => normalizeText(size.size) === wantedSize)
+      : -1;
+
+    if (sizeIndex < 0 && Array.isArray(subProduct.sizes) && subProduct.sizes.length === 1) {
+      sizeIndex = 0;
+    }
+
+    if (sizeIndex >= 0 && subProduct.sizes[sizeIndex]) {
+      const currentQty = Number(subProduct.sizes[sizeIndex].qty || 0);
+      const orderedQty = Number(line.qty || 0);
+      subProduct.sizes[sizeIndex].qty = Math.max(0, currentQty - orderedQty);
+    }
+
+    subProduct.sold = Number(subProduct.sold || 0) + Number(line.qty || 0);
+
+    productDoc.markModified("subProducts");
+    await productDoc.save();
+  }
 }
 
 /* ------------------------------- POST ------------------------------ */
@@ -334,6 +438,8 @@ export async function POST(req: Request) {
     }
 
     const created = await Order.create(payload);
+
+    await syncInventoryFromOrderLines(orderProducts);
 
     // Clear cart (optional, but typical)
     await Cart.updateOne(

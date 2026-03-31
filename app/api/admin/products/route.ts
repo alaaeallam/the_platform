@@ -39,6 +39,22 @@ const ImagesSchema = z.array(z.string().url().or(z.string().min(1))).min(1);
 const SubCategoriesSchema = z.array(z.string().min(1)).optional();
 
 // Creating a subProduct for an existing parent
+const MarketingTagEnum = z.enum([
+  "FLASH_SALE",
+  "NEW_ARRIVAL",
+  "BLACK_FRIDAY",
+  "BEST_SELLER",
+  "LIMITED",
+]);
+
+const MarketingTagSchema = z.object({
+  tag: MarketingTagEnum,
+  startAt: z.string().optional(),
+  endAt: z.string().optional(),
+  badgeText: z.string().optional(),
+  priority: z.number().optional().default(0),
+  isActive: z.boolean().optional(),
+});
 const CreateSubProductSchema = z.object({
   parent: z.string().min(1),
   sku: z.string().min(1),
@@ -57,6 +73,7 @@ const CreateProductSchema = z.object({
   questions: z.any().optional(), // replace with strict schema if you have it
   category: z.string().min(1),
   subCategories: SubCategoriesSchema,
+    marketingTags: z.array(MarketingTagSchema).optional().default([]),
   shipping: z.number().min(0).optional().default(0),
 
   // first subProduct fields
@@ -141,6 +158,7 @@ export async function POST(req: Request) {
       slug,
       category: parsed.category,
       subCategories: parsed.subCategories ?? [],
+      marketingTags: parsed.marketingTags ?? [],
       shipping: parsed.shipping ?? 0,
       subProducts: [
         {
