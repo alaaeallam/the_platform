@@ -133,10 +133,15 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       { ok: true, rule: updated, message: "Delivery rule updated successfully" },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("PUT /api/admin/delivery/[id] error:", error);
 
-    if (error?.code === 11000) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: unknown }).code === 11000
+    ) {
       return NextResponse.json(
         { ok: false, message: "Another delivery rule already uses this country code" },
         { status: 409 }

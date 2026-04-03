@@ -129,10 +129,15 @@ export async function POST(req: NextRequest) {
       { ok: true, rule: created, message: "Delivery rule created successfully" },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST /api/admin/delivery error:", error);
 
-    if (error?.code === 11000) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: unknown }).code === 11000
+    ) {
       return NextResponse.json(
         { ok: false, message: "A delivery rule for this country already exists" },
         { status: 409 }
