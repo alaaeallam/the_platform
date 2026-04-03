@@ -266,7 +266,7 @@ const sortSpec = ((): SortSpec => {
       code: "EG",
       name: "Egypt",
       flagEmoji: "🇪🇬",
-      flagUrl: "https://cdn-icons-png.flaticon.com/512/197/197604.png?w=360",
+      flagUrl: "https://flagcdn.com/w40/eg.png",
     },
     MA: {
       code: "MA",
