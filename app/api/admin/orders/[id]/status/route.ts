@@ -13,13 +13,10 @@ const ALLOWED_STATUSES: OrderStatus[] = [
   "Completed",
 ];
 
-type RouteContext = {
-  params: {
-    id: string;
-  };
-};
-
-export async function PATCH(req: NextRequest, context: RouteContext) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -39,7 +36,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     await connectDb();
 
-    const { id } = context.params;
+    const { id } = await params;
     const body = (await req.json().catch(() => null)) as { status?: string } | null;
     const nextStatus = body?.status;
 
