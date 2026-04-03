@@ -1,4 +1,6 @@
 // app/(shop)/layout.tsx
+export const dynamic = "force-dynamic";
+
 import { headers } from "next/headers";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -9,7 +11,14 @@ import CrossTabCartSync from "@/components/cart/CrossTabCartSync";
 async function getCountry(): Promise<CountryInfo> {
   try {
     const h = await headers();
-    const code = h.get("x-vercel-ip-country") || process.env.GEO_OVERRIDE || "US";
+
+    const code = (
+      h.get("x-vercel-ip-country") ||
+      h.get("cf-ipcountry") ||
+      process.env.GEO_OVERRIDE ||
+      "US"
+    ).toUpperCase();
+
     return getCountryFromCode(code);
   } catch {
     return getCountryFromCode("US");
