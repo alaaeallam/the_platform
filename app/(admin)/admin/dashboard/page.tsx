@@ -11,7 +11,7 @@ import { connectDb } from "@/utils/db";
 import DashboardClient, { type DashboardProps } from "./DashboardClient";
 
 export const metadata: Metadata = {
-  title: "Shoppay - Admin Dashboard",
+  title: "Rania Maged - Admin Dashboard",
 };
 
 export const dynamic = "force-dynamic";
