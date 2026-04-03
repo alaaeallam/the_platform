@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { getServerSession } from "next-auth";
 import { connectDb } from "@/utils/db";
 import Order, { type OrderStatus } from "@/models/Order";
-
-const ADMIN_SECRET = process.env.ADMIN_SECRET;
+import { authOptions } from "@/lib/auth";
 
 const ALLOWED_STATUSES: OrderStatus[] = [
   "Not Processed",
@@ -14,75 +14,63 @@ const ALLOWED_STATUSES: OrderStatus[] = [
 ];
 
 type RouteContext = {
-  params: Promise<{
+  params: {
     id: string;
-  }>;
+  };
 };
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
-    await connectDb();
+    const session = await getServerSession(authOptions);
 
-    const authHeader = req.headers.get("authorization");
-
-    if (!ADMIN_SECRET) {
-      console.error("ADMIN_SECRET is not set in environment variables.");
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { message: "Server configuration error." },
-        { status: 500 }
-      );
-    }
-
-    if (!authHeader || authHeader !== `Bearer ${ADMIN_SECRET}`) {
-      return NextResponse.json(
-        { message: "Unauthorized." },
+        { message: "Unauthorized. Please sign in." },
         { status: 401 }
       );
     }
 
-    const { id } = await context.params;
+    if (session.user.role !== "admin") {
+      return NextResponse.json(
+        { message: "Forbidden. Admin access required." },
+        { status: 403 }
+      );
+    }
+
+    await connectDb();
+
+    const { id } = context.params;
     const body = (await req.json().catch(() => null)) as { status?: string } | null;
     const nextStatus = body?.status;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { message: "Invalid order id." },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Invalid order id." }, { status: 400 });
     }
 
     if (!nextStatus || !ALLOWED_STATUSES.includes(nextStatus as OrderStatus)) {
-      return NextResponse.json(
-        { message: "Invalid order status." },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Invalid order status." }, { status: 400 });
     }
 
     const update: {
       status: OrderStatus;
-      deliveredAt?: Date;
+      deliveredAt?: Date | null;
     } = {
       status: nextStatus as OrderStatus,
     };
 
     if (nextStatus === "Completed") {
       update.deliveredAt = new Date();
+    } else {
+      update.deliveredAt = null;
     }
 
-    const order = await Order.findByIdAndUpdate(
-      id,
-      update,
-      {
-        new: true,
-        runValidators: true,
-      }
-    ).lean();
+    const order = await Order.findByIdAndUpdate(id, update, {
+      new: true,
+      runValidators: true,
+    }).lean();
 
     if (!order) {
-      return NextResponse.json(
-        { message: "Order not found." },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: "Order not found." }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -91,7 +79,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       deliveredAt: order.deliveredAt ?? null,
     });
   } catch (error) {
-    console.error("PATCH /api/admin/orders/[id]/status error:", error);
+    console.error("PATCH /api/admin/orders/[id]/status error:", {
+      message: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     return NextResponse.json(
       { message: "Failed to update order status." },
       { status: 500 }
