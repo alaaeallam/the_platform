@@ -1,27 +1,20 @@
 "use client";
+
 import styles from "./styles.module.scss";
 import Link from "next/link";
 import Image from "next/image";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation } from "swiper/modules"; 
-import "swiper/css";
-import "swiper/css/navigation";
 import { useRouter } from "next/navigation";
 import { TbEdit } from "react-icons/tb";
 import { AiOutlineEye } from "react-icons/ai";
 import { RiDeleteBin2Line } from "react-icons/ri";
 import { toast } from "react-toastify";
 
-/* =========================
-   Types exported for reuse
-   ========================= */
 export type ImageLike =
   | string
   | { url?: string | null; [k: string]: unknown };
 
 export type SubProduct = {
   images?: ImageLike[] | null;
-  // add anything else you use here (sizes, colors, etc.)
   [k: string]: unknown;
 };
 
@@ -37,21 +30,29 @@ type Props = {
   product: ProductCardProduct;
 };
 
-/* Get first image url regardless of stored shape */
 function firstImageUrl(p: SubProduct): string | null {
   if (!p?.images || !Array.isArray(p.images) || p.images.length === 0) {
     return null;
   }
+
   const first = p.images[0];
   if (typeof first === "string") return first || null;
   if (first && typeof first === "object" && typeof first.url === "string") {
     return first.url || null;
   }
+
   return null;
 }
 
 export default function ProductCard({ product }: Props) {
-    const router = useRouter();
+  const router = useRouter();
+
+  const catName =
+    typeof product.category === "string"
+      ? product.category
+      : product.category?.name ?? "";
+
+  const styleCount = product.subProducts.length;
 
   function handleDelete() {
     toast.info(
@@ -116,96 +117,99 @@ export default function ProductCard({ product }: Props) {
       toast.success(data.message || "Product deleted successfully.");
       router.refresh();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to delete product.";
+      const msg =
+        err instanceof Error ? err.message : "Failed to delete product.";
       toast.error(msg);
     }
   }
-  const catName =
-    typeof product.category === "string"
-      ? product.category
-      : product.category?.name ?? "";
 
   return (
-    <div className={styles.product}>
-      <h1 className={styles.product__name}>{product.name}</h1>
-      {catName && <h2 className={styles.product__category}>#{catName}</h2>}
+    <section className={styles.product}>
+      <div className={styles.product__top}>
+        <div className={styles.product__meta}>
+          {catName ? (
+            <span className={styles.product__categoryBadge}>{catName}</span>
+          ) : null}
+          <h2 className={styles.product__name}>{product.name}</h2>
+        </div>
 
-      <Swiper
-        slidesPerView={1}
-        spaceBetween={10}
-        navigation
-        modules={[Navigation]}
-        className="products__swiper"
-        style={{ padding: "5px 0 5px 5px" }}
-        breakpoints={{
-          450: { slidesPerView: 2 },
-          630: { slidesPerView: 3 },
-          920: { slidesPerView: 4 },
-          1232: { slidesPerView: 5 },
-          1520: { slidesPerView: 6 },
-        }}
-      >
-        {product.subProducts.map((sp, i) => {
-          const img = firstImageUrl(sp);
-          return (
-            <SwiperSlide key={`${product._id}-${i}`}>
-              <div className={styles.product__item}>
-                <div className={styles.product__item_img}>
-                  {/* Use <img> so you don't need next.config image domains */}
+        <div className={styles.product__summary}>
+          <span className={styles.product__count}>
+            {styleCount} {styleCount === 1 ? "style" : "styles"}
+          </span>
+        </div>
+      </div>
+
+      {styleCount === 0 ? (
+        <div className={styles.product__empty}>
+          No product styles/images added yet.
+        </div>
+      ) : (
+        <div className={styles.product__grid}>
+          {product.subProducts.map((sp, i) => {
+            const img = firstImageUrl(sp);
+
+            return (
+              <article className={styles.product__item} key={`${product._id}-${i}`}>
+                <div className={styles.product__itemMedia}>
                   {img ? (
                     <Image
                       src={img}
-                      alt={product.name}
-                      width={120}
-                      height={120}
-                      sizes="120px"
-                      style={{ width: 120, height: 120, objectFit: "cover", borderRadius: 8 }}
+                      alt={`${product.name} style ${i + 1}`}
+                      width={480}
+                      height={480}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className={styles.product__image}
                       unoptimized
                       priority={false}
                     />
                   ) : (
-                    <div
-                      style={{
-                        width: 120,
-                        height: 120,
-                        display: "grid",
-                        placeItems: "center",
-                        border: "1px dashed #ccc",
-                        borderRadius: 8,
-                        fontSize: 12,
-                        color: "#666",
-                        background: "#fafafa",
-                      }}
-                    >
-                      No image
-                    </div>
+                    <div className={styles.product__placeholder}>No image</div>
                   )}
+
+                  <div className={styles.product__styleTag}>Style {i + 1}</div>
                 </div>
 
-                <div className={styles.product__actions}>
-                  <Link href={`/admin/dashboard/products/edit/${product._id}`} title="Edit">
-                    <TbEdit />
-                  </Link>
-                  <Link
-                    href={`/products/${product.slug}?style=${i}`}
-                    title="View"
-                  >
-                    <AiOutlineEye />
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    title="Delete"
-                    style={{ background: "transparent", border: 0, cursor: "pointer" }}
-                  >
-                    <RiDeleteBin2Line />
-                  </button>
+                <div className={styles.product__itemFooter}>
+                  <div className={styles.product__itemInfo}>
+                    <div className={styles.product__itemTitle}>{product.name}</div>
+                    <div className={styles.product__itemSubtitle}>
+                      Preview, edit, or remove this style
+                    </div>
+                  </div>
+
+                  <div className={styles.product__actions}>
+                    <Link
+                      href={`/admin/dashboard/products/edit/${product._id}`}
+                      title="Edit"
+                      className={styles.product__actionBtn}
+                    >
+                      <TbEdit />
+                    </Link>
+
+                    <Link
+                      href={`/products/${product.slug}?style=${i}`}
+                      title="View"
+                      className={styles.product__actionBtn}
+                    >
+                      <AiOutlineEye />
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      title="Delete"
+                      className={`${styles.product__actionBtn} ${styles.product__actionBtnDanger}`}
+                    >
+                      <RiDeleteBin2Line />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </SwiperSlide>
-          );
-        })}
-      </Swiper>
-    </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
