@@ -16,28 +16,40 @@ import LoginInput from "@/components/inputs/loginInput";
 import CircledIconBtn from "@/components/buttons/circledIconBtn";
 import DotLoaderSpinner from "@/components/loaders/dotLoader";
 
-type Values = {
-  login_email: string;
-  login_password: string;
-  name: string;
-  email: string;
-  password: string;
-  conf_password: string;
+type StatusState = {
   success: string;
   error: string;
   login_error: string;
 };
 
-const initialValues: Values = {
+type LoginFormValues = {
+  login_email: string;
+  login_password: string;
+};
+
+type RegisterFormValues = {
+  name: string;
+  email: string;
+  password: string;
+  conf_password: string;
+};
+
+const initialStatus: StatusState = {
+  success: "",
+  error: "",
+  login_error: "",
+};
+
+const initialLoginValues: LoginFormValues = {
   login_email: "",
   login_password: "",
+};
+
+const initialRegisterValues: RegisterFormValues = {
   name: "",
   email: "",
   password: "",
   conf_password: "",
-  success: "",
-  error: "",
-  login_error: "",
 };
 
 export default function LoginPage() {
@@ -48,24 +60,8 @@ export default function LoginPage() {
 
   const [googleLoading, setGoogleLoading] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<Values>(initialValues);
-
-  const {
-    login_email,
-    login_password,
-    name,
-    email,
-    password,
-    conf_password,
-    success,
-    error,
-    login_error,
-  } = user;
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setUser((prev) => ({ ...prev, [name]: value }));
-  };
+  const [status, setStatus] = useState<StatusState>(initialStatus);
+  const { success, error, login_error } = status;
 
   const loginValidation = Yup.object({
     login_email: Yup.string()
@@ -91,42 +87,69 @@ export default function LoginPage() {
       .oneOf([Yup.ref("password")], "Passwords must match."),
   });
 
-  const signUpHandler = async () => {
-  try {
-    setLoading(true);
-    const { data } = await axios.post("/api/auth/register", { name, email, password });
-    setUser((prev) => ({ ...prev, error: "", success: data?.message ?? "Account created." }));
+  const signUpHandler = async (values: RegisterFormValues) => {
+    try {
+      setLoading(true);
+      setStatus({ success: "", error: "", login_error: "" });
 
-    // Auto-login after signup
-    const res = await signIn("credentials", { redirect: false, email, password });
-    if (res?.error) {
-      setUser((prev) => ({ ...prev, login_error: res.error || "Login failed after signup" }));
-    } else {
-      router.push("/");
+      const payload = {
+        name: values.name.trim(),
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
+      };
+
+      const { data } = await axios.post("/api/auth/register", payload);
+      setStatus({
+        success: data?.message ?? "Account created.",
+        error: "",
+        login_error: "",
+      });
+
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: payload.email,
+        password: payload.password,
+      });
+
+      if (res?.error) {
+        setStatus({
+          success: data?.message ?? "Account created.",
+          error: "",
+          login_error: res.error || "Login failed after signup",
+        });
+      } else {
+        router.push("/");
+      }
+    } catch (err: unknown) {
+      const msg =
+        axios.isAxiosError(err)
+          ? ((err.response?.data as { message?: string; error?: string } | undefined)?.message ??
+             (err.response?.data as { message?: string; error?: string } | undefined)?.error ??
+             err.message ??
+             "An error occurred.")
+          : err instanceof Error
+          ? err.message
+          : "An error occurred.";
+
+      setStatus({ success: "", error: msg, login_error: "" });
+    } finally {
+      setLoading(false);
     }
-  } catch (err: unknown) {
-    const msg =
-      axios.isAxiosError(err)
-        ? (err.response?.data as { message?: string } | undefined)?.message ?? err.message ?? "An error occurred."
-        : err instanceof Error
-        ? err.message
-        : "An error occurred.";
-    setUser((prev) => ({ ...prev, success: "", error: msg }));
-  } finally {
-    setLoading(false);
-  }
-};
-  const signInHandler = async () => {
+  };
+  const signInHandler = async (values: LoginFormValues) => {
     setLoading(true);
+    setStatus({ success: "", error: "", login_error: "" });
+
     const res = await signIn("credentials", {
-      email: login_email,
-      password: login_password,
-      redirect: false, // handle redirect manually
+      email: values.login_email.trim().toLowerCase(),
+      password: values.login_password,
+      redirect: false,
     });
+
     setLoading(false);
 
     if (res?.error) {
-      setUser((prev) => ({ ...prev, login_error: res.error || "Invalid credentials" }));
+      setStatus({ success: "", error: "", login_error: res.error || "Invalid credentials" });
     } else {
       router.push(callbackUrl);
     }
@@ -202,7 +225,7 @@ export default function LoginPage() {
 
             <Formik
               enableReinitialize
-              initialValues={{ login_email, login_password }}
+              initialValues={initialLoginValues}
               validationSchema={loginValidation}
               onSubmit={signInHandler}
             >
@@ -213,14 +236,12 @@ export default function LoginPage() {
                     name="login_email"
                     icon="email"
                     placeholder="Email Address"
-                    onChange={handleChange}
                   />
                   <LoginInput
                     type="password"
                     name="login_password"
                     icon="password"
                     placeholder="Password"
-                    onChange={handleChange}
                   />
                   <CircledIconBtn type="submit" text="Sign in" />
                   {login_error && <span className={styles.error}>{login_error}</span>}
@@ -272,16 +293,16 @@ export default function LoginPage() {
 
             <Formik
               enableReinitialize
-              initialValues={{ name, email, password, conf_password }}
+              initialValues={initialRegisterValues}
               validationSchema={registerValidation}
               onSubmit={signUpHandler}
             >
               {() => (
                 <Form>
-                  <LoginInput type="text" name="name" icon="user" placeholder="Full Name" onChange={handleChange} />
-                  <LoginInput type="email" name="email" icon="email" placeholder="Email Address" onChange={handleChange} />
-                  <LoginInput type="password" name="password" icon="password" placeholder="Password" onChange={handleChange} />
-                  <LoginInput type="password" name="conf_password" icon="password" placeholder="Re-Type Password" onChange={handleChange} />
+                  <LoginInput type="text" name="name" icon="user" placeholder="Full Name" />
+                  <LoginInput type="email" name="email" icon="email" placeholder="Email Address" />
+                  <LoginInput type="password" name="password" icon="password" placeholder="Password" />
+                  <LoginInput type="password" name="conf_password" icon="password" placeholder="Re-Type Password" />
                   <CircledIconBtn type="submit" text="Sign up" />
                 </Form>
               )}

@@ -37,11 +37,10 @@ export default function LoginInput({
       ) : null}
 
       <input
-        // priority order: Formik field props, then caller overrides in `props`
-        {...field}
-        {...props}
-        placeholder={placeholder}
-      />
+  {...props}
+  {...field}
+  placeholder={placeholder}
+/>
 
       {meta.touched && meta.error && (
         <div className={styles.error__popup}>

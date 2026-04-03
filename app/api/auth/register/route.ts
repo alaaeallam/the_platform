@@ -6,7 +6,11 @@ import { connectDb } from "@/utils/db";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, name } = await req.json();
+    const body = await req.json();
+
+    const name = String(body.name ?? "").trim();
+    const email = String(body.email ?? "").trim().toLowerCase();
+    const password = String(body.password ?? "");
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
@@ -23,9 +27,9 @@ export async function POST(req: Request) {
     }
 
     const hash = await bcrypt.hash(password, 12);
-    await User.create({ email, password: hash, name });
+    await User.create({ email, password: hash, name, role: "customer" });
 
-    return NextResponse.json({ ok: true }, { status: 201 });
+    return NextResponse.json({ ok: true, message: "Account created successfully." }, { status: 201 });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

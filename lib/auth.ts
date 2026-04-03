@@ -61,28 +61,49 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize: async (credentials): Promise<ExtendedUser | null> => {
-        if (!credentials?.email || !credentials?.password) return null;
+authorize: async (credentials): Promise<ExtendedUser | null> => {
+  try {
+    if (!credentials?.email || !credentials?.password) {
+      return null;
+    }
 
-        await connectDb();
+    await connectDb();
 
-        const user = await User.findOne({ email: credentials.email })
-          .select("+password name email image role")
-          .lean<{ _id: unknown; name?: string | null; email: string; image?: string | null; password?: string; role?: Role | null } | null>();
+    const email = String(credentials.email).trim().toLowerCase();
 
-        if (!user?.password) return null;
+    const user = await User.findOne({ email })
+      .select("password name email image role")
+      .lean<{
+        _id: unknown;
+        name?: string | null;
+        email: string;
+        image?: string | null;
+        password?: string;
+        role?: Role | null;
+      } | null>();
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) return null;
+    if (!user?.password) {
+      return null;
+    }
 
-        return {
-          id: String(user._id),
-          name: user.name ?? null,
-          email: user.email,
-          image: user.image ?? null,
-          role: toRole(user.role),
-        };
-      },
+    const isValid = await bcrypt.compare(credentials.password, user.password);
+
+    if (!isValid) {
+      return null;
+    }
+
+    return {
+      id: String(user._id),
+      name: user.name ?? null,
+      email: user.email,
+      image: user.image ?? null,
+      role: toRole(user.role),
+    };
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+},
     }),
 
     Google({
@@ -118,7 +139,11 @@ export const authOptions: NextAuthOptions = {
 
       if (t.email) {
         await connectDb();
-        const doc = await User.findOne({ email: t.email }).select({ _id: 1, role: 1 }).lean<{ _id: unknown; role?: Role | null } | null>();
+        const email = String(t.email).trim().toLowerCase();
+
+        const doc = await User.findOne({ email })
+          .select({ _id: 1, role: 1 })
+          .lean<{ _id: unknown; role?: Role | null } | null>();
 
         if (doc) {
           t.sub = String(doc._id);

@@ -89,7 +89,7 @@ const UserSchema = new Schema<IUserDocument>(
     },
     role: {
       type: String,
-      default: "user",
+      default: "customer",
     },
     image: {
       type: String,
