@@ -14,6 +14,7 @@ export interface Address {
   zipCode: string;
   state: string;
   country: string;
+  countryCode: string;
   active: boolean;
 }
 
@@ -53,6 +54,7 @@ const AddressSchema = new Schema<Address>(
     zipCode: { type: String, required: false },
     state: { type: String, required: false },
     country: { type: String, required: false },
+    countryCode: { type: String, required: false, uppercase: true, trim: true },
     active: { type: Boolean, default: false },
   },
   { _id: true }

@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import mongoose, { Types } from "mongoose";
 
+import { calculateDelivery } from "@/lib/delivery/calculateDelivery";
 import { authOptions } from "@/lib/auth";
 import db from "@/utils/db";
 import User from "@/models/User";
@@ -92,6 +93,7 @@ function isValidAddress(a?: Partial<IShippingAddress>): a is IShippingAddress {
     "state",
     "zipCode",
     "country",
+    "countryCode",
   ];
   return required.every(
     (k) => typeof a[k] === "string" && String(a[k]).trim().length > 0
@@ -288,6 +290,24 @@ export async function POST(req: Request) {
         : subtotalRounded
     );
 
+    const deliveryCountryCode = String(body.shippingAddress.countryCode || "")
+      .trim()
+      .toUpperCase();
+
+    let delivery: Awaited<ReturnType<typeof calculateDelivery>>;
+
+    try {
+      delivery = await calculateDelivery({
+        countryCode: deliveryCountryCode,
+        subtotal: effectiveTotal,
+      });
+    } catch {
+      return NextResponse.json<Err>(
+        { message: "Delivery is not available for the selected country." },
+        { status: 400 }
+      );
+    }
+
     // Map cart lines to order lines
     const hydrated = await Promise.all(cart.products.map(hydrateLine));
 
@@ -335,12 +355,14 @@ export async function POST(req: Request) {
         state: body.shippingAddress.state!,
         zipCode: body.shippingAddress.zipCode!,
         country: body.shippingAddress.country!,
+        countryCode: deliveryCountryCode,
       },
       paymentMethod: canonicalPaymentMethod,
-      total: effectiveTotal,
+      total: toMoney(effectiveTotal + delivery.fee),
       totalBeforeDiscount: subtotalRounded,
       couponApplied: normalizeCouponCode(body.couponApplied) ?? undefined,
-      shippingPrice: 0,
+      shippingPrice: delivery.fee,
+      delivery,
       taxPrice: 0,
       isPaid: false,
       status: "Not Processed",

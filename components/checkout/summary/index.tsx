@@ -5,6 +5,7 @@ import styles from "./styles.module.scss";
 import * as Yup from "yup";
 import { Form, Formik } from "formik";
 import ShippingInput from "../../inputs/shippingInput";
+import { countries } from "@/data/countries";
 import { applyCoupon } from "../../../requests/user";
 import { useRouter } from "next/navigation";
 import DotLoaderSpinner from "@/components/loaders/dotLoader";
@@ -17,6 +18,23 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 
 import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
 type CanonicalPM = "STRIPE" | "PAYPAL" | "CASH";
+
+type DeliveryQuoteResponse = {
+  ok: boolean;
+  message?: string;
+  delivery?: {
+    fee: number;
+    currency: string;
+    freeShippingApplied: boolean;
+    estimatedDaysMin: number;
+    estimatedDaysMax: number;
+  };
+  preview?: {
+    fee: number;
+    freeShippingApplied: boolean;
+    eta: string;
+  };
+};
 
 // Only return a canonical value when the user explicitly chose a method.
 // Otherwise return null so we don't render the card form prematurely.
@@ -124,13 +142,20 @@ export default function Summary({
   const [error, setError] = React.useState<string>("");
   const [orderError, setOrderError] = React.useState<string>("");
 
+  const [deliveryFee, setDeliveryFee] = React.useState<number>(0);
+  const [deliveryCurrency, setDeliveryCurrency] = React.useState<string>("USD");
+  const [deliveryEta, setDeliveryEta] = React.useState<string>("");
+  const [deliveryFreeShipping, setDeliveryFreeShipping] = React.useState<boolean>(false);
+  const [deliveryLoading, setDeliveryLoading] = React.useState<boolean>(false);
+  const [deliveryError, setDeliveryError] = React.useState<string>("");
+
   // loaders
   const [posting, setPosting] = React.useState<boolean>(false);      // place order
   const [isApplying, setIsApplying] = React.useState<boolean>(false); // coupon apply/remove
 
   React.useEffect(() => {
     setOrderError("");
-  }, [paymentMethod, selectedAddress]);
+  }, [paymentMethod, selectedAddress, deliveryError]);
 
   /* ----- Coupon: apply ----- */
   const applyCouponHandler = React.useCallback(async () => {
@@ -201,6 +226,32 @@ const placeOrderHandler = React.useCallback(async () => {
     setOrderError("Please choose a shipping address.");
     return;
   }
+  if (deliveryLoading) {
+    setOrderError("Please wait while delivery is being calculated.");
+    return;
+  }
+  if (deliveryError) {
+    setOrderError(deliveryError);
+    return;
+  }
+const selectedCountryCode = (() => {
+  const address = selectedAddress as
+    | (Address & { countryCode?: string; country?: string })
+    | null
+    | undefined;
+
+  const directCode = String(address?.countryCode || "").trim().toUpperCase();
+  if (directCode) return directCode;
+
+  const countryName = String(address?.country || "").trim().toLowerCase();
+  if (!countryName) return "";
+
+  const matched = countries.find(
+    (entry) => String(entry.name || "").trim().toLowerCase() === countryName
+  );
+
+  return String(matched?.code || "").trim().toUpperCase();
+})();
 
   try {
     const canonical = isStripeSelected ? "STRIPE" : toCanonical(paymentMethod);
@@ -221,15 +272,18 @@ const placeOrderHandler = React.useCallback(async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        products: cart.products,
-        shippingAddress: selectedAddress,
-        paymentMethod,
-        totalBeforeDiscount: cart.cartTotal,
-        total: displayTotal,
-        couponApplied: discount > 0 ? coupon : undefined,
-        userId: user._id,
-        payment: paymentInfo, // server can treat presence as paid
-      }),
+  products: cart.products,
+  shippingAddress: {
+    ...selectedAddress,
+    countryCode: selectedCountryCode,
+  },
+  paymentMethod,
+  totalBeforeDiscount: cart.cartTotal,
+  total: displayTotal,
+  couponApplied: discount > 0 ? coupon : undefined,
+  userId: user._id,
+  payment: paymentInfo,
+}),
     });
 
     if (!res.ok) {
@@ -256,6 +310,8 @@ const placeOrderHandler = React.useCallback(async () => {
   user._id,
   router,
   isStripeSelected,
+  deliveryLoading,
+  deliveryError,
 ]);
 
   const showNewPrice =
@@ -263,12 +319,104 @@ const placeOrderHandler = React.useCallback(async () => {
     totalAfterDiscount > 0 &&
     totalAfterDiscount < cart.cartTotal;
 
-  const displayTotal = React.useMemo(() => {
+  const subtotalDisplay = React.useMemo(() => {
     const base = showNewPrice
       ? Number(totalAfterDiscount)
       : Number(cart.cartTotal);
     return Number.isFinite(base) ? base : 0;
   }, [showNewPrice, totalAfterDiscount, cart.cartTotal]);
+  const selectedCountryCode = (() => {
+  const address = selectedAddress as
+    | (Address & { countryCode?: string; country?: string })
+    | null
+    | undefined;
+
+  const directCode = String(address?.countryCode || "").trim().toUpperCase();
+  if (directCode) return directCode;
+
+  const countryName = String(address?.country || "").trim().toLowerCase();
+  if (!countryName) return "";
+
+  const matched = countries.find(
+    (entry) => String(entry.name || "").trim().toLowerCase() === countryName
+  );
+
+  return String(matched?.code || "").trim().toUpperCase();
+})();
+
+  React.useEffect(() => {
+    let isCancelled = false;
+
+    async function fetchDeliveryQuote() {
+      if (!selectedAddress) {
+        setDeliveryFee(0);
+        setDeliveryCurrency("USD");
+        setDeliveryEta("");
+        setDeliveryFreeShipping(false);
+        setDeliveryError("");
+        setDeliveryLoading(false);
+        return;
+      }
+
+      if (!selectedCountryCode) {
+        setDeliveryFee(0);
+        setDeliveryCurrency("USD");
+        setDeliveryEta("");
+        setDeliveryFreeShipping(false);
+        setDeliveryError("Selected address is missing country code.");
+        setDeliveryLoading(false);
+        return;
+      }
+
+      try {
+        setDeliveryLoading(true);
+        setDeliveryError("");
+
+        const res = await fetch(
+          `/api/delivery/quote?countryCode=${encodeURIComponent(selectedCountryCode)}&subtotal=${encodeURIComponent(String(subtotalDisplay))}`,
+          { method: "GET", cache: "no-store" }
+        );
+
+        const data = (await res.json()) as DeliveryQuoteResponse;
+
+        if (!res.ok || !data.ok || !data.delivery) {
+          throw new Error(data.message || "Delivery is not available for the selected country.");
+        }
+
+        if (isCancelled) return;
+
+        setDeliveryFee(Number(data.delivery.fee || 0));
+        setDeliveryCurrency(String(data.delivery.currency || "USD"));
+        setDeliveryEta(
+          data.preview?.eta || `${data.delivery.estimatedDaysMin}-${data.delivery.estimatedDaysMax}`
+        );
+        setDeliveryFreeShipping(Boolean(data.delivery.freeShippingApplied));
+      } catch (err) {
+        if (isCancelled) return;
+        setDeliveryFee(0);
+        setDeliveryCurrency("USD");
+        setDeliveryEta("");
+        setDeliveryFreeShipping(false);
+        setDeliveryError(
+          err instanceof Error
+            ? err.message
+            : "Delivery is not available for the selected country."
+        );
+      } finally {
+        if (!isCancelled) setDeliveryLoading(false);
+      }
+    }
+
+    void fetchDeliveryQuote();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedAddress, selectedCountryCode, subtotalDisplay]);
+
+  const displayTotal = React.useMemo(() => {
+    return Number((subtotalDisplay + deliveryFee).toFixed(2));
+  }, [subtotalDisplay, deliveryFee]);
 
   /* ----- Render ----- */
   return (
@@ -334,7 +482,7 @@ const placeOrderHandler = React.useCallback(async () => {
 
               <div className={styles.infos}>
                 <span>
-                  Total : <b>{Number(cart.cartTotal).toFixed(2)}$</b>
+                  Subtotal : <b>{Number(cart.cartTotal).toFixed(2)}$</b>
                 </span>
 
                 {discount > 0 && (
@@ -345,9 +493,23 @@ const placeOrderHandler = React.useCallback(async () => {
 
                 {showNewPrice && (
                   <span>
-                    New price : <b>{Number(totalAfterDiscount).toFixed(2)}$</b>
+                    Discounted subtotal : <b>{Number(totalAfterDiscount).toFixed(2)}$</b>
                   </span>
                 )}
+
+                <span>
+                  Shipping : <b>{deliveryLoading ? "Calculating…" : deliveryFreeShipping ? `Free (${deliveryCurrency})` : `${Number(deliveryFee).toFixed(2)} ${deliveryCurrency}`}</b>
+                </span>
+
+                {deliveryEta && (
+                  <span>
+                    Delivery ETA : <b>{deliveryEta} days</b>
+                  </span>
+                )}
+
+                <span>
+                  Final total : <b>{Number(displayTotal).toFixed(2)}$</b>
+                </span>
               </div>
             </Form>
           )}
@@ -357,14 +519,15 @@ const placeOrderHandler = React.useCallback(async () => {
       <button
         className={styles.submit_btn}
         onClick={placeOrderHandler}
-        disabled={posting}
-        aria-disabled={posting}
+        disabled={posting || deliveryLoading || Boolean(deliveryError)}
+        aria-disabled={posting || deliveryLoading || Boolean(deliveryError)}
         aria-label="Place order"
       >
-        {posting ? "Placing…" : "Place Order"}
+        {posting ? "Placing…" : deliveryLoading ? "Calculating shipping…" : "Place Order"}
       </button>
 
       {orderError && <span className={styles.error}>{orderError}</span>}
+      {deliveryError && !orderError && <span className={styles.error}>{deliveryError}</span>}
     </div>
   );
 }

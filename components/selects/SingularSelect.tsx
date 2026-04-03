@@ -7,7 +7,7 @@ import { TextField, MenuItem } from "@mui/material";
 import { ErrorMessage, useField } from "formik";
 import styles from "./styles.module.scss";
 
-type Option = { _id?: string; name: string };
+type Option = { _id?: string; name: string; code?: string };
 
 interface SingularSelectProps {
   name: string;
@@ -67,7 +67,7 @@ export default function SingularSelect({
         </MenuItem>
 
         {data.map((opt) => {
-          const v = opt._id ?? opt.name;
+          const v = opt.code ?? opt._id ?? opt.name;
           return (
             <MenuItem key={v} value={v}>
               {opt.name}

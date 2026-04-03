@@ -12,6 +12,7 @@ type Props = {
   total: number;
   selected: CartProduct[];
   saveCartToDbHandler: () => Promise<void> | void;
+  countryCode?: string;
 };
 
 export default function Checkout({
@@ -20,9 +21,58 @@ export default function Checkout({
   total,
   selected,
   saveCartToDbHandler,
+  countryCode,
 }: Props): React.JSX.Element {
   const [busy, setBusy] = React.useState(false);
-  const disabled = busy || selected.length === 0;
+
+  const [deliveryFee, setDeliveryFee] = React.useState<number>(shippingFee || 0);
+  const [deliveryEta, setDeliveryEta] = React.useState<string>("");
+  const [deliveryLoading, setDeliveryLoading] = React.useState(false);
+  const [deliveryError, setDeliveryError] = React.useState<string>("");
+
+  const disabled = busy || selected.length === 0 || deliveryLoading || Boolean(deliveryError);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function fetchDelivery() {
+      if (!countryCode) return;
+
+      try {
+        setDeliveryLoading(true);
+        setDeliveryError("");
+
+        const res = await fetch(
+          `/api/delivery/quote?countryCode=${encodeURIComponent(countryCode)}&subtotal=${encodeURIComponent(String(subtotal))}`,
+          { cache: "no-store" }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          throw new Error(data.message || "Delivery unavailable");
+        }
+
+        if (cancelled) return;
+
+        setDeliveryFee(Number(data.delivery.fee || 0));
+        setDeliveryEta(data.preview?.eta || "");
+      } catch (err) {
+        if (cancelled) return;
+        setDeliveryFee(0);
+        setDeliveryEta("");
+        setDeliveryError("Delivery not available for this country");
+      } finally {
+        if (!cancelled) setDeliveryLoading(false);
+      }
+    }
+
+    fetchDelivery();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [countryCode, subtotal]);
 
   const onContinue = React.useCallback(async () => {
     if (disabled) return;
@@ -52,13 +102,32 @@ export default function Checkout({
 
       <div className={styles.cart__checkout_line}>
         <span>Shipping</span>
-        <span>+{toMoney(shippingFee)}$</span>
+        <span>
+          {deliveryLoading
+            ? "Calculating..."
+            : deliveryError
+            ? "Unavailable"
+            : `+${toMoney(deliveryFee)}$`}
+        </span>
       </div>
+
+      {deliveryEta && (
+        <div className={styles.cart__checkout_line}>
+          <span>ETA</span>
+          <span>{deliveryEta} days</span>
+        </div>
+      )}
 
       <div className={styles.cart__checkout_total}>
         <span>Total</span>
-        <span>US{toMoney(total)}$</span>
+        <span>US{toMoney(subtotal + deliveryFee)}$</span>
       </div>
+
+      {deliveryError && (
+        <div style={{ color: "red", marginBottom: 8 }}>
+          {deliveryError}
+        </div>
+      )}
 
       <div className={styles.submit}>
         <button

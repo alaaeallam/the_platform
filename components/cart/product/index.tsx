@@ -321,9 +321,7 @@ const Product: React.FC<ProductProps> = ({
 
           {/* Shipping */}
           <div className={styles.product__shipping}>
-            {asNum(displayShipping) > 0
-              ? `+${displayShipping}$ Shipping fee`
-              : "Free Shipping"}
+            Shipping calculated at checkout
           </div>
 
           {/* Out of stock notice */}

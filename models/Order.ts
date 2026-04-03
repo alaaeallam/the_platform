@@ -28,12 +28,25 @@ export interface IShippingAddress {
   state: string;
   zipCode: string;
   country: string;
+  countryCode: string;
 }
 
 export interface IPaymentResult {
   id?: string;
   status?: string;
   email?: string;
+}
+
+export interface IDeliverySnapshot {
+  countryCode: string;
+  countryName: string;
+  fee: number;
+  currency: string;
+  freeShippingApplied: boolean;
+  freeShippingThreshold?: number | null;
+  estimatedDaysMin: number;
+  estimatedDaysMax: number;
+  ruleId: string;
 }
 
 export type OrderStatus =
@@ -54,6 +67,7 @@ export interface IOrder extends Document {
   totalBeforeDiscount?: number;
   couponApplied?: string;
   shippingPrice: number;
+  delivery: IDeliverySnapshot;
   taxPrice: number;
 
   isPaid: boolean;
@@ -99,6 +113,7 @@ const ShippingAddressSchema = new Schema<IShippingAddress>(
     state: { type: String, required: true },
     zipCode: { type: String, required: true },
     country: { type: String, required: true },
+    countryCode: { type: String, required: true, uppercase: true, trim: true },
   },
   { _id: false }
 );
@@ -108,6 +123,21 @@ const PaymentResultSchema = new Schema<IPaymentResult>(
     id: String,
     status: String,
     email: String,
+  },
+  { _id: false }
+);
+
+const DeliverySnapshotSchema = new Schema<IDeliverySnapshot>(
+  {
+    countryCode: { type: String, required: true },
+    countryName: { type: String, required: true },
+    fee: { type: Number, required: true, min: 0 },
+    currency: { type: String, required: true },
+    freeShippingApplied: { type: Boolean, required: true, default: false },
+    freeShippingThreshold: { type: Number, default: null },
+    estimatedDaysMin: { type: Number, required: true, min: 0 },
+    estimatedDaysMax: { type: Number, required: true, min: 0 },
+    ruleId: { type: String, required: true },
   },
   { _id: false }
 );
@@ -126,6 +156,7 @@ const OrderSchema = new Schema<IOrder>(
     totalBeforeDiscount: { type: Number },
     couponApplied: { type: String },
     shippingPrice: { type: Number, required: true, default: 0 },
+    delivery: { type: DeliverySnapshotSchema, required: true },
     taxPrice: { type: Number, default: 0 },
 
     isPaid: { type: Boolean, default: false },
@@ -153,6 +184,7 @@ export type IOrderCreate = {
   totalBeforeDiscount?: number;
   couponApplied?: string;
   shippingPrice: number;
+  delivery: IDeliverySnapshot;
   taxPrice: number;
   isPaid: boolean;
   status: OrderStatus;

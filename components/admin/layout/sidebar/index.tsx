@@ -30,6 +30,7 @@ import {
   RiLogoutCircleFill,
   RiSettingsLine,
 } from "react-icons/ri";
+import { MdLocalShipping } from "react-icons/md";
 
 export default function Sidebar(): React.JSX.Element {
   const pathname = usePathname(); // e.g. /admin/dashboard/orders
@@ -206,6 +207,21 @@ export default function Sidebar(): React.JSX.Element {
               <Link href="/admin/dashboard/banners">
                 <MdCollections size={22} />
                 <span className={styles.show}>Banners</span>
+              </Link>
+            </li>
+          </ul>
+        </div>
+        {/* Delivery */}
+        <div className={styles.sidebar__dropdown}>
+          <div className={styles.sidebar__dropdown_heading}>
+            <div className={styles.show}>Delivery</div>
+          </div>
+
+          <ul className={styles.sidebar__list}>
+            <li className={isActive("delivery") ? styles.active : ""}>
+              <Link href="/admin/dashboard/delivery">
+                <MdLocalShipping size={22} />
+                <span className={styles.show}>Delivery</span>
               </Link>
             </li>
           </ul>

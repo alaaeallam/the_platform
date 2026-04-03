@@ -51,6 +51,16 @@ export type OrderView = {
   totalBeforeDiscount?: number;
   couponApplied?: string;
   shippingPrice: number;
+  delivery?: {
+    fee?: number;
+    currency?: string;
+    freeShippingApplied?: boolean;
+    estimatedDaysMin?: number;
+    estimatedDaysMax?: number;
+    countryCode?: string;
+    countryName?: string;
+    ruleId?: string;
+  };
   taxPrice: number;
   isPaid: boolean;
   status:
@@ -192,6 +202,23 @@ export default function OrderClient({
     ? Number(order.totalBeforeDiscount)
     : undefined,
   couponApplied: order.couponApplied ?? undefined,
+  shippingPrice: Number.isFinite(Number(order.shippingPrice)) ? Number(order.shippingPrice) : 0,
+  delivery: order.delivery
+    ? {
+        fee: Number.isFinite(Number(order.delivery.fee)) ? Number(order.delivery.fee) : 0,
+        currency: typeof order.delivery.currency === "string" ? order.delivery.currency : "USD",
+        freeShippingApplied: Boolean(order.delivery.freeShippingApplied),
+        estimatedDaysMin: Number.isFinite(Number(order.delivery.estimatedDaysMin))
+          ? Number(order.delivery.estimatedDaysMin)
+          : undefined,
+        estimatedDaysMax: Number.isFinite(Number(order.delivery.estimatedDaysMax))
+          ? Number(order.delivery.estimatedDaysMax)
+          : undefined,
+        countryCode: typeof order.delivery.countryCode === "string" ? order.delivery.countryCode : undefined,
+        countryName: typeof order.delivery.countryName === "string" ? order.delivery.countryName : undefined,
+        ruleId: typeof order.delivery.ruleId === "string" ? order.delivery.ruleId : undefined,
+      }
+    : undefined,
   taxPrice: Number.isFinite(Number(order.taxPrice)) ? Number(order.taxPrice) : 0,
 } as OrderView;
 
@@ -203,9 +230,12 @@ const statusClass =
     : norm.status === "Completed" ? styles.completed
     : "";
     const totalSafe = Number(norm.total ?? 0);
+    const shippingSafe = Number(norm.shippingPrice ?? norm.delivery?.fee ?? 0);
     const taxSafe = Number(norm.taxPrice ?? 0);
-    const tbdSafe = Number(norm.totalBeforeDiscount ?? totalSafe);
-    const couponDelta = Number((tbdSafe - totalSafe).toFixed(2));
+    const tbdSafe = Number(norm.totalBeforeDiscount ?? Math.max(0, totalSafe - shippingSafe - taxSafe));
+    const couponDelta = Number((tbdSafe + shippingSafe + taxSafe - totalSafe).toFixed(2));
+    const finalSubtotalSafe = Number(Math.max(0, totalSafe - shippingSafe - taxSafe).toFixed(2));
+    const shippingCurrency = String(norm.delivery?.currency || "USD").trim().toUpperCase() || "USD";
   return (
     <div className={styles.order}>
       <div className={styles.container}>
@@ -292,39 +322,55 @@ const statusClass =
   );
 })}
             <div className={styles.order__products_total}>
-              {order.couponApplied ? (
-  <>
-    <div className={styles.order__products_total_sub}>
-      <span>Subtotal</span>
-      <span>{tbdSafe.toFixed(2)}$</span>
-    </div>
-    <div className={styles.order__products_total_sub}>
-      <span>
-        Coupon Applied <em>({order.couponApplied})</em>
-      </span>
-      <span>-{couponDelta.toFixed(2)}$</span>
-    </div>
-    <div className={styles.order__products_total_sub}>
-      <span>Tax price</span>
-      <span>+{taxSafe.toFixed(2)}$</span>
-    </div>
-    <div className={`${styles.order__products_total_sub} ${styles.bordertop}`}>
-      <span>TOTAL TO PAY</span>
-      <b>{totalSafe.toFixed(2)}$</b>
-    </div>
-  </>
-) : (
-  <>
-    <div className={styles.order__products_total_sub}>
-      <span>Tax price</span>
-      <span>+{taxSafe.toFixed(2)}$</span>
-    </div>
-    <div className={`${styles.order__products_total_sub} ${styles.bordertop}`}>
-      <span>TOTAL TO PAY</span>
-      <b>{totalSafe.toFixed(2)}$</b>
-    </div>
-  </>
-)}
+              <>
+                <div className={styles.order__products_total_sub}>
+                  <span>Subtotal</span>
+                  <span>{finalSubtotalSafe.toFixed(2)}$</span>
+                </div>
+
+                {!!order.couponApplied && couponDelta > 0 && (
+                  <div className={styles.order__products_total_sub}>
+                    <span>
+                      Coupon Applied <em>({order.couponApplied})</em>
+                    </span>
+                    <span>-{couponDelta.toFixed(2)}$</span>
+                  </div>
+                )}
+
+                <div className={styles.order__products_total_sub}>
+                  <span>Shipping</span>
+                  <span>
+                    {shippingSafe <= 0
+                      ? `Free (${shippingCurrency})`
+                      : `${shippingSafe.toFixed(2)} ${shippingCurrency}`}
+                  </span>
+                </div>
+
+                <div className={styles.order__products_total_sub}>
+                  <span>Tax price</span>
+                  <span>+{taxSafe.toFixed(2)}$</span>
+                </div>
+
+                <div className={`${styles.order__products_total_sub} ${styles.bordertop}`}>
+                  <span>FINAL TOTAL</span>
+                  <b>{totalSafe.toFixed(2)}$</b>
+                </div>
+              </>
+              <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  onClick={() => (window.location.href = "/")}
+                  style={{
+                    padding: "12px 18px",
+                    borderRadius: "8px",
+                    border: "1px solid #ccc",
+                    background: "#fff",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  Continue Shopping
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -35,7 +35,8 @@ export interface Address {
   zipCode: string;
   address1: string;
   address2?: string;
-  country: string;
+  country: string;       // display name
+  countryCode?: string;   // ISO code
   active?: boolean;
 }
 
@@ -78,6 +79,7 @@ const emptyForm: Omit<Address, "_id"> = {
   address1: "",
   address2: "",
   country: "",
+  countryCode: "",
 };
 
 export default function Shipping({
@@ -101,9 +103,15 @@ export default function Shipping({
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCountryChange = (value: string) => {
-    setForm((prev) => ({ ...prev, country: value || "" }));
-  };
+  const handleCountryChange = (code: string) => {
+  const selected = countries.find((c) => c.code === code);
+
+  setForm((prev) => ({
+    ...prev,
+    countryCode: code || "",
+    country: selected?.name || "",
+  }));
+};
 
   const saveShippingHandler = async (): Promise<void> => {
     const res = await saveAddress(form);
@@ -242,10 +250,10 @@ export default function Shipping({
             <Form>
               <SingularSelect
                 name="country"
-                value={form.country}
+                value={form.countryCode || ""}
                 placeholder="*Country"
                 handleChange={handleCountryChange}
-                data={countries as Array<{ _id?: string; name: string }>}
+                data={countries as Array<{ _id?: string; name: string; code?: string }>}
               />
 
               <div className={styles.col}>

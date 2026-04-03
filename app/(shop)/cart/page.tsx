@@ -272,14 +272,15 @@ export default function CartPage(): React.JSX.Element {
 />
       ))}
     </div>
-            <Checkout
+
+          <Checkout
             subtotal={subtotal}
             shippingFee={shippingFee}
             total={total}
             selected={selected}
             saveCartToDbHandler={saveCartToDbHandler}
+            countryCode={COUNTRY}
           />
-
           <PaymentMethods />
         </div>
       ) : (
