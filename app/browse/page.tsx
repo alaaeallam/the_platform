@@ -11,6 +11,7 @@ import { filterArray, randomize, removeDuplicates } from "@/utils/arrays_utils";
 import { Types } from "mongoose";
 
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -244,12 +245,44 @@ const sortSpec = ((): SortSpec => {
 
   const paginationCount = Math.ceil(totalProducts / pageSize);
 
-  const country = {
-    code: "MA",
-    name: "Morocco",
-    flagEmoji: "🇲🇦",
-    flagUrl: "https://cdn-icons-png.flaticon.com/512/197/197551.png?w=360",
+  const h = await headers();
+  const countryCode = (
+    h.get("x-vercel-ip-country") ||
+    h.get("cf-ipcountry") ||
+    process.env.GEO_OVERRIDE ||
+    "US"
+  ).toUpperCase();
+
+  const countryMap: Record<
+    string,
+    {
+      code: string;
+      name: string;
+      flagEmoji: string;
+      flagUrl: string;
+    }
+  > = {
+    EG: {
+      code: "EG",
+      name: "Egypt",
+      flagEmoji: "🇪🇬",
+      flagUrl: "https://cdn-icons-png.flaticon.com/512/197/197604.png?w=360",
+    },
+    MA: {
+      code: "MA",
+      name: "Morocco",
+      flagEmoji: "🇲🇦",
+      flagUrl: "https://cdn-icons-png.flaticon.com/512/197/197551.png?w=360",
+    },
+    US: {
+      code: "US",
+      name: "United States",
+      flagEmoji: "🇺🇸",
+      flagUrl: "https://cdn-icons-png.flaticon.com/512/197/197484.png?w=360",
+    },
   };
+
+  const country = countryMap[countryCode] ?? countryMap.US;
 
   // ------------------------ Render (server) ------------------------
   // Keep markup lean; Header + all interactivity live in the client.
