@@ -184,10 +184,7 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
           )}
         </div>
 
-        <span className={styles.infos__shipping}>
-          {product.shipping ? `+${product.shipping}$ Shipping fee` : "Free Shipping"}
-        </span>
-
+     
         <span>
           {!Number.isNaN(sizeIndex) ? product.quantity : totalPiecesAvailable} pieces available.
         </span>
