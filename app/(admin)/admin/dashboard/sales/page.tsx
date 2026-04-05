@@ -1,15 +1,13 @@
 // app/admin/dashboard/sales/page.tsx
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import type { PipelineStage } from "mongoose";
 import { connectDb } from "@/utils/db";
 import Order from "@/models/Order";
 
 type RangeKey = "all" | "7d" | "30d" | "90d" | "365d";
 
-type SearchParamsInput =
-  | { range?: string }
-  | Promise<{ range?: string }>
-  | undefined;
+type SearchParamsInput = Promise<{ range?: string }> | undefined;
 
 const RANGE_OPTIONS: Array<{ key: RangeKey; label: string }> = [
   { key: "all", label: "All Time" },
@@ -18,6 +16,41 @@ const RANGE_OPTIONS: Array<{ key: RangeKey; label: string }> = [
   { key: "90d", label: "90 Days" },
   { key: "365d", label: "12 Months" },
 ];
+
+type StatusRow = {
+  _id: string | null;
+  count: number;
+};
+
+type TopProductRow = {
+  _id: string | null;
+  name?: string;
+  image?: string;
+  unitsSold: number;
+  revenue: number;
+};
+
+type RecentOrderRow = {
+  _id: unknown;
+  status?: string;
+  paymentMethod?: string;
+  total?: number;
+  createdAt?: Date | string;
+  shippingAddress?: {
+    firstName?: string;
+    lastName?: string;
+  };
+};
+
+type TrendRow = {
+  _id: {
+    year: number;
+    month: number;
+    day?: number;
+  };
+  revenue: number;
+  orders: number;
+};
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -37,7 +70,7 @@ function formatDate(value?: Date | string) {
   }).format(new Date(value));
 }
 
-function getCustomerName(order: any) {
+function getCustomerName(order: RecentOrderRow) {
   const first = order?.shippingAddress?.firstName?.trim?.() || "";
   const last = order?.shippingAddress?.lastName?.trim?.() || "";
   const full = `${first} ${last}`.trim();
@@ -133,7 +166,7 @@ function getFilterChipStyle(isActive: boolean): CSSProperties {
 export const dynamic = "force-dynamic";
 
 type SalesPageProps = {
-  searchParams?: SearchParamsInput;
+  searchParams?: Promise<{ range?: string }>;
 };
 
 export default async function SalesPage({ searchParams }: SalesPageProps) {
@@ -152,32 +185,36 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       }
     : {};
 
-  const trendGroupStage: Record<string, unknown> =
+  const trendPipeline: PipelineStage[] = [
+    ...(startDate ? ([{ $match: matchStage }] as PipelineStage[]) : []),
     granularity === "day"
       ? {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
-            day: { $dayOfMonth: "$createdAt" },
+          $group: {
+            _id: {
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+              day: { $dayOfMonth: "$createdAt" },
+            },
+            revenue: { $sum: { $ifNull: ["$total", 0] } },
+            orders: { $sum: 1 },
           },
-          revenue: { $sum: { $ifNull: ["$total", 0] } },
-          orders: { $sum: 1 },
         }
       : {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
+          $group: {
+            _id: {
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+            },
+            revenue: { $sum: { $ifNull: ["$total", 0] } },
+            orders: { $sum: 1 },
           },
-          revenue: { $sum: { $ifNull: ["$total", 0] } },
-          orders: { $sum: 1 },
-        };
-
-  const trendSortStage: Record<string, 1 | -1> =
+        },
     granularity === "day"
-      ? { "_id.year": 1, "_id.month": 1, "_id.day": 1 }
-      : { "_id.year": 1, "_id.month": 1 };
+      ? { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+      : { $sort: { "_id.year": 1, "_id.month": 1 } },
+  ];
 
-  const [statsRes, statusRows, topProducts, recentOrders, trendRows] = await Promise.all([
+  const [statsRes, rawStatusRows, rawTopProducts, rawRecentOrders, rawTrendRows] = await Promise.all([
     Order.aggregate([
       ...(startDate ? [{ $match: matchStage }] : []),
       {
@@ -222,13 +259,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
       .sort({ createdAt: -1 })
       .limit(5)
       .lean(),
-    Order.aggregate([
-      ...(startDate ? [{ $match: matchStage }] : []),
-      {
-        $group: trendGroupStage as any,
-      },
-      { $sort: trendSortStage },
-    ]),
+    Order.aggregate(trendPipeline),
   ]);
 
   const stats = statsRes?.[0] || {
@@ -237,6 +268,32 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
     avgOrderValue: 0,
     paidOrders: 0,
   };
+
+  const statusRows = (rawStatusRows || []) as StatusRow[];
+  const topProducts = (rawTopProducts || []) as TopProductRow[];
+  const recentOrders = ((rawRecentOrders || []) as unknown[]).map((order) => {
+    const item = order as {
+      _id?: unknown;
+      status?: string;
+      paymentMethod?: string;
+      total?: number;
+      createdAt?: Date | string;
+      shippingAddress?: {
+        firstName?: string;
+        lastName?: string;
+      };
+    };
+
+    return {
+      _id: item._id,
+      status: item.status,
+      paymentMethod: item.paymentMethod,
+      total: item.total,
+      createdAt: item.createdAt,
+      shippingAddress: item.shippingAddress,
+    } satisfies RecentOrderRow;
+  });
+  const trendRows = (rawTrendRows || []) as TrendRow[];
 
   const statusMap: Record<string, number> = {};
   for (const s of statusRows || []) {
@@ -267,7 +324,7 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
   ];
 
   const trendData = buildTrendBars(
-    (trendRows || []).slice(-8).map((row: any) => ({
+    trendRows.slice(-8).map((row) => ({
       label:
         granularity === "day"
           ? `${row._id.year}-${String(row._id.month).padStart(2, "0")}-${String(row._id.day).padStart(2, "0")}`
@@ -481,10 +538,22 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
           <p style={{ margin: "6px 0 18px", fontSize: 14, color: "#64748b" }}>Best-selling items.</p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {topProducts.map((p: any) => (
-              <div key={String(p._id)} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", padding: 12, borderRadius: 12, border: "1px solid #e2e8f0" }}>
+            {topProducts.map((p, index) => (
+              <div key={String(p._id ?? p.name ?? index)} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", padding: 12, borderRadius: 12, border: "1px solid #e2e8f0" }}>
                 {p.image ? (
-                  <img src={p.image} alt={p.name || "Product"} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 10 }} />
+                  <div
+                    aria-label={p.name || "Product"}
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 10,
+                      backgroundColor: "#e2e8f0",
+                      backgroundImage: `url(${p.image})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      backgroundRepeat: "no-repeat",
+                    }}
+                  />
                 ) : (
                   <div style={{ width: 48, height: 48, borderRadius: 10, background: "#e2e8f0" }} />
                 )}
@@ -513,13 +582,13 @@ export default async function SalesPage({ searchParams }: SalesPageProps) {
               </tr>
             </thead>
             <tbody>
-              {recentOrders.map((o: any) => (
+              {recentOrders.map((o) => (
                 <tr key={String(o._id)}>
-                  <td style={{ padding: "10px 0", borderTop: "1px solid #f1f5f9" }}>#{String(o._id).slice(-6)}</td>
+                  <td style={{ padding: "10px 0", borderTop: "1px solid #f1f5f9" }}>#{String(o._id ?? "").slice(-6)}</td>
                   <td style={{ padding: "10px 0", borderTop: "1px solid #f1f5f9" }}>{getCustomerName(o)}</td>
                   <td style={{ padding: "10px 0", borderTop: "1px solid #f1f5f9" }}>{o.status}</td>
                   <td style={{ padding: "10px 0", borderTop: "1px solid #f1f5f9" }}>{o.paymentMethod}</td>
-                  <td style={{ padding: "10px 0", borderTop: "1px solid #f1f5f9", fontWeight: 700 }}>{formatCurrency(o.total)}</td>
+                  <td style={{ padding: "10px 0", borderTop: "1px solid #f1f5f9", fontWeight: 700 }}>{formatCurrency(o.total ?? 0)}</td>
                   <td style={{ padding: "10px 0", borderTop: "1px solid #f1f5f9" }}>{formatDate(o.createdAt)}</td>
                 </tr>
               ))}
