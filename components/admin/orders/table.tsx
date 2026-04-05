@@ -1,10 +1,8 @@
-// components/admin/orders/table.tsx
 "use client";
 
 import * as React from "react";
 import Image from "next/image";
 import Box from "@mui/material/Box";
-import Avatar from "@mui/material/Avatar";
 import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import Table from "@mui/material/Table";
@@ -15,7 +13,6 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
-
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -30,6 +27,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import styles from "./styles.module.scss";
 import type { AdminOrderVM } from "@/types/admin/orders";
+
 /* ---------- Types ---------- */
 
 export type OrderStatus =
@@ -40,13 +38,13 @@ export type OrderStatus =
   | "Completed";
 
 export type PaymentMethod = "paypal" | "credit_card" | "cod" | string;
+export type PaymentStatus = "paid" | "unpaid";
 
 export interface AdminUserVM {
   _id: string;
   name?: string | null;
   email?: string | null;
   image?: string | null;
-  /** Some legacy data might use `id` instead of `_id` */
   id?: string;
 }
 
@@ -71,8 +69,6 @@ export interface OrderLineItem {
   price?: number;
 }
 
-
-
 /* ---------- Helpers ---------- */
 
 const PAYMENT_LABEL: Record<string, string> = {
@@ -89,9 +85,9 @@ const PAYMENT_LABEL: Record<string, string> = {
 function formatPaymentLabel(method: string | null | undefined): string {
   if (!method) return "-";
   const key = String(method).toLowerCase();
-  // show mapped label, otherwise show the raw key uppercased
   return PAYMENT_LABEL[key] ?? key.toUpperCase();
 }
+
 /* ---------- Row ---------- */
 
 type RowProps = { row: AdminOrderVM };
@@ -104,7 +100,11 @@ function Row({ row }: RowProps): React.JSX.Element {
   );
   const [isSavingStatus, setIsSavingStatus] = React.useState(false);
 
-  const userId = row.user?._id ?? row.user?.id ?? "";
+  const [paymentStatus, setPaymentStatus] = React.useState<PaymentStatus>(
+    row.isPaid ? "paid" : "unpaid"
+  );
+  const [isSavingPayment, setIsSavingPayment] = React.useState(false);
+
   const verifiedIcon = "/images/verified.png";
   const unverifiedIcon = "/images/unverified.png";
 
@@ -148,6 +148,10 @@ function Row({ row }: RowProps): React.JSX.Element {
     setStatus((row.status as OrderStatus) ?? "Not Processed");
   }, [row.status]);
 
+  React.useEffect(() => {
+    setPaymentStatus(row.isPaid ? "paid" : "unpaid");
+  }, [row.isPaid]);
+
   async function handleStatusChange(event: SelectChangeEvent<OrderStatus>) {
     const nextStatus = event.target.value as OrderStatus;
     const previousStatus = status;
@@ -183,6 +187,46 @@ function Row({ row }: RowProps): React.JSX.Element {
       setIsSavingStatus(false);
     }
   }
+
+  async function handlePaymentStatusChange(
+    event: SelectChangeEvent<PaymentStatus>
+  ) {
+    const nextPaymentStatus = event.target.value as PaymentStatus;
+    const previousPaymentStatus = paymentStatus;
+
+    setPaymentStatus(nextPaymentStatus);
+    setIsSavingPayment(true);
+
+    try {
+      const response = await fetch(`/api/admin/orders/${row._id}/payment`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ paymentStatus: nextPaymentStatus }),
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { message?: string; isPaid?: boolean }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to update payment status.");
+      }
+
+      setPaymentStatus(data?.isPaid ? "paid" : "unpaid");
+      toast.success("Payment status updated successfully.");
+    } catch (error) {
+      setPaymentStatus(previousPaymentStatus);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update payment status."
+      );
+    } finally {
+      setIsSavingPayment(false);
+    }
+  }
+
+  const isPaidNow = paymentStatus === "paid";
 
   return (
     <React.Fragment>
@@ -230,9 +274,9 @@ function Row({ row }: RowProps): React.JSX.Element {
           </Typography>
         </TableCell>
 
-        <TableCell sx={{ minWidth: 110 }}>
+        <TableCell sx={{ minWidth: 140 }}>
           <Stack direction="row" spacing={1} alignItems="center">
-            {row.isPaid ? (
+            {isPaidNow ? (
               <Image
                 src={verifiedIcon}
                 alt="Paid"
@@ -252,8 +296,9 @@ function Row({ row }: RowProps): React.JSX.Element {
               />
             )}
             <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
-              {row.isPaid ? "Paid" : "Unpaid"}
+              {isPaidNow ? "Paid" : "Unpaid"}
             </Typography>
+            {isSavingPayment ? <CircularProgress size={16} /> : null}
           </Stack>
         </TableCell>
 
@@ -324,7 +369,7 @@ function Row({ row }: RowProps): React.JSX.Element {
                     Order details
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Review customer info, update order status, and inspect purchased items.
+                    Review customer info, update order status, payment status, and inspect purchased items.
                   </Typography>
                 </Box>
 
@@ -384,6 +429,41 @@ function Row({ row }: RowProps): React.JSX.Element {
                         sx={{ fontWeight: 600 }}
                       />
                       {isSavingStatus ? (
+                        <Typography variant="caption" color="text.secondary">
+                          Saving...
+                        </Typography>
+                      ) : null}
+                    </Stack>
+                  </Paper>
+
+                  <Paper
+                    variant="outlined"
+                    sx={{ p: 2, borderRadius: 2, boxShadow: "none" }}
+                  >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+                      Payment status
+                    </Typography>
+
+                    <FormControl fullWidth size="small" disabled={isSavingPayment}>
+                      <Select<PaymentStatus>
+                        value={paymentStatus}
+                        onChange={handlePaymentStatusChange}
+                        displayEmpty
+                      >
+                        <MenuItem value="paid">Paid</MenuItem>
+                        <MenuItem value="unpaid">Unpaid</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.5 }}>
+                      <Chip
+                        size="small"
+                        label={isPaidNow ? "Paid" : "Unpaid"}
+                        color={isPaidNow ? "success" : "error"}
+                        variant={isPaidNow ? "filled" : "outlined"}
+                        sx={{ fontWeight: 600 }}
+                      />
+                      {isSavingPayment ? (
                         <Typography variant="caption" color="text.secondary">
                           Saving...
                         </Typography>
@@ -510,10 +590,10 @@ type CollapsibleTableProps = {
   rows: AdminOrderVM[];
 };
 
-export  function CollapsibleTable({
+export function CollapsibleTable({
   rows,
 }: CollapsibleTableProps): React.JSX.Element {
-    const [statusFilter, setStatusFilter] = React.useState<"all" | OrderStatus>("all");
+  const [statusFilter, setStatusFilter] = React.useState<"all" | OrderStatus>("all");
   const [paidFilter, setPaidFilter] = React.useState<"all" | "paid" | "unpaid">("all");
   const [couponFilter, setCouponFilter] = React.useState<"all" | "applied" | "none">("all");
 
@@ -542,6 +622,7 @@ export  function CollapsibleTable({
       return matchesStatus && matchesPaid && matchesCoupon;
     });
   }, [rows, statusFilter, paidFilter, couponFilter]);
+
   return (
     <TableContainer
       component={Paper}
@@ -551,7 +632,7 @@ export  function CollapsibleTable({
         boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
       }}
     >
-           <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+      <Box sx={{ px: 2, pt: 2, pb: 1 }}>
         <Typography
           sx={{ flex: "1 1 100%", fontWeight: 700 }}
           variant="h5"
@@ -665,7 +746,8 @@ export  function CollapsibleTable({
             <TableCell align="right">Total</TableCell>
           </TableRow>
         </TableHead>
-                <TableBody>
+
+        <TableBody>
           {filteredRows.length ? (
             filteredRows.map((row) => <Row key={row._id} row={row} />)
           ) : (
