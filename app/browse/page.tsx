@@ -37,6 +37,26 @@ function normalizeCategoryValue(value: string) {
 
 type SortSpec = Record<string, 1 | -1>;
 
+type BrowseCategoryDoc = {
+  _id: unknown;
+  name?: string;
+  slug?: string;
+  image?: string;
+};
+
+type BrowseSubCategoryParentDoc = {
+  _id: unknown;
+  name?: string;
+  slug?: string;
+};
+
+type BrowseSubCategoryDoc = {
+  _id: unknown;
+  name?: string;
+  slug?: string;
+  parent?: BrowseSubCategoryParentDoc | null;
+};
+
 export default async function BrowsePage({ searchParams }: PageProps) {
   const sp = await searchParams;
 
@@ -244,6 +264,26 @@ const sortSpec = ((): SortSpec => {
 
   const products = sortQuery ? productsDb : randomize(productsDb);
 
+  const safeCategories = categories.map((c: BrowseCategoryDoc) => ({
+    _id: String(c._id),
+    name: c.name ?? "",
+    slug: c.slug ?? "",
+    image: c.image ?? "",
+  }));
+
+  const safeSubCategories = subCategories.map((s: BrowseSubCategoryDoc) => ({
+    _id: String(s._id),
+    name: s.name ?? "",
+    slug: s.slug ?? "",
+    parent: s.parent
+      ? {
+          _id: String(s.parent._id),
+          name: s.parent.name ?? "",
+          slug: s.parent.slug ?? "",
+        }
+      : null,
+  }));
+
   const facetBaseFilter = {
     ...category,
     ...invalidCategoryFilter,
@@ -311,8 +351,8 @@ const sortSpec = ((): SortSpec => {
     <div className={cls.browse}>
       <BrowseClient
         initial={{
-          categories: JSON.parse(JSON.stringify(categories)),
-          subCategories: JSON.parse(JSON.stringify(subCategories)),
+          categories: safeCategories,
+          subCategories: safeSubCategories,
           products: JSON.parse(JSON.stringify(products)),
           sizes,
           colors,
