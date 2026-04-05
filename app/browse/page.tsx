@@ -179,45 +179,78 @@ const sortSpec = ((): SortSpec => {
 
   const invalidCategoryFilter =
     categoryQueryRaw && !resolvedCategoryId ? { _id: { $in: [] } } : {};
-
   let query = Product.find({
-    ...search,
-    ...category,
-    ...brand,
-    ...style,
-    ...size,
-    ...color,
-    ...pattern,
-    ...material,
-    ...gender,
-    ...price,
-    ...shipping,
-    ...rating,
-    ...invalidCategoryFilter,
-  })
-    .skip(pageSize * (page - 1))
-    .limit(pageSize);
+  ...search,
+  ...category,
+  ...brand,
+  ...style,
+  ...size,
+  ...color,
+  ...pattern,
+  ...material,
+  ...gender,
+  ...price,
+  ...shipping,
+  ...rating,
+  ...invalidCategoryFilter,
+})
+.select([
+  "_id",
+  "slug",
+  "name",
+  "subProducts.images",
+  "subProducts.discount",
+  "subProducts.color.image",
+  "subProducts.color.color",
+  "subProducts.sizes.price",
+  "subProducts.sizes.basePrice",
+  "subProducts.sizes.discount",
+].join(" "))
+.skip(pageSize * (page - 1))
+.limit(pageSize);
 
   if (Object.keys(sortSpec).length) {
     query = query.sort(sortSpec);
   }
 
-  const productsDb = await query.lean();
+  const [productsDb, categories, subCategories, totalProducts] =
+    await Promise.all([
+      query.lean(),
+      Category.find().select("_id name slug image").lean(),
+      SubCategory.find()
+        .select("_id name slug parent")
+        .populate({ path: "parent", model: Category, select: "_id name slug" })
+        .lean(),
+      Product.countDocuments({
+        ...search,
+        ...category,
+        ...brand,
+        ...style,
+        ...size,
+        ...color,
+        ...pattern,
+        ...material,
+        ...gender,
+        ...price,
+        ...shipping,
+        ...rating,
+        ...invalidCategoryFilter,
+      }),
+    ]);
 
   const products = sortQuery ? productsDb : randomize(productsDb);
-  const categories = await Category.find().lean();
-  const subCategories = await SubCategory.find()
-    .populate({ path: "parent", model: Category })
-    .lean();
 
-  const colors = (await Product.find({ ...category, ...invalidCategoryFilter }).distinct(
-    "subProducts.color.color"
-  )) as string[];
-  const brandsDb = (await Product.find({ ...category, ...invalidCategoryFilter }).distinct("brand")) as string[];
-  const sizes = (await Product.find({ ...category, ...invalidCategoryFilter }).distinct(
-    "subProducts.sizes.size"
-  )) as string[];
-  const details = await Product.find({ ...category, ...invalidCategoryFilter }).distinct("details");
+const facetBaseFilter = {
+  ...category,
+  ...invalidCategoryFilter,
+};
+
+  const [colors, brandsDb, sizes, details] = await Promise.all([
+    Product.distinct("subProducts.color.color", facetBaseFilter) as Promise<string[]>,
+    Product.distinct("brand", facetBaseFilter) as Promise<string[]>,
+    Product.distinct("subProducts.sizes.size", facetBaseFilter) as Promise<string[]>,
+    Product.distinct("details", facetBaseFilter),
+  ]);
   const stylesDb = filterArray(details, "Style");
   const patternsDb = filterArray(details, "Pattern Type");
   const materialsDb = filterArray(details, "Material");
@@ -226,22 +259,6 @@ const sortSpec = ((): SortSpec => {
   const patterns = removeDuplicates(patternsDb);
   const materials = removeDuplicates(materialsDb);
   const brands = removeDuplicates(brandsDb);
-
-  const totalProducts = await Product.countDocuments({
-    ...search,
-    ...category,
-    ...brand,
-    ...style,
-    ...size,
-    ...color,
-    ...pattern,
-    ...material,
-    ...gender,
-    ...price,
-    ...shipping,
-    ...rating,
-    ...invalidCategoryFilter,
-  });
 
   const paginationCount = Math.ceil(totalProducts / pageSize);
 
