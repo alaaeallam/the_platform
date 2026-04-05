@@ -1,9 +1,8 @@
 // app/api/products/route.ts
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
+export const revalidate = 60;
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongodb";
+import { connectDb } from "@/utils/db";
 import Product from "@/models/Product";
 
 type PriceCountry = {
@@ -85,7 +84,7 @@ function getFirstDiscount(product: LeanProduct): number {
 
 export async function GET() {
   try {
-    await dbConnect();
+    await connectDb();
 
     const rawProducts = await Product.find({})
       .sort({ createdAt: -1 })

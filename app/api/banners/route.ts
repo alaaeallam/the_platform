@@ -1,12 +1,11 @@
 // app/api/banners/route.ts
 import { NextResponse } from "next/server";
-import { unstable_noStore as noStore } from "next/cache";
+
 import { getHeroBanners } from "@/lib/banners";
 
-export const dynamic = "force-dynamic";
-
+export const revalidate = 60;
 export async function GET(req: Request) {
-  noStore();
+  
   const { searchParams } = new URL(req.url);
   const placement = searchParams.get("placement") || "home-hero";
   const locale = searchParams.get("locale") || undefined;

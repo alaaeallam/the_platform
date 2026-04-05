@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import Category from "@/models/Category";
 import { connectDb } from "@/utils/db";
-
+export const revalidate = 60;
 type CategoryLean = {
   _id: unknown;
   name?: string;

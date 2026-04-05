@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDb } from "@/utils/db";
 import Coupon from "@/models/Coupon";
-
+export const revalidate = 60;
 type CouponDoc = {
   coupon?: string | null;
   code?: string | null;
