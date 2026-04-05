@@ -40,10 +40,10 @@ export default function Links() {
         <ul key={section.heading || i}>
           <li>
             {i === 0 ? (
-              // put silhouett.jpg in /public and use an absolute path
+              // put logo.jpg in /public and use an absolute path
               <Image
-                src="/silhouett.jpg"
-                alt="Silhouett"
+                src="/berwaz.jpg"
+                alt="Berwaz logo"
                 width={120}
                 height={32}
                 className={styles.logo}
