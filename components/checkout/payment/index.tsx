@@ -1,5 +1,3 @@
-
-//components/checkout/payment/index.tsx
 "use client";
 
 import * as React from "react";
@@ -9,10 +7,10 @@ import type { PaymentMethod } from "@/types/checkout";
 import Image from "next/image";
 
 export interface PaymentMethodInfo {
-  id: PaymentMethod;           // e.g. "stripe" | "paypal" | "cash" | "cod" | "credit_card"
+  id: PaymentMethod;
   name: string;
   description?: string;
-  images?: string[];           // e.g., ["visa","mastercard"]
+  images?: string[];
   disabled?: boolean;
 }
 
@@ -20,19 +18,17 @@ type PaymentProps = {
   paymentMethod: PaymentMethod;
   setPaymentMethod: React.Dispatch<React.SetStateAction<PaymentMethod>>;
   profile?: boolean;
+  selectedMethodContent?: React.ReactNode;
 };
 
-export default function Payment({ paymentMethod, setPaymentMethod, profile }: PaymentProps) {
-  // Make sure we treat the list as readonly + well-typed
+export default function Payment({ paymentMethod, setPaymentMethod, profile, selectedMethodContent }: PaymentProps) {
   const methods = React.useMemo<readonly PaymentMethodInfo[]>(
     () => paymentMethods as readonly PaymentMethodInfo[],
     []
   );
 
-  // Centralized setter to avoid accidental uppercase IDs etc.
   const selectMethod = React.useCallback(
     (id: PaymentMethod) => {
-      // Normalize to lowercase to match API/backend expectations
       const normalized = String(id).toLowerCase() as PaymentMethod;
       setPaymentMethod(normalized);
     },
@@ -111,6 +107,19 @@ export default function Payment({ paymentMethod, setPaymentMethod, profile }: Pa
                   : pm.description}
               </p>
             </div>
+            {checked && selectedMethodContent ? (
+              <div
+                style={{
+                  width: "100%",
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTop: "1px solid rgba(0,0,0,0.08)",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {selectedMethodContent}
+              </div>
+            ) : null}
           </label>
         );
       })}

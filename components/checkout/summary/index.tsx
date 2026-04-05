@@ -10,12 +10,9 @@ import { applyCoupon } from "../../../requests/user";
 import { useRouter } from "next/navigation";
 import DotLoaderSpinner from "@/components/loaders/dotLoader";
 
-import dynamic from "next/dynamic";
-
-
-
 import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
 import type { InlineStripeHandle } from "./InlineStripeForm";
+
 type CanonicalPM = "STRIPE" | "PAYPAL" | "CASH";
 
 type DeliveryQuoteResponse = {
@@ -49,20 +46,12 @@ type SummaryProps = {
   cart: CartVM;
   paymentMethod: PaymentMethod;
   selectedAddress: Address | null | undefined;
+  stripeRef: React.RefObject<InlineStripeHandle | null>;
 };
 
 const couponSchema = Yup.object({
   coupon: Yup.string().required("Please enter a coupon first!"),
 });
-
-const InlineStripeForm = dynamic(() => import("./InlineStripeForm"), {
-  ssr: false,
-  loading: () => <p>Loading payment…</p>,
-});
-
-
-
-
 
 export default function Summary({
   totalAfterDiscount,
@@ -71,11 +60,10 @@ export default function Summary({
   cart,
   paymentMethod,
   selectedAddress,
+  stripeRef,
 }: SummaryProps): React.JSX.Element {
   const router = useRouter();
   const isStripeSelected = toCanonical(paymentMethod) === "STRIPE";
-
-  const stripeRef = React.useRef<InlineStripeHandle | null>(null);
 
   const [coupon, setCoupon] = React.useState<string>("");
   const [discount, setDiscount] = React.useState<number>(0);
@@ -191,8 +179,9 @@ export default function Summary({
 
       let paymentInfo: { provider: "stripe"; intentId: string } | undefined;
       if (canonical === "STRIPE") {
-        if (!stripeRef.current) throw new Error("Payment form not ready");
-        const intentId = await stripeRef.current.confirm();
+        const stripeHandle = stripeRef.current;
+        if (!stripeHandle) throw new Error("Payment form not ready");
+        const intentId = await stripeHandle.confirm();
         paymentInfo = { provider: "stripe", intentId };
       }
 
@@ -324,16 +313,6 @@ export default function Summary({
       <div className={styles.header}>
         <h3>Order Summary</h3>
       </div>
-
-      {isStripeSelected && (
-        <div className={styles.inlineStripeContainer}>
-          <h4>Complete your payment</h4>
-          <InlineStripeForm
-            ref={stripeRef}
-            amountCents={Math.round(displayTotal * 100)}
-          />
-        </div>
-      )}
 
       <div className={styles.coupon}>
         <Formik
