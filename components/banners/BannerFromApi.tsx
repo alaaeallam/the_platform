@@ -40,7 +40,6 @@ export default function BannerFromApi({
   // Debug: verify href exists
   if (slides.length) {
     // eslint-disable-next-line no-console
-    console.log("[BannerFromApi] slides:", slides);
   }
 
   if (!slides.length) return null;

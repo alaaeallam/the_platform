@@ -110,7 +110,6 @@ export async function POST(req: Request) {
     if (forbidden) return forbidden;
 
     const json = await req.json();
-    console.log("[/api/admin/products] incoming keys:", Object.keys(json));
     const parsed = BodySchema.parse(json);
 
     await connectDb();

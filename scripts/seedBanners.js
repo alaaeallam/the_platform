@@ -87,7 +87,6 @@ async function main() {
   await Banner.deleteMany({ placement: "home-hero" });
   await Banner.insertMany(docs);
 
-  console.log("Seeded banners:", docs.length);
   await mongoose.disconnect();
 }
 

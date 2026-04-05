@@ -59,7 +59,7 @@ function resolveSizePriceForCountry(size: Size, countryISO2: string, groups: str
 export default function ProductCard({ product }: ProductCardProps): React.JSX.Element {
   // TODO: pull these from user/session/cookie later
   const COUNTRY = "EG" as const;
-  const COUNTRY_GROUPS = React.useMemo<string[]>(() => ["LOW_ECONOMY", "MENA"], []);
+  const COUNTRY_GROUPS = useMemo<string[]>(() => ["LOW_ECONOMY", "MENA"], []);
 
   const safeSubProducts = useMemo<SubProduct[]>(
     () =>
@@ -116,7 +116,6 @@ export default function ProductCard({ product }: ProductCardProps): React.JSX.El
       <div className={styles.product__container}>
         <Link
           href={`/products/${product.slug}?style=${active}`}
-          target="_blank"
           aria-label={product.name}
           className={styles.product__link}
         >

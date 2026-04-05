@@ -80,10 +80,6 @@ export async function POST(req: NextRequest) {
     const userIdFromSession = session?.user?.id ?? "";
 
     // Quick observability in the server console
-    console.log("[/api/cart/sync] begin", {
-      userIdFromSession,
-      cartFromClientCount: items.length,
-    });
 
     if (!items.length) {
       return NextResponse.json<CartSyncResponse>(
@@ -271,11 +267,6 @@ export async function POST(req: NextRequest) {
       { upsert: true, new: true }
     ).lean();
 
-    console.log("[/api/cart/sync] saved cart", {
-      userIdFromSession,
-      lineCount: dbProducts.length,
-      cartTotal: saved?.cartTotal,
-    });
 
     return NextResponse.json<CartSyncResponse>(
       { lines: out, subtotal, shipping, total, anyChanged, saved: true },

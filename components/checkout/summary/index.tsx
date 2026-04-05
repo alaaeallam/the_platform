@@ -162,15 +162,11 @@ export default function Summary({
     setError("");
     setIsApplying(true);
     console.groupCollapsed("%cApply coupon", "color:#888");
-    console.log("coupon code →", coupon);
-    console.log("cartTotal →", cart.cartTotal);
     const t0 = performance.now();
 
     try {
       const res = await applyCoupon(coupon);
 
-      console.log("applyCoupon():", (performance.now() - t0).toFixed(3), "ms");
-      console.log("API ok? →", res.ok);
     
 
       if (!res.ok) {
@@ -208,7 +204,6 @@ export default function Summary({
       // you can call it here. Leaving it safe/no-op if it doesn't exist.
       // await fetch("/api/user/clearCoupon", { method: "POST" }).catch(() => {});
     } finally {
-      console.log("removeCoupon():", (performance.now() - t0).toFixed(3), "ms");
       setIsApplying(false);
       console.groupEnd();
     }

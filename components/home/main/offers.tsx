@@ -137,22 +137,10 @@ function mapProductsToOffers(items: ProductApiItem[]): Offer[] {
       const slug = typeof product.slug === "string" ? product.slug.trim() : "";
 
       if (!activeTag) {
-        console.log("[offers] skipped product: no active BEST_SELLER tag", {
-          id: product._id,
-          name: product.name,
-          slug: product.slug,
-          marketingTags: product.marketingTags,
-          marketingTagsJson: JSON.stringify(product.marketingTags, null, 2),
-        });
         return null;
       }
 
       if (!slug) {
-        console.log("[offers] skipped product: missing slug", {
-          id: product._id,
-          name: product.name,
-          marketingTags: product.marketingTags,
-        });
         return null;
       }
 
@@ -165,12 +153,6 @@ function mapProductsToOffers(items: ProductApiItem[]): Offer[] {
         ? product.name.trim()
         : "Best seller";
 
-      console.log("[offers] accepted BEST_SELLER product", {
-        id: product._id,
-        name: title,
-        slug,
-        activeTag,
-      });
 
       return {
         id: String(product._id ?? slug ?? index),
@@ -231,7 +213,6 @@ export default function Offers(): React.JSX.Element {
         if (!res.ok) return;
 
         const data: unknown = await res.json();
-        console.log("[offers] /api/products payload", data);
         if (!Array.isArray(data)) return;
 
         const mapped = mapProductsToOffers(data as ProductApiItem[]);

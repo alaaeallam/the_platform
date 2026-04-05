@@ -64,14 +64,6 @@ function getFirstPrice(product: LeanProduct): number {
     if (Number.isFinite(num) && num > 0) return num;
   }
 
-  console.log("[api/products] price resolution fallback", {
-    name: product.name,
-    slug: product.slug,
-    firstSub,
-    firstSize,
-    firstSizeCountryPrice,
-    firstSubCountryPrice,
-  });
 
   return 0;
 }

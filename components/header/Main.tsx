@@ -20,7 +20,6 @@ export default function Main() {
 
   // Local search handler
   const searchHandler = (q: string) => {
-    console.log("Search query:", q);
     // TODO: Replace with your actual search logic if needed
   };
 

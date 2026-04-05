@@ -15,7 +15,6 @@ export type HeroSlide = { image: string; alt?: string; href?: string; label?: st
 
 export default function HeroBannerClient({ slides }: { slides: HeroSlide[] }) {
   if (!slides?.length) return null;
-console.log("[HeroBannerClient] slides:", slides);
 
   return (
     <Swiper
