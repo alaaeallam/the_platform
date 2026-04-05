@@ -4,7 +4,7 @@ import Product from "@/models/Product";
 import HomePageClient from "./HomePageClient";
 import type { FlashDealProduct } from "@/components/home/flashDeals";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 export const runtime = "nodejs";
 
 type HomeCategoryVM = {
@@ -111,43 +111,11 @@ function toFlashDealProduct(product: LeanProduct): FlashDealProduct | null {
   };
 }
 
-async function getHomeCategories(): Promise<HomeCategoryVM[]> {
-  await connectDb();
-
-  const categories = await Category.find({})
-    .sort({ updatedAt: -1 })
-    .limit(6)
-    .lean<Array<{ _id: unknown; name?: string; slug?: string; image?: string }>>();
-
-  return categories.map((category) => ({
-    _id: String(category._id),
-    name: category.name ?? "Category",
-    slug: category.slug ?? "",
-    image: category.image ?? "",
-  }));
-}
-
-async function getMenuCategories(): Promise<HomeCategoryVM[]> {
-  await connectDb();
-
-  const categories = await Category.find({})
-    .sort({ updatedAt: -1 })
-    .lean<Array<{ _id: unknown; name?: string; slug?: string; image?: string }>>();
-
-  return categories.map((category) => ({
-    _id: String(category._id),
-    name: category.name ?? "Category",
-    slug: category.slug ?? "",
-    image: category.image ?? "",
-  }));
-}
 
 async function getFlashSaleProducts(): Promise<{
   products: FlashDealProduct[];
   endsAt: string | null;
 }> {
-  await connectDb();
-
   const now = new Date();
 
   const raw = await Product.find({
@@ -183,12 +151,29 @@ async function getFlashSaleProducts(): Promise<{
   };
 }
 
+async function getCategories(): Promise<HomeCategoryVM[]> {
+  const categories = await Category.find({})
+    .sort({ updatedAt: -1 })
+    .select("_id name slug image")
+    .lean<Array<{ _id: unknown; name?: string; slug?: string; image?: string }>>();
+
+  return categories.map((category) => ({
+    _id: String(category._id),
+    name: category.name ?? "Category",
+    slug: category.slug ?? "",
+    image: category.image ?? "",
+  }));
+}
 export default async function Page() {
-  const [initialCategories, menuCategories, flashSale] = await Promise.all([
-    getHomeCategories(),
-    getMenuCategories(),
+  await connectDb();
+
+  const [allCategories, flashSale] = await Promise.all([
+    getCategories(),
     getFlashSaleProducts(),
   ]);
+
+  const initialCategories = allCategories.slice(0, 6);
+  const menuCategories = allCategories;
 
   return (
     <HomePageClient
