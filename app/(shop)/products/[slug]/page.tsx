@@ -40,7 +40,10 @@ export default async function ProductPage(props: PageProps) {
   .lean();
   if (!productDoc) return notFound();
 
-  const product = productDoc.toObject<IProduct>();
+  const product: IProduct =
+  typeof (productDoc as { toObject?: () => IProduct }).toObject === "function"
+    ? (productDoc as { toObject: () => IProduct }).toObject()
+    : (productDoc as IProduct);
 
   const cookieStore = await cookies();
   const cookieCountry = cookieStore.get("country")?.value;
