@@ -8,6 +8,7 @@ import InlineStripeForm from "@/components/checkout/summary/InlineStripeForm";
 
 import styles from "@/app/styles/checkout.module.scss";
 import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
+import type { InlineStripeHandle } from "@/components/checkout/summary/InlineStripeForm";
 
 type Props = {
   user: UserVM;
@@ -34,7 +35,7 @@ export default function CheckoutClient({ user, cart }: Props) {
   // Keep as string to match your legacy Summary prop contract.
   const [totalAfterDiscount, setTotalAfterDiscount] = React.useState<number | "">("");
 
-  const stripeRef = React.useRef<any>(null);
+  const stripeRef = React.useRef<InlineStripeHandle | null>(null);
 
   const rawCartTotal = cart?.cartTotal as number | { total?: number | string } | null | undefined;
   const cartTotal = Number(
