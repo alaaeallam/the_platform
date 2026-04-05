@@ -2,6 +2,7 @@
 "use client";
 
 import { ChangeEvent, useRef, useState } from "react";
+import Image from "next/image";
 import axios from "axios";
 import { uploadImages } from "@/requests/upload";
 import { AiFillDelete, AiTwotoneEdit } from "react-icons/ai";
@@ -106,9 +107,13 @@ const handleUpdate = async (id: string): Promise<void> => {
     <li className={styles.list__item}>
        <div style={{ display: "grid", gap: 8, alignItems: "start" }}>
    {imagePreview ? (
-     <img
+     <Image
        src={imagePreview}
        alt={category.name}
+       width={56}
+       height={56}
+       sizes="56px"
+       unoptimized
        style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 10, border: "1px solid #e5e7eb" }}
      />
    ) : (

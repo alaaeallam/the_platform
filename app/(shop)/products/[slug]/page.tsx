@@ -1,7 +1,6 @@
 // app/(shop)/products/[slug]/page.tsx
 
 export const dynamic = "force-dynamic";
-export const revalidate = 120; // 2 minutes
 export const runtime = "nodejs";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
@@ -33,17 +32,27 @@ export default async function ProductPage(props: PageProps) {
   const styleIndex = Number.isFinite(parsedStyleIndex) ? parsedStyleIndex : 0;
   const sizeIndex = Number.isFinite(parsedSizeIndex) ? parsedSizeIndex : 0;
   const productDoc = await Product.findOne({ slug })
-  .select("name slug subProducts description details rating numReviews")
-  .populate({ path: "category", model: Category, select: "name slug" })
-  .populate({ path: "subCategories", model: SubCategory, select: "name slug" })
-  .populate({ path: "reviews.reviewBy", model: User, select: "name image" })
-  .lean();
+    .select(
+      [
+        "name",
+        "slug",
+        "description",
+        "details",
+        "rating",
+        "numReviews",
+        "category",
+        "subCategories",
+        "reviews",
+        "subProducts",
+      ].join(" ")
+    )
+    .populate({ path: "category", model: Category, select: "name slug" })
+    .populate({ path: "subCategories", model: SubCategory, select: "name slug" })
+    .populate({ path: "reviews.reviewBy", model: User, select: "name image" })
+    .lean();
   if (!productDoc) return notFound();
 
-  const product: IProduct =
-  typeof (productDoc as { toObject?: () => IProduct }).toObject === "function"
-    ? (productDoc as { toObject: () => IProduct }).toObject()
-    : (productDoc as IProduct);
+  const product = productDoc as IProduct;
 
   const cookieStore = await cookies();
   const cookieCountry = cookieStore.get("country")?.value;

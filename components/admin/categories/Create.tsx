@@ -4,6 +4,7 @@
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import { ChangeEvent, useState } from "react";
+import Image from "next/image";
 import { uploadImages } from "@/requests/upload";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -149,9 +150,13 @@ const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
        <label style={{ fontWeight: 600 }}>Image</label>
        <input type="file" accept="image/*" onChange={handleImageChange} />
        {imagePreview ? (
-         <img
+         <Image
            src={imagePreview}
            alt="Category preview"
+           width={88}
+           height={88}
+           sizes="88px"
+           unoptimized
            style={{ width: 88, height: 88, objectFit: "cover", borderRadius: 10, border: "1px solid #e5e7eb" }}
          />
        ) : null}

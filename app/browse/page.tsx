@@ -57,6 +57,41 @@ type BrowseSubCategoryDoc = {
   parent?: BrowseSubCategoryParentDoc | null;
 };
 
+type BrowseCountryPriceDoc = {
+  country?: string;
+  price?: number;
+};
+
+type BrowseCountryGroupPriceDoc = {
+  group?: string;
+  price?: number;
+};
+
+type BrowseSizeDoc = {
+  price?: number;
+  basePrice?: number;
+  discount?: number;
+  countryPrices?: BrowseCountryPriceDoc[];
+  countryGroupPrices?: BrowseCountryGroupPriceDoc[];
+};
+
+type BrowseSubProductDoc = {
+  images?: string[];
+  discount?: number;
+  color?: {
+    image?: string;
+    color?: string;
+  };
+  sizes?: BrowseSizeDoc[];
+};
+
+type BrowseProductDoc = {
+  _id: unknown;
+  slug?: string;
+  name?: string;
+  subProducts?: BrowseSubProductDoc[];
+};
+
 export default async function BrowsePage({ searchParams }: PageProps) {
   const sp = await searchParams;
 
@@ -284,6 +319,43 @@ const sortSpec = ((): SortSpec => {
       : null,
   }));
 
+  const safeProducts = products.map((p: BrowseProductDoc) => ({
+    _id: String(p._id),
+    slug: p.slug ?? "",
+    name: p.name ?? "",
+    subProducts: Array.isArray(p.subProducts)
+      ? p.subProducts.map((sp: BrowseSubProductDoc) => ({
+          images: Array.isArray(sp.images) ? sp.images : [],
+          discount: typeof sp.discount === "number" ? sp.discount : undefined,
+          color: {
+            image: sp.color?.image ?? undefined,
+            color: sp.color?.color ?? undefined,
+          },
+          sizes: Array.isArray(sp.sizes)
+            ? sp.sizes.map((sz: BrowseSizeDoc) => ({
+                price: typeof sz.price === "number" ? sz.price : undefined,
+                basePrice:
+                  typeof sz.basePrice === "number" ? sz.basePrice : undefined,
+                discount:
+                  typeof sz.discount === "number" ? sz.discount : undefined,
+                countryPrices: Array.isArray(sz.countryPrices)
+                  ? sz.countryPrices.map((cp: BrowseCountryPriceDoc) => ({
+                      country: String(cp.country ?? ""),
+                      price: Number(cp.price ?? 0),
+                    }))
+                  : [],
+                countryGroupPrices: Array.isArray(sz.countryGroupPrices)
+                  ? sz.countryGroupPrices.map((gp: BrowseCountryGroupPriceDoc) => ({
+                      group: String(gp.group ?? ""),
+                      price: Number(gp.price ?? 0),
+                    }))
+                  : [],
+              }))
+            : [],
+        }))
+      : [],
+  }));
+
   const facetBaseFilter = {
     ...category,
     ...invalidCategoryFilter,
@@ -353,7 +425,7 @@ const sortSpec = ((): SortSpec => {
         initial={{
           categories: safeCategories,
           subCategories: safeSubCategories,
-          products: JSON.parse(JSON.stringify(products)),
+          products: safeProducts,
           sizes,
           colors,
           brands,
