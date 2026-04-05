@@ -14,7 +14,6 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Browse",
@@ -35,6 +34,8 @@ function escapeRegex(value: string) {
 function normalizeCategoryValue(value: string) {
   return decodeURIComponent(value).trim().toLowerCase();
 }
+
+type SortSpec = Record<string, 1 | -1>;
 
 export default async function BrowsePage({ searchParams }: PageProps) {
   const sp = await searchParams;
@@ -78,7 +79,6 @@ export default async function BrowsePage({ searchParams }: PageProps) {
   const materialRegex = createRegex(materialQuery, materialQuery[0] || "");
   const sizeRegex = createRegex(sizeQuery, sizeQuery[0] || "");
   const colorRegex = createRegex(colorQuery, colorQuery[0] || "");
-type SortSpec = Record<string, 1 | -1>;
 
 let resolvedCategoryId = "";
 let resolvedCategoryName = "";
@@ -180,34 +180,38 @@ const sortSpec = ((): SortSpec => {
   const invalidCategoryFilter =
     categoryQueryRaw && !resolvedCategoryId ? { _id: { $in: [] } } : {};
   let query = Product.find({
-  ...search,
-  ...category,
-  ...brand,
-  ...style,
-  ...size,
-  ...color,
-  ...pattern,
-  ...material,
-  ...gender,
-  ...price,
-  ...shipping,
-  ...rating,
-  ...invalidCategoryFilter,
-})
-.select([
-  "_id",
-  "slug",
-  "name",
-  "subProducts.images",
-  "subProducts.discount",
-  "subProducts.color.image",
-  "subProducts.color.color",
-  "subProducts.sizes.price",
-  "subProducts.sizes.basePrice",
-  "subProducts.sizes.discount",
-].join(" "))
-.skip(pageSize * (page - 1))
-.limit(pageSize);
+    ...search,
+    ...category,
+    ...brand,
+    ...style,
+    ...size,
+    ...color,
+    ...pattern,
+    ...material,
+    ...gender,
+    ...price,
+    ...shipping,
+    ...rating,
+    ...invalidCategoryFilter,
+  })
+    .select([
+      "_id",
+      "slug",
+      "name",
+      "subProducts.images",
+      "subProducts.discount",
+      "subProducts.color.image",
+      "subProducts.color.color",
+      "subProducts.sizes.price",
+      "subProducts.sizes.basePrice",
+      "subProducts.sizes.discount",
+      "subProducts.sizes.countryPrices.country",
+      "subProducts.sizes.countryPrices.price",
+      "subProducts.sizes.countryGroupPrices.group",
+      "subProducts.sizes.countryGroupPrices.price",
+    ].join(" "))
+    .skip(pageSize * (page - 1))
+    .limit(pageSize);
 
   if (Object.keys(sortSpec).length) {
     query = query.sort(sortSpec);
@@ -240,10 +244,10 @@ const sortSpec = ((): SortSpec => {
 
   const products = sortQuery ? productsDb : randomize(productsDb);
 
-const facetBaseFilter = {
-  ...category,
-  ...invalidCategoryFilter,
-};
+  const facetBaseFilter = {
+    ...category,
+    ...invalidCategoryFilter,
+  };
 
   const [colors, brandsDb, sizes, details] = await Promise.all([
     Product.distinct("subProducts.color.color", facetBaseFilter) as Promise<string[]>,
