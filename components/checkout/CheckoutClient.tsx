@@ -1,11 +1,9 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 // import Header from "@/components/cart/header";
 import Shipping from "@/components/checkout/shipping";
-import Products from "@/components/checkout/products";
-import Payment from "@/components/checkout/payment";
-import Summary from "@/components/checkout/summary";
 
 import styles from "@/app/styles/checkout.module.scss";
 import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
@@ -14,6 +12,10 @@ type Props = {
   user: UserVM;
   cart: CartVM;
 };
+
+const Products = dynamic(() => import("@/components/checkout/products"));
+const Payment = dynamic(() => import("@/components/checkout/payment"));
+const Summary = dynamic(() => import("@/components/checkout/summary"));
 
 export default function CheckoutClient({ user, cart }: Props) {
   // Addresses state (default to whatever came from the server)

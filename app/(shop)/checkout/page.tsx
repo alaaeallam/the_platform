@@ -22,7 +22,6 @@ import type {
 /* ------------------------------------------------------------------ */
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 /* ------------------------------------------------------------------ */
 /* Local types (minimal shapes we actually read)                       */
@@ -130,15 +129,23 @@ export default async function CheckoutPage(): Promise<React.JSX.Element> {
   const u = session.user as unknown as SessionUserLike;
 
   const userDoc =
-    (await User.findOne({ email: u.email }).lean<UserLean | null>()) ||
-    (u.id ? await User.findById(u.id).lean<UserLean | null>() : null);
+    (await User.findOne({ email: u.email })
+      .select("_id name email image address addresses")
+      .lean<UserLean | null>()) ||
+    (u.id
+      ? await User.findById(u.id)
+          .select("_id name email image address addresses")
+          .lean<UserLean | null>()
+      : null);
 
   if (!userDoc?._id) {
     await db.disconnectDb();
     redirect(`/login?callbackUrl=${encodeURIComponent("/checkout")}`);
   }
 
-  const cartDoc = await Cart.findOne({ user: userDoc._id }).lean<CartDocLean | null>();
+  const cartDoc = await Cart.findOne({ user: userDoc._id })
+    .select("_id user products cartTotal totalAfterDiscount createdAt updatedAt")
+    .lean<CartDocLean | null>();
   if (!cartDoc) {
     await db.disconnectDb();
     redirect("/cart");
@@ -161,7 +168,7 @@ export default async function CheckoutPage(): Promise<React.JSX.Element> {
   // Fetch only what we need
   const productDocs: ProductLean[] = productIds.length
     ? await Product.find({ _id: { $in: productIds } })
-        .select({ name: 1, subProducts: 1 })
+        .select({ name: 1, "subProducts.images": 1 })
         .lean<ProductLean[]>()
     : [];
 
