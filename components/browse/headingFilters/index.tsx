@@ -109,7 +109,7 @@ export default function HeadingFilters({
       {/* Free shipping toggle */}
       <div className={styles.filters__shipping} onClick={() => shippingHandler(checkShipping.result)}>
         <input type="checkbox" name="shipping" id="shipping" checked={Boolean(searchParams.get("shipping") === "0")} readOnly />
-        <label htmlFor="shipping">Free Shipping</label>
+        
       </div>
 
       {/* Rating 4+ toggle */}
