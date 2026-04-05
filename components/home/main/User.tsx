@@ -16,19 +16,92 @@ import { EffectCards, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-cards";
 
-import { userSwiperArray } from "@/data/home";
+type ProductApiItem = {
+  _id?: string;
+  slug?: string;
+  name?: string;
+  createdAt?: string;
+  subProducts?: Array<{
+    images?: string[];
+  }>;
+};
 
-type SwiperItem = { image: string; href?: string };
+type SwiperItem = {
+  id: string;
+  image: string;
+  href: string;
+  alt: string;
+};
 
 const DEFAULT_AVATAR =
   "https://res.cloudinary.com/dmhcnhtng/image/upload/v1664642478/992490_b0iqzq.png";
+
+function mapProductsToSlides(items: ProductApiItem[]): SwiperItem[] {
+  return items
+    .map((product, index) => {
+      const firstImage =
+        Array.isArray(product.subProducts) &&
+        Array.isArray(product.subProducts[0]?.images) &&
+        typeof product.subProducts[0]?.images?.[0] === "string"
+          ? product.subProducts[0].images[0]
+          : "";
+
+      const slug = typeof product.slug === "string" ? product.slug.trim() : "";
+      if (!firstImage || !slug) return null;
+
+      return {
+        id: String(product._id ?? slug ?? index),
+        image: firstImage,
+        href: `/products/${slug}`,
+        alt: typeof product.name === "string" && product.name.trim().length
+          ? product.name.trim()
+          : "New product",
+      };
+    })
+    .filter((item): item is SwiperItem => item !== null);
+}
 
 export default function User(): React.ReactElement {
   const { data: session, status } = useSession();
 
   const avatarSrc = session?.user?.image ?? DEFAULT_AVATAR;
   const displayName = session?.user?.name ?? "Guest";
-  const slides: SwiperItem[] = userSwiperArray as SwiperItem[];
+  const [slides, setSlides] = React.useState<SwiperItem[]>([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    async function loadLatestProducts() {
+      try {
+        const res = await fetch("/api/products", { cache: "no-store" });
+        if (!res.ok) return;
+
+        const data: unknown = await res.json();
+        if (!Array.isArray(data)) return;
+
+        const sorted = [...(data as ProductApiItem[])].sort((a, b) => {
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return bTime - aTime;
+        });
+
+        const latest = sorted.slice(0, 6);
+        const mapped = mapProductsToSlides(latest);
+
+        if (isMounted) {
+          setSlides(mapped);
+        }
+      } catch (error) {
+        console.error("Failed to load latest products for user swiper:", error);
+      }
+    }
+
+    void loadLatestProducts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className={styles.user}>
@@ -125,11 +198,11 @@ export default function User(): React.ReactElement {
             style={{ maxWidth: "180px", height: "240px", marginTop: "1rem" }}
           >
             {slides.map((item) => (
-              <SwiperSlide key={item.image}>
-                <Link href={item.href ?? "#"} aria-label="Swiper item">
+              <SwiperSlide key={item.id}>
+                <Link href={item.href} aria-label={item.alt}>
                   <Image
                     src={item.image}
-                    alt="Swiper item"
+                    alt={item.alt}
                     width={180}
                     height={240}
                     style={{ objectFit: "cover" }}
@@ -137,6 +210,26 @@ export default function User(): React.ReactElement {
                 </Link>
               </SwiperSlide>
             ))}
+            {!slides.length && (
+              <SwiperSlide key="empty-state">
+                <div
+                  style={{
+                    width: 180,
+                    height: 240,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textAlign: "center",
+                    padding: "1rem",
+                    background: "#f5f5f5",
+                    borderRadius: "16px",
+                    fontWeight: 600,
+                  }}
+                >
+                  New products will appear here soon.
+                </div>
+              </SwiperSlide>
+            )}
           </Swiper>
         </div>
       </div>

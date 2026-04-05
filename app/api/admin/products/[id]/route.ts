@@ -39,6 +39,28 @@ const MarketingTagEnum = z.enum([
   "LIMITED",
 ]);
 
+function parseAdminDateInput(value?: string) {
+  if (!value) return undefined;
+
+  const raw = String(value).trim();
+  if (!raw) return undefined;
+
+  const ddmmyyyy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyy) {
+    const [, dd, mm, yyyy] = ddmmyyyy;
+    return new Date(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0, 0);
+  }
+
+  const isoLike = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoLike) {
+    const [, yyyy, mm, dd] = isoLike;
+    return new Date(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0, 0);
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
 const MarketingTagSchema = z.object({
   tag: MarketingTagEnum,
   startAt: z.string().optional(),
@@ -48,8 +70,8 @@ const MarketingTagSchema = z.object({
   isActive: z.boolean().optional(),
 }).transform((value) => ({
   ...value,
-  startAt: value.startAt ? new Date(value.startAt) : undefined,
-  endAt: value.endAt ? new Date(value.endAt) : undefined,
+  startAt: parseAdminDateInput(value.startAt),
+  endAt: parseAdminDateInput(value.endAt),
 }));
 const UpdateProductSchema = z.object({
   name: z.string().min(2).max(140),
@@ -137,6 +159,7 @@ export async function PATCH(
       .map((id) => new mongoose.Types.ObjectId(id));
     existing.tags = parsed.tags ?? [];
     existing.marketingTags = parsed.marketingTags ?? [];
+    existing.markModified("marketingTags");
     existing.shipping = parsed.shipping ?? 0;
 
     existing.set("subProducts", [
@@ -148,9 +171,11 @@ export async function PATCH(
         discount: parsed.discount ?? 0,
         description_images: existing.subProducts?.[0]?.description_images ?? [],
         sold: existing.subProducts?.[0]?.sold ?? 0,
-        marketingTags: existing.subProducts?.[0]?.marketingTags ?? [],
+        marketingTags: parsed.marketingTags ?? [],
       },
     ]);
+    // ensure mongoose tracks nested changes
+    existing.markModified("subProducts");
 
     await existing.save();
 

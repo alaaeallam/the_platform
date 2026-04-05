@@ -4,9 +4,10 @@ import styles from "./styles.module.scss";
 import { MdFlashOn } from "react-icons/md";
 import Countdown from "../../countdown";
 import { Swiper, SwiperSlide } from "swiper/react";
-
 import "swiper/css";
+
 import "swiper/css/pagination";
+
 import "swiper/css/navigation";
 
 import { Navigation } from "swiper/modules";
