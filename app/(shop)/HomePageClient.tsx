@@ -326,7 +326,7 @@ export default function Home({
             ))}
           </div>
         </section>
-        <ProductsSwiper products={women_swiper} />
+        
         <div className={styles.products}>
           {products.map((p) => (
             <ProductCard product={p} key={p._id || p.slug} />
