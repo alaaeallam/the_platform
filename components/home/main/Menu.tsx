@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import styles from "./styles.module.scss";
 import Link from "next/link";
 
@@ -91,11 +92,12 @@ export default function Menu({
                 className={styles.menu__link}
               >
                 {item.image ? (
-                  <img
+                  <Image
                     src={item.image}
                     alt={item.name}
                     width={20}
                     height={20}
+                    sizes="20px"
                     style={{
                       width: 20,
                       height: 20,

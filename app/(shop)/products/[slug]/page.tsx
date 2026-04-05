@@ -27,13 +27,15 @@ export default async function ProductPage(props: PageProps) {
   const { slug } = await props.params;
   const qs = await props.searchParams;
 
-  const styleIndex = Number(qs?.style ?? 0);
-  const sizeIndex  = Number(qs?.size  ?? 0);
+  const parsedStyleIndex = Number(qs?.style ?? 0);
+  const parsedSizeIndex = Number(qs?.size ?? 0);
+  const styleIndex = Number.isFinite(parsedStyleIndex) ? parsedStyleIndex : 0;
+  const sizeIndex = Number.isFinite(parsedSizeIndex) ? parsedSizeIndex : 0;
 
   const productDoc = await Product.findOne({ slug })
-    .populate({ path: "category", model: Category })
-    .populate({ path: "subCategories", model: SubCategory })
-    .populate({ path: "reviews.reviewBy", model: User });
+    .populate({ path: "category", model: Category, select: "name slug" })
+    .populate({ path: "subCategories", model: SubCategory, select: "name slug" })
+    .populate({ path: "reviews.reviewBy", model: User, select: "name image" });
 
   if (!productDoc) return notFound();
 
