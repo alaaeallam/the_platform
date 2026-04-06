@@ -2,9 +2,10 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Pagination } from "@mui/material";
+import Pagination from "@mui/material/Pagination";
 
 import styles from "@/app/styles/browse.module.scss";
 import Header from "@/components/header";
@@ -12,16 +13,6 @@ import ProductCard from "@/components/productCard";
 // Infer the prop type expected by ProductCard without re-declaring it
 type ProductCardProps = React.ComponentProps<typeof ProductCard>;
 type ProductForCard = ProductCardProps["product"];
-import CategoryFilter from "@/components/browse/categoryFilter";
-import SizesFilter from "@/components/browse/sizesFilter";
-import ColorsFilter from "@/components/browse/colorsFilter";
-import BrandsFilter from "@/components/browse/brandsFilter";
-import StylesFilter from "@/components/browse/stylesFilter";
-import PatternsFilter from "@/components/browse/patternsFilter";
-import MaterialsFilter from "@/components/browse/materialsFilter";
-import GenderFilter from "@/components/browse/genderFilter";
-import HeadingFilters from "@/components/browse/headingFilters";
-
 import type { CountryInfo } from "@/utils/countries";
 
 type DeleteParam = Record<string, never>;
@@ -55,6 +46,16 @@ export interface BrowseInitialPayload {
 interface Props {
   initial: BrowseInitialPayload;
 }
+
+const CategoryFilter = dynamic(() => import("@/components/browse/categoryFilter"));
+const SizesFilter = dynamic(() => import("@/components/browse/sizesFilter"));
+const ColorsFilter = dynamic(() => import("@/components/browse/colorsFilter"));
+const BrandsFilter = dynamic(() => import("@/components/browse/brandsFilter"));
+const StylesFilter = dynamic(() => import("@/components/browse/stylesFilter"));
+const PatternsFilter = dynamic(() => import("@/components/browse/patternsFilter"));
+const MaterialsFilter = dynamic(() => import("@/components/browse/materialsFilter"));
+const GenderFilter = dynamic(() => import("@/components/browse/genderFilter"));
+const HeadingFilters = dynamic(() => import("@/components/browse/headingFilters"));
 
 export default function BrowseClient({ initial }: Props): React.JSX.Element {
   const router = useRouter();
@@ -129,11 +130,10 @@ export default function BrowseClient({ initial }: Props): React.JSX.Element {
   // ------------------------ Render ------------------------
   // Safely compute a React key from whatever identifier the product exposes
   const getProductKey = (p: ProductForCard, idx: number): string => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const anyP = p as any;
-    if (typeof anyP?._id !== "undefined" && anyP._id !== null) return String(anyP._id);
-    if (typeof anyP?.id !== "undefined" && anyP.id !== null) return String(anyP.id);
-    if (typeof anyP?.slug === "string" && anyP.slug) return anyP.slug;
+    const keyed = p as ProductForCard & { _id?: unknown; id?: unknown };
+    if (typeof keyed._id !== "undefined" && keyed._id !== null) return String(keyed._id);
+    if (typeof keyed.id !== "undefined" && keyed.id !== null) return String(keyed.id);
+    if (typeof keyed.slug === "string" && keyed.slug) return keyed.slug;
     return String(idx);
   };
 
