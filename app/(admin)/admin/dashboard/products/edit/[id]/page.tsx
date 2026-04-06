@@ -1,16 +1,14 @@
 // app/(admin)/admin/dashboard/products/edit/[id]/page.tsx
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const revalidate = 0;
 
 import * as React from "react";
 import { connectDb } from "@/utils/db";
 import Product from "@/models/Product";
 import Category from "@/models/Category";
 import Layout from "@/components/admin/layout";
-import CreateProductClient, {
-  type ProductDraft,
-} from "@/components/admin/products/create/CreateProductClient";
+import type { ProductDraft } from "@/components/admin/products/create/CreateProductClient";
+import nextDynamic from "next/dynamic";
 import styles from "@/app/styles/products.module.scss";
 
 export type ParentVM = {
@@ -61,6 +59,7 @@ type LeanMarketingTag = {
   priority?: number;
   isActive?: boolean;
 };
+const CreateProductClient = nextDynamic(() => import("@/components/admin/products/create/CreateProductClient"));
 
 function toImageUrl(img: LeanImage): string {
   if (typeof img === "string") return img;
@@ -174,10 +173,31 @@ async function loadData(id: string): Promise<{
 
   const [parents, categories, product] = await Promise.all([
     Product.find({ _id: { $ne: id } })
-      .select("name")
+      .select("_id name")
       .lean<{ _id: unknown; name?: string }[]>(),
-    Category.find({}).lean<{ _id: unknown; name?: string }[]>(),
-    Product.findById(id).lean<LeanProduct | null>(),
+    Category.find({})
+      .select("_id name")
+      .lean<{ _id: unknown; name?: string }[]>(),
+    Product.findById(id)
+      .select([
+        "_id",
+        "name",
+        "description",
+        "brand",
+        "category",
+        "subCategories",
+        "tags",
+        "details",
+        "questions",
+        "marketingTags",
+        "shipping",
+        "subProducts.sku",
+        "subProducts.images",
+        "subProducts.color",
+        "subProducts.sizes",
+        "subProducts.discount",
+      ].join(" "))
+      .lean<LeanProduct | null>(),
   ]);
 
   const normalizeId = <T extends { _id: unknown }>(arr: T[]) =>
