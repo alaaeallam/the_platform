@@ -4,14 +4,15 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Layout from "@/components/profile/layout";
 import styles from "@/app/styles/profile.module.scss";
-import SecurityClient from "@/components/profile/security/SecurityClient";
+import dynamic from "next/dynamic";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+const SecurityClient = dynamic(() => import("@/components/profile/security/SecurityClient"));
 
 export default async function SecurityPage({ searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
