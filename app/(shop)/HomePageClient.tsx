@@ -1,13 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import styles from "../styles/Home.module.scss";
-import Main from "@/components/home/main";
-import Category from "@/components/home/category";
-import { women_dresses, women_shoes, women_accessories, women_swiper } from "@/data/home";
-import ProductsSwiper from "@/components/productsSwiper";
-import ProductCard from "@/components/productCard";
-import FlashDeals, { type FlashDealProduct } from "@/components/home/flashDeals";
+import type { FlashDealProduct } from "@/components/home/flashDeals";
 
 /* ---------- Types that MATCH ProductCard's expected shape ---------- */
 type CardSize = {
@@ -44,6 +40,11 @@ type HomeCategoryVM = {
   slug?: string;
   image?: string;
 };
+
+const Main = dynamic(() => import("@/components/home/main"));
+const Category = dynamic(() => import("@/components/home/category"));
+const ProductCard = dynamic(() => import("@/components/productCard"));
+const FlashDeals = dynamic(() => import("@/components/home/flashDeals"));
 
 /* ---------- Type-safe converters from unknown ---------- */
 function toCardSize(s: unknown): CardSize | null {
@@ -201,14 +202,8 @@ export default function Home({
       : [],
   }));
 
-  const fallbackCategories = [
-    { header: "Dresses", products: women_dresses, background: "#5a31f4" },
-    { header: "Shoes", products: women_shoes, background: "#3c811f" },
-    { header: "Accessories", products: women_accessories, background: "#000" },
-  ];
-
   const homepageCategories = dbCategories.filter((category) => category.products.length > 0);
-  const visibleHomepageCategories = homepageCategories.length > 0 ? homepageCategories : fallbackCategories;
+  const visibleHomepageCategories = homepageCategories;
 
   useEffect(() => {
     (async () => {
@@ -219,7 +214,6 @@ export default function Home({
         const normalized = data.map(toCardProduct).filter((x): x is CardProduct => x !== null);
         setProducts(normalized);
       } else {
-        console.warn("Unexpected /api/products shape", data);
         setProducts([]);
       }
     })();

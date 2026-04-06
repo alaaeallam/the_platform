@@ -1,11 +1,15 @@
 // app/components/productCard/index.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import ProductSwiper from "./ProductSwiper";
 import styles from "./styles.module.scss";
+import dynamic from "next/dynamic";
+const ProductSwiper = dynamic(() => import("./ProductSwiper"), {
+  ssr: false,
+});
+
 
 /* ---------- Types (updated) ---------- */
 type CountryPrice = { country: string; price: number };
