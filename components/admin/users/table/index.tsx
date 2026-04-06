@@ -1,56 +1,30 @@
 'use client';
 
 import * as React from 'react';
-import { alpha } from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
-import TableSortLabel from '@mui/material/TableSortLabel';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Checkbox from '@mui/material/Checkbox';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Switch from '@mui/material/Switch';
-import DeleteIcon from '@mui/icons-material/Delete';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import { visuallyHidden } from '@mui/utils';
+import Image from 'next/image';
 import { toast } from 'react-toastify';
-
+import DeleteIcon from '@mui/icons-material/Delete';
 import styles from './styles.module.scss';
-import Image from "next/image";
-
-/* ============= Types from page props ============= */
 
 export type UserRow = {
   _id: string;
   name?: string;
   email?: string;
   image?: string;
-  role?: string;      // 'admin' | 'customer' | ...
+  role?: string;
   verified?: boolean;
 };
 
 type Order = 'asc' | 'desc';
 
-/** Exact shape rendered by the table (kept concrete to please TS) */
 type DisplayRow = {
-  id: string;         // from _id
+  id: string;
   name: string;
   email: string;
-  image: string;      // always a string ('' if absent)
+  image: string;
   verified: boolean;
   admin: boolean;
 };
-
-/* ============= Sorting helpers (DisplayRow-specific) ============= */
 
 function descendingComparator(
   a: DisplayRow,
@@ -85,138 +59,68 @@ function stableSort(
   return stabilized.map((el) => el[0]);
 }
 
-/* ============= Head cells ============= */
+type SortKey = keyof DisplayRow;
 
-type HeadCell<T> = {
-  id: keyof T;
-  numeric?: boolean;
-  disablePadding?: boolean;
+type HeadCell = {
+  id: SortKey;
   label: string;
+  align?: 'left' | 'right' | 'center';
 };
 
-const headCells: HeadCell<DisplayRow>[] = [
-  { id: 'image', numeric: false, disablePadding: true, label: '' },
-  { id: 'name', numeric: false, label: 'Name' },
-  { id: 'email', numeric: false, label: 'Email' },
-  { id: 'verified', numeric: true, label: 'Verified' },
-  { id: 'admin', numeric: true, label: 'Admin' },
+const headCells: HeadCell[] = [
+  { id: 'image', label: '', align: 'left' },
+  { id: 'name', label: 'Name', align: 'left' },
+  { id: 'email', label: 'Email', align: 'left' },
+  { id: 'verified', label: 'Verified', align: 'center' },
+  { id: 'admin', label: 'Admin', align: 'center' },
 ];
-
-type EnhancedTableHeadProps = {
-  numSelected: number;
-  onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  order: Order;
-  orderBy: keyof DisplayRow;
-  rowCount: number;
-  onRequestSort: (event: React.MouseEvent<unknown>, property: keyof DisplayRow) => void;
-};
-
-function EnhancedTableHead(props: EnhancedTableHeadProps) {
-  const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort } = props;
-
-  const createSortHandler =
-    (property: keyof DisplayRow) => (event: React.MouseEvent<unknown>) => {
-      onRequestSort(event, property);
-    };
-
-  return (
-    <TableHead>
-      <TableRow>
-        <TableCell padding="checkbox">
-          <Checkbox
-            color="primary"
-            indeterminate={numSelected > 0 && numSelected < rowCount}
-            checked={rowCount > 0 && numSelected === rowCount}
-            onChange={onSelectAllClick}
-            inputProps={{ 'aria-label': 'select all users' }}
-          />
-        </TableCell>
-        {headCells.map((headCell) => (
-          <TableCell
-            key={String(headCell.id)}
-            align={headCell.numeric ? 'right' : 'left'}
-            padding={headCell.disablePadding ? 'none' : 'normal'}
-            sortDirection={orderBy === headCell.id ? order : false}
-          >
-            <TableSortLabel
-              active={orderBy === headCell.id}
-              direction={orderBy === headCell.id ? order : 'asc'}
-              onClick={createSortHandler(headCell.id)}
-            >
-              {headCell.label}
-              {orderBy === headCell.id ? (
-                <Box component="span" sx={visuallyHidden}>
-                  {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
-                </Box>
-              ) : null}
-            </TableSortLabel>
-          </TableCell>
-        ))}
-        {/* actions column */}
-        <TableCell align="right" />
-      </TableRow>
-    </TableHead>
-  );
-}
-
-/* ============= Toolbar ============= */
-
-function EnhancedTableToolbar({ numSelected }: { numSelected: number }) {
-  return (
-    <Toolbar
-      sx={{
-        pl: { sm: 2 },
-        pr: { xs: 1, sm: 1 },
-        ...(numSelected > 0 && {
-          bgcolor: (theme) =>
-            alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
-        }),
-      }}
-    >
-      {numSelected > 0 ? (
-        <Typography sx={{ flex: '1 1 100%' }} color="inherit" variant="subtitle1" component="div">
-          {numSelected} selected
-        </Typography>
-      ) : (
-        <Typography sx={{ flex: '1 1 100%' }} variant="h6" id="tableTitle" component="div">
-          Users
-        </Typography>
-      )}
-
-      {numSelected > 0 ? (
-        <Tooltip title="Delete">
-          <IconButton>
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <Tooltip title="Filter list">
-          <IconButton>
-            <FilterListIcon />
-          </IconButton>
-        </Tooltip>
-      )}
-    </Toolbar>
-  );
-}
-
-/* ============= Main component ============= */
 
 type Props = { rows: UserRow[] };
 
+function SortButton({
+  active,
+  order,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  order: Order;
+  label: string;
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        background: 'none',
+        border: 0,
+        padding: 0,
+        color: 'inherit',
+        font: 'inherit',
+        fontWeight: 700,
+        cursor: 'pointer',
+      }}
+    >
+      <span>{label}</span>
+      {label ? <span style={{ fontSize: 12 }}>{active ? (order === 'asc' ? '▲' : '▼') : '↕'}</span> : null}
+    </button>
+  );
+}
+
 export default function EnhancedTable({ rows }: Props) {
   const [order, setOrder] = React.useState<Order>('asc');
-  const [orderBy, setOrderBy] = React.useState<keyof DisplayRow>('name');
+  const [orderBy, setOrderBy] = React.useState<SortKey>('name');
   const [selected, setSelected] = React.useState<string[]>([]);
   const [page, setPage] = React.useState(0);
   const [dense, setDense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-
-  // track a single-row delete in progress
   const [deleting, setDeleting] = React.useState<string | null>(null);
-
-  // local mutable copy so we can update UI after deletes
   const [data, setData] = React.useState<DisplayRow[]>([]);
+
   React.useEffect(() => {
     setData(
       (rows ?? []).map((u) => ({
@@ -235,15 +139,15 @@ export default function EnhancedTable({ rows }: Props) {
     try {
       setDeleting(id);
       const res = await fetch(`/api/admin/users/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
-      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      const payload = (await res.json().catch(() => ({}))) as { message?: string };
       if (!res.ok) {
-        throw new Error(data.message || "Delete failed");
+        throw new Error(payload.message || 'Delete failed');
       }
-      // Optimistically unselect and remove from table
-      setSelected((s) => s.filter((x) => x !== id));
+
+      setSelected((prev) => prev.filter((x) => x !== id));
       setData((prev) => prev.filter((r) => r.id !== id));
       toast.success('User deleted');
     } catch (e: unknown) {
@@ -254,7 +158,7 @@ export default function EnhancedTable({ rows }: Props) {
     }
   }
 
-  const handleRequestSort = (_: React.MouseEvent<unknown>, property: keyof DisplayRow) => {
+  const handleRequestSort = (_: React.MouseEvent<unknown>, property: SortKey) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
@@ -264,74 +168,148 @@ export default function EnhancedTable({ rows }: Props) {
     setSelected(event.target.checked ? data.map((r) => r.id) : []);
   };
 
-  const handleClick = (_event: React.MouseEvent<unknown>, id: string) => {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const handleClick = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
-
-  const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const handleChangeDense = (event: React.ChangeEvent<HTMLInputElement>) =>
-    setDense(event.target.checked);
 
   const isSelected = (id: string) => selected.includes(id);
 
+  const sortedData = React.useMemo(
+    () => stableSort(data, getComparator(order, orderBy)),
+    [data, order, orderBy]
+  );
+
+  const pageRows = React.useMemo(
+    () =>
+      sortedData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [sortedData, page, rowsPerPage]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(data.length / rowsPerPage));
+
+  React.useEffect(() => {
+    if (page > totalPages - 1) {
+      setPage(Math.max(0, totalPages - 1));
+    }
+  }, [page, totalPages]);
+
+  const rowHeight = dense ? 44 : 58;
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
 
-  const sorted: DisplayRow[] = stableSort(data, getComparator(order, orderBy)).slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
-
   return (
-    <Box sx={{ width: '100%' }}>
-      <Paper sx={{ width: '100%', mb: 2 }}>
-        <EnhancedTableToolbar numSelected={selected.length} />
-        <TableContainer>
-          <Table
-            sx={{ minWidth: 750 }}
-            aria-labelledby="tableTitle"
-            size={dense ? 'small' : 'medium'}
+    <div style={{ width: '100%' }}>
+      <div
+        style={{
+          width: '100%',
+          marginBottom: 16,
+          borderRadius: 16,
+          background: '#fff',
+          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>Users</div>
+            {selected.length > 0 ? (
+              <div style={{ color: '#2563eb', fontSize: 14 }}>{selected.length} selected</div>
+            ) : (
+              <div style={{ color: '#6b7280', fontSize: 14 }}>Manage users and roles</div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+              <input
+                type="checkbox"
+                checked={dense}
+                onChange={(event) => setDense(event.target.checked)}
+              />
+              Dense padding
+            </label>
+          </div>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table
             className={styles.table}
+            style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse' }}
           >
-            <EnhancedTableHead
-              numSelected={selected.length}
-              order={order}
-              orderBy={orderBy}
-              onSelectAllClick={handleSelectAllClick}
-              onRequestSort={handleRequestSort}
-              rowCount={data.length}
-            />
-
-            <TableBody>
-              {sorted.map((row: DisplayRow) => {
-                const isItemSelected = isSelected(row.id);
-                const labelId = `enhanced-table-checkbox-${row.id}`;
-
-                return (
-                  <TableRow
-                    hover
-                    onClick={(event: React.MouseEvent) => handleClick(event, row.id)}
-                    role="checkbox"
-                    aria-checked={isItemSelected}
-                    tabIndex={-1}
-                    key={row.id}
-                    selected={isItemSelected}
+            <thead>
+              <tr>
+                <th style={{ padding: '12px 16px', width: 48 }}>
+                  <input
+                    type="checkbox"
+                    aria-label="select all users"
+                    checked={data.length > 0 && selected.length === data.length}
+                    ref={(el) => {
+                      if (el) {
+                        el.indeterminate = selected.length > 0 && selected.length < data.length;
+                      }
+                    }}
+                    onChange={handleSelectAllClick}
+                  />
+                </th>
+                {headCells.map((headCell) => (
+                  <th
+                    key={String(headCell.id)}
+                    style={{
+                      padding: '12px 16px',
+                      textAlign: headCell.align ?? 'left',
+                      whiteSpace: 'nowrap',
+                    }}
                   >
-                    <TableCell padding="checkbox">
-                      <Checkbox color="primary" checked={isItemSelected} inputProps={{ 'aria-labelledby': labelId }} />
-                    </TableCell>
+                    <SortButton
+                      active={orderBy === headCell.id}
+                      order={orderBy === headCell.id ? order : 'asc'}
+                      label={headCell.label}
+                      onClick={(event) => handleRequestSort(event, headCell.id)}
+                    />
+                  </th>
+                ))}
+                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
 
-                    <TableCell component="th" id={labelId} scope="row" padding="none" style={{ paddingTop: 5 }}>
+            <tbody>
+              {pageRows.map((row) => {
+                const selectedRow = isSelected(row.id);
+                return (
+                  <tr
+                    key={row.id}
+                    onClick={() => handleClick(row.id)}
+                    style={{
+                      background: selectedRow ? 'rgba(37, 99, 235, 0.06)' : 'transparent',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <td style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedRow}
+                        onChange={() => handleClick(row.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`select ${row.name || row.email || row.id}`}
+                      />
+                    </td>
+
+                    <td style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb', width: 64 }}>
                       {row.image ? (
                         <Image
                           src={row.image}
-                          alt={row.name || "User avatar"}
+                          alt={row.name || 'User avatar'}
                           width={36}
                           height={36}
                           sizes="36px"
@@ -341,12 +319,12 @@ export default function EnhancedTable({ rows }: Props) {
                       ) : (
                         <div className={styles.table__img} />
                       )}
-                    </TableCell>
+                    </td>
 
-                    <TableCell align="right">{row.name}</TableCell>
-                    <TableCell align="right">{row.email}</TableCell>
+                    <td style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb' }}>{row.name}</td>
+                    <td style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb' }}>{row.email}</td>
 
-                    <TableCell align="right">
+                    <td style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb', textAlign: 'center' }}>
                       <Image
                         src={row.verified ? '/images/verified.png' : '/images/unverified.png'}
                         alt={row.verified ? 'Verified' : 'Unverified'}
@@ -356,9 +334,9 @@ export default function EnhancedTable({ rows }: Props) {
                         className={styles.ver}
                         priority={false}
                       />
-                    </TableCell>
+                    </td>
 
-                    <TableCell align="right">
+                    <td style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb', textAlign: 'center' }}>
                       <Image
                         src={row.admin ? '/images/verified.png' : '/images/unverified.png'}
                         alt={row.admin ? 'Admin' : 'Not admin'}
@@ -368,43 +346,96 @@ export default function EnhancedTable({ rows }: Props) {
                         className={styles.ver}
                         priority={false}
                       />
-                    </TableCell>
-                    <TableCell align="right">
+                    </td>
+
+                    <td style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb', textAlign: 'right' }}>
                       <button
-    type="button"
-    onClick={(e) => { e.stopPropagation(); deleteOne(row.id); }}
-    title="Delete user"
-    disabled={deleting === row.id}
-    style={{ background: "none", border: 0, cursor: "pointer" }}
-  >
-    <DeleteIcon fontSize="small" />
-  </button>
-                    </TableCell>
-                  </TableRow>
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void deleteOne(row.id);
+                        }}
+                        title="Delete user"
+                        disabled={deleting === row.id}
+                        style={{
+                          background: 'none',
+                          border: 0,
+                          cursor: deleting === row.id ? 'not-allowed' : 'pointer',
+                          opacity: deleting === row.id ? 0.6 : 1,
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </button>
+                    </td>
+                  </tr>
                 );
               })}
 
               {emptyRows > 0 && (
-                <TableRow style={{ height: (dense ? 33 : 53) * emptyRows }}>
-                  <TableCell colSpan={7} />
-                </TableRow>
+                <tr style={{ height: rowHeight * emptyRows }}>
+                  <td colSpan={7} />
+                </tr>
               )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+            </tbody>
+          </table>
+        </div>
 
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={data.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+            padding: '12px 16px',
+            borderTop: '1px solid #e5e7eb',
+          }}
+        >
+          <div style={{ fontSize: 14, color: '#6b7280' }}>
+            Showing {data.length === 0 ? 0 : page * rowsPerPage + 1}–{Math.min((page + 1) * rowsPerPage, data.length)} of {data.length}
+          </div>
 
-      <FormControlLabel control={<Switch checked={dense} onChange={handleChangeDense} />} label="Dense padding" />
-    </Box>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+              Rows:
+              <select
+                value={rowsPerPage}
+                onChange={(event) => {
+                  setRowsPerPage(parseInt(event.target.value, 10));
+                  setPage(0);
+                }}
+                style={{ minHeight: 34, borderRadius: 8, border: '1px solid #d1d5db', padding: '0 8px' }}
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+              </select>
+            </label>
+
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                disabled={page === 0}
+                style={{ minWidth: 72, minHeight: 34, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff' }}
+              >
+                Prev
+              </button>
+              <span style={{ fontSize: 14 }}>
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                disabled={page >= totalPages - 1}
+                style={{ minWidth: 72, minHeight: 34, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff' }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
