@@ -8,31 +8,20 @@ import { RiSearch2Line } from "react-icons/ri";
 import { FaOpencart } from "react-icons/fa";
 import { useAppSelector } from "@/store/hooks";
 import { useState, type FormEvent } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { selectCartLineCount } from "@/store/cartSlice";
 
 export default function Main() {
   const router = useRouter();
-  const pathname = usePathname();
   const badgeCount = useAppSelector(selectCartLineCount);
   const [query, setQuery] = useState("");
-
-  // Local search handler
-  const searchHandler = (q: string) => {
-    // TODO: Replace with your actual search logic if needed
-  };
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
-
-    if (pathname !== "/browse") {
-      router.push(`/browse?search=${encodeURIComponent(trimmed)}`);
-    } else {
-      searchHandler(trimmed);
-    }
+    router.push(`/browse?search=${encodeURIComponent(trimmed)}`);
   };
 
   return (

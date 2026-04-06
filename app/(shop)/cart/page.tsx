@@ -2,16 +2,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 
 import CartHeader from "@/components/cart/cartHeader";
 import Product from "@/components/cart/product";
-import Checkout from "@/components/cart/checkout";
-import PaymentMethods from "@/components/cart/paymentMethods";
-import ProductsSwiper from "@/components/productsSwiper";
-import Empty from "@/components/cart/empty";
 import { women_swiper } from "@/data/home";
 
 import {
@@ -65,6 +62,10 @@ const COUNTRY_GROUPS: Record<string, string[]> = {
   // MENA: ["EG","SA","AE","..."], etc
 };
 type SyncedCartLine = CartSyncResponse["lines"][number] & { _uid: string };
+const Checkout = dynamic(() => import("@/components/cart/checkout"));
+const PaymentMethods = dynamic(() => import("@/components/cart/paymentMethods"));
+const ProductsSwiper = dynamic(() => import("@/components/productsSwiper"));
+const Empty = dynamic(() => import("@/components/cart/empty"));
 export default function CartPage(): React.JSX.Element {
   const router = useRouter();
   const { data: session } = useSession();
