@@ -2,9 +2,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import { TextField, MenuItem } from "@mui/material";
-import { ErrorMessage, useField } from "formik";
 import styles from "./styles.module.scss";
 
 type Option = { _id?: string; name: string; code?: string };
@@ -16,7 +14,6 @@ interface SingularSelectProps {
   data: Option[];
   header?: string;
   disabled?: boolean;
-  /** <-- return just the selected value */
   handleChange: (value: string) => void;
 }
 
@@ -29,23 +26,11 @@ export default function SingularSelect({
   disabled,
   handleChange,
 }: SingularSelectProps): React.JSX.Element {
-  const [, meta] = useField<string>({ name });
-  const hasError = Boolean(meta.touched && meta.error);
-
   return (
-    <div style={{ marginBottom: "1rem" }}>
+    <div style={{ width: "100%", marginBottom: "1.25rem" }}>
       {header && (
-        <div className={`${styles.header} ${hasError ? styles.header__error : ""}`}>
-          <div className={styles.flex}>
-            {hasError && (
-              <Image
-                src="/images/warning.png"
-                alt="Warning"
-                width={16}
-                height={16}
-                className={styles.warningIcon}
-              />
-            )}
+        <div className={styles.header} style={{ marginBottom: "0.75rem" }}>
+          <div className={styles.flex} style={{ fontSize: "1rem", fontWeight: 700 }}>
             {header}
           </div>
         </div>
@@ -60,7 +45,15 @@ export default function SingularSelect({
         value={value}
         onChange={(e) => handleChange(String((e.target as HTMLInputElement).value))}
         disabled={disabled}
-        className={`${styles.select} ${hasError ? styles.error__select : ""}`}
+        className={styles.select}
+        sx={{
+          width: "100%",
+          "& .MuiOutlinedInput-root": {
+            minHeight: 56,
+            borderRadius: "12px",
+            backgroundColor: "#fff",
+          },
+        }}
       >
         <MenuItem key="" value="">
           No Selected / Or Empty
@@ -75,12 +68,6 @@ export default function SingularSelect({
           );
         })}
       </TextField>
-
-      {hasError && (
-        <p className={styles.error__msg}>
-          <ErrorMessage name={name} />
-        </p>
-      )}
     </div>
   );
 }

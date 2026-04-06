@@ -50,21 +50,104 @@ export default async function CreateProductPage(): Promise<React.JSX.Element> {
     const { parents, categories } = await loadData();
     return (
       <Layout>
-        <div className={styles.header}>Create Product</div>
-        <CreateProductClient parents={parents}
-        categories={categories}
-        mode="create"
-      />
+        <section
+          style={{
+            maxWidth: "1200px",
+            margin: "0 auto",
+            padding: "1.5rem 1rem 6rem",
+          }}
+        >
+          <div
+            style={{
+              marginBottom: "1.5rem",
+              padding: "1.25rem 1.5rem",
+              borderRadius: "18px",
+              background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+              border: "1px solid #e5e7eb",
+              boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
+            }}
+          >
+            <div className={styles.header} style={{ marginBottom: "0.35rem" }}>
+              Create Product
+            </div>
+            <p
+              style={{
+                margin: 0,
+                color: "#6b7280",
+                fontSize: "0.95rem",
+                lineHeight: 1.6,
+              }}
+            >
+              Add a new product, configure its variants, pricing, details, and marketing tags.
+            </p>
+          </div>
+
+          <div
+            style={{
+              padding: "1.5rem",
+              borderRadius: "20px",
+              background: "#f8fafc",
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            <CreateProductClient
+              parents={parents}
+              categories={categories}
+              mode="create"
+            />
+          </div>
+        </section>
       </Layout>
     );
   } catch {
     // Render a minimal shell so Next can still resolve the module during build
     return (
       <Layout>
-        <div className={styles.header}>Create Product</div>
-        <p style={{ color: "#c00" }}>
-          Failed to load data. Check DB connection and environment variables.
-        </p>
+        <section
+          style={{
+            maxWidth: "1200px",
+            margin: "0 auto",
+            padding: "1.5rem 1rem 6rem",
+          }}
+        >
+          <div
+            style={{
+              marginBottom: "1.5rem",
+              padding: "1.25rem 1.5rem",
+              borderRadius: "18px",
+              background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+              border: "1px solid #e5e7eb",
+              boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
+            }}
+          >
+            <div className={styles.header} style={{ marginBottom: "0.35rem" }}>
+              Create Product
+            </div>
+            <p
+              style={{
+                margin: 0,
+                color: "#6b7280",
+                fontSize: "0.95rem",
+                lineHeight: 1.6,
+              }}
+            >
+              Add a new product, configure its variants, pricing, details, and marketing tags.
+            </p>
+          </div>
+
+          <div
+            style={{
+              padding: "1.25rem 1.5rem",
+              borderRadius: "16px",
+              background: "#fff1f2",
+              border: "1px solid #fecdd3",
+              color: "#be123c",
+              fontWeight: 600,
+            }}
+          >
+            Failed to load data. Check DB connection and environment variables.
+          </div>
+        </section>
       </Layout>
     );
   }

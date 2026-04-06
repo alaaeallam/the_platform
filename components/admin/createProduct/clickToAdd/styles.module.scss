@@ -1,46 +1,87 @@
 @import "../../base";
+
+/* Container for each dynamic row (Sizes / Details / Questions) */
 .clicktoadd {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+
   select,
   input {
-    border: none;
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding: 0 14px;
+    background: #fff;
     outline: none;
-    border: 1px solid #ccc;
-    padding-left: 1rem;
-    width: 150px;
-    height: 40px;
-    border-radius: 5px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
   }
+
   svg {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     fill: $blue-color;
     cursor: pointer;
-    margin-top: 5px;
+    transition: transform 0.15s ease, fill 0.2s ease;
+
     &:hover {
       fill: $dark-blue-color;
+      transform: scale(1.1);
     }
   }
 }
+
+/* Main CTA button ("Click if no size" etc.) */
 .click_btn {
-  background: $blue-color;
-  width: 250px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  width: fit-content;
+  min-width: 220px;
   font-weight: 600;
   color: #fff;
-  height: 50px;
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 12px;
+  border: none;
   cursor: pointer;
-  margin: 5px 0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+  }
 }
+
+/* Generic icon (fallback) */
 .svg {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   fill: $blue-color;
   cursor: pointer;
-  margin-top: 5px;
+  transition: transform 0.15s ease, fill 0.2s ease;
+
   &:hover {
     fill: $dark-blue-color;
+    transform: scale(1.1);
   }
+}
+
+/* Section header (shared look) */
+.header {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
 }

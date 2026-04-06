@@ -2,13 +2,10 @@
 "use client";
 
 import React, { InputHTMLAttributes } from "react";
-import { ErrorMessage, useField } from "formik";
 import styles from "./styles.module.scss";
 
 type AdminInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "name"> & {
-  /** Formik field name (required) */
   name: string;
-  /** Visible label for the input (required) */
   label: string;
 };
 
@@ -18,37 +15,58 @@ export default function AdminInput({
   type = "text",
   ...props
 }: AdminInputProps): React.JSX.Element {
-  // Tell Formik which field to bind to (and its type for proper onChange casting)
-  const [field, meta] = useField<string>({ name: props.name, type });
-
   const inputId = id ?? props.name;
-  const hasError = Boolean(meta.touched && meta.error);
+  const hasError = false;
+  const { name: _ignoredName, style: inputStyle, ...restProps } = props;
 
   return (
-    <div className={styles.field}>
+    <div
+      className={styles.field}
+      style={{
+        width: "100%",
+        marginBottom: "1rem",
+      }}
+    >
       <label
         className={`${styles.label} ${hasError ? styles.inputError : ""}`}
         htmlFor={inputId}
+        style={{
+          display: "grid",
+          gap: "0.5rem",
+          width: "100%",
+        }}
       >
-        <span>{label}</span>
+        <span
+          style={{
+            fontSize: "0.95rem",
+            fontWeight: 700,
+            color: "#111827",
+          }}
+        >
+          {label}
+        </span>
         <input
           id={inputId}
           type={type}
           aria-invalid={hasError}
           aria-describedby={hasError ? `${inputId}-error` : undefined}
-          // Bind Formik’s value/onChange/onBlur
-          {...field}
-          // Allow consumer overrides (placeholder, autoComplete, etc.)
-          {...props}
+          name={inputId}
+          {...restProps}
+          style={{
+            width: "100%",
+            minHeight: "48px",
+            padding: "0 14px",
+            border: "1px solid #d1d5db",
+            borderRadius: "12px",
+            fontSize: "1rem",
+            outline: "none",
+            background: "#fff",
+            boxSizing: "border-box",
+            ...((inputStyle as React.CSSProperties | undefined) ?? {}),
+          }}
         />
       </label>
-
-      {hasError && (
-        <div id={`${inputId}-error`} className={styles.inputError__msg}>
-          <span />
-          <ErrorMessage name={field.name} />
-        </div>
-      )}
+      <></>
     </div>
   );
 }

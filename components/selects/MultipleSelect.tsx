@@ -1,21 +1,16 @@
-// components/selects/MultipleSelect.tsx
 "use client";
 
 import * as React from "react";
-import clsx from "clsx";
-import { useField, ErrorMessage } from "formik";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
-import Input from "@mui/material/Input";
+import InputLabel from "@mui/material/InputLabel";
+import OutlinedInput from "@mui/material/OutlinedInput";
 import MenuItem from "@mui/material/MenuItem";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import ListItemText from "@mui/material/ListItemText";
-import Image from "next/image";
 import styles from "./styles.module.scss";
-
-/* ---------- Types ---------- */
 
 type Option = {
   _id: string;
@@ -23,26 +18,14 @@ type Option = {
 };
 
 interface MultipleSelectProps {
-  /** Array of options coming from the server */
   data: Option[];
-  /** Controlled value: array of selected _id strings */
   value: string[];
-  /** Field name (also used to hook into Formik meta) */
   name: string;
-  /** Header label shown above the select */
   header: string;
-  /** Disable the whole control */
   disabled?: boolean;
-  /**
-   * onChange handler for MUI v5 <Select multiple>.
-   * Access selected ids via: `event.target.value as string[]`
-   */
   handleChange: (event: SelectChangeEvent<string[]>) => void;
-  /** Any extra props you might pass down to <Select> */
   [key: string]: unknown;
 }
-
-/* ---------- Component ---------- */
 
 export default function MultipleSelect({
   data,
@@ -53,9 +36,6 @@ export default function MultipleSelect({
   disabled,
   ...rest
 }: MultipleSelectProps): React.JSX.Element {
-  const [, meta] = useField<string[]>({ name });
-
-  // Build fast lookup of _id -> name
   const labelById = React.useMemo<Record<string, string>>(
     () =>
       Array.isArray(data)
@@ -67,54 +47,46 @@ export default function MultipleSelect({
     [data]
   );
 
-  const hasError = Boolean(meta.touched && meta.error);
-
   return (
-    <div>
-      {/* Header + inline error */}
-      <div className={clsx(styles.header, hasError && styles.header__error)}>
-        <div className={styles.flex}>
-          {hasError && (
-            <Image
-              src="/images/warning.png"
-              alt="Warning"
-              width={16}
-              height={16}
-              className={styles.warningIcon}
-            />
-          )}
+    <div style={{ width: "100%", marginBottom: "1.25rem" }}>
+      <div className={styles.header} style={{ marginBottom: "0.75rem" }}>
+        <div className={styles.flex} style={{ fontSize: "1rem", fontWeight: 700 }}>
           {header}
         </div>
-        <span>
-          {hasError && (
-            <div className={styles.error__msg}>
-              <span />
-              <ErrorMessage name={name} />
-            </div>
-          )}
-        </span>
+        <span />
       </div>
 
-      <FormControl
-        sx={{ m: 1, minWidth: 120, width: "100%" }}
-        disabled={disabled}
-        aria-invalid={hasError || undefined}
-      >
+      <FormControl fullWidth disabled={disabled} sx={{ width: "100%" }}>
+        <InputLabel id={`${name}-label`}>Select options</InputLabel>
         <Select
           multiple
           value={value}
           onChange={handleChange}
           name={name}
-          input={<Input id={`${name}-multiple-chip`} />}
+          labelId={`${name}-label`}
+          input={<OutlinedInput label="Select options" />}
           renderValue={(selected) => {
             const ids = (selected as string[]) || [];
             return (
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
                 {ids.map((id) => (
-                  <Chip key={id} label={labelById[id] ?? id} />
+                  <Chip
+                    key={id}
+                    label={labelById[id] ?? id}
+                    sx={{ borderRadius: "999px" }}
+                  />
                 ))}
               </Box>
             );
+          }}
+          sx={{
+            width: "100%",
+            minHeight: 56,
+            borderRadius: "12px",
+            backgroundColor: "#fff",
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: "#d1d5db",
+            },
           }}
           {...rest}
         >

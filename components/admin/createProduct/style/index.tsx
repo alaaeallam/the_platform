@@ -3,10 +3,8 @@
 
 import * as React from "react";
 import { useRef } from "react";
-import { useField, ErrorMessage } from "formik";
 import { useAppDispatch } from "@/store/hooks";
 import { showDialog } from "@/store/DialogSlice";
-import Image from "next/image";
 
 import styles from "./styles.module.scss";
 
@@ -50,7 +48,6 @@ export default function Style({
 }: StyleProps): React.JSX.Element {
   const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [, meta] = useField(name);
 
   const openDialog = (title: string, message: string): void => {
     dispatch(
@@ -98,17 +95,8 @@ export default function Style({
   return (
     <div className={styles.images}>
       {/* Header */}
-      <div className={`${styles.header} ${meta.error ? styles.header__error : ""}`}>
-        <div className={styles.flex}>
-          {meta.error && <Image src="/images/warning.png" alt="Warning" width={16} height={16} priority />}
-          Pick a Product Style Image
-        </div>
-        {meta.touched && meta.error && (
-          <div className={styles.error__msg}>
-            <span />
-            <ErrorMessage name={name} />
-          </div>
-        )}
+      <div className={styles.header}>
+        <div className={styles.flex}>Pick a Product Style Image</div>
       </div>
 
       {/* Hidden file input */}

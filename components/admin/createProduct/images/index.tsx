@@ -3,7 +3,6 @@
 
 import * as React from "react";
 import { useRef } from "react";
-import { useField } from "formik";
 import { useAppDispatch } from "@/store/hooks";// typed hooks you’re already using elsewhere
 import { showDialog } from "@/store/DialogSlice";
 
@@ -27,7 +26,6 @@ interface ImagesProps {
   header: React.ReactNode;
   /** Button text */
   text: string;
-  /** Formik field name (for validation message display) */
   name: string;
   /** Select one image to be the color/style image */
   setColorImage: (img: string) => void;
@@ -58,8 +56,6 @@ export default function Images({
   const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // We only use Formik for error display, so we read the field meta by name
-  const [, meta] = useField<string>(name);
 
   const openDialog = (title: string, message: string) => {
     dispatch(
@@ -127,21 +123,12 @@ export default function Images({
 
   return (
     <div className={styles.images}>
-      {/* Header + inline error */}
-      <div className={`${styles.header} ${meta.error ? styles.header__error : ""}`}>
-        <div className={styles.flex}>
-          {meta.error && <Image src="/images/warning.png" alt="Warning" width={16} height={16} />}
-          {header}
-        </div>
-        <span>
-          {meta.touched && meta.error && (
-            <div className={styles.error__msg}>
-              <span />
-              {/* Formik's <ErrorMessage> is fine, but we already have meta.error here */}
-              {String(meta.error)}
-            </div>
-          )}
-        </span>
+      <div
+        className={styles.header}
+        style={{ marginBottom: "0.75rem", fontSize: "1rem", fontWeight: 700 }}
+      >
+        <div className={styles.flex}>{header}</div>
+        <span />
       </div>
 
       {/* Hidden file input */}
@@ -173,12 +160,48 @@ export default function Images({
           }`}
         >
           {!images.length ? (
-            <Image src="/images/no_image.png" alt="No image" width={220} height={160} />
+            <div
+              style={{
+                minHeight: 260,
+                display: "grid",
+                placeItems: "center",
+                borderRadius: 14,
+                border: "1px dashed #cbd5e1",
+                background: "#f8fafc",
+                padding: "1rem",
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <Image
+                  src="/images/no_image.png"
+                  alt="No image"
+                  width={220}
+                  height={160}
+                  style={{ objectFit: "contain", margin: "0 auto" }}
+                />
+                <p
+                  style={{
+                    margin: "0.75rem 0 0",
+                    color: "#64748b",
+                    fontSize: "0.95rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  No images uploaded yet.
+                </p>
+              </div>
+            </div>
           ) : (
             images.map((img, i) => (
               <div className={styles.images__main_grid_wrap} key={`${img}-${i}`}>
                 <div className={styles.blur} />
-                <Image src={img} alt={`Product image ${i + 1}`} width={400} height={400} style={{ objectFit: "cover" }} />
+                <Image
+                  src={img}
+                  alt={`Product image ${i + 1}`}
+                  width={400}
+                  height={400}
+                  style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                />
                 <div className={styles.images__main_grid_actions}>
                   <button type="button" onClick={() => handleRemove(img)} aria-label="Remove image">
                     <RiDeleteBin7Fill />
@@ -200,15 +223,20 @@ export default function Images({
         </div>
       </div>
 
-      {/* Trigger picker */}
       <button
         type="button"
         disabled={images.length >= MAX_IMAGES}
-        style={{ opacity: images.length >= MAX_IMAGES ? 0.5 : 1 }}
+        style={{
+          opacity: images.length >= MAX_IMAGES ? 0.5 : 1,
+          minHeight: 48,
+          padding: "0 20px",
+          borderRadius: 12,
+          fontWeight: 700,
+        }}
         onClick={() => fileInputRef.current?.click()}
         className={`${styles.btn} ${styles.btn__primary}`}
       >
-        {text}
+        {images.length >= MAX_IMAGES ? `Maximum ${MAX_IMAGES} images reached` : text}
       </button>
     </div>
   );

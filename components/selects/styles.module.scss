@@ -1,23 +1,72 @@
 @import "../admin/base";
+
 .select {
   width: 100%;
-  margin-top: 1rem !important;
-  div {
-    div {
-      padding: 1rem;
+  margin-top: 0 !important;
+
+  :global(.MuiFormControl-root),
+  :global(.MuiTextField-root) {
+    width: 100%;
+  }
+
+  :global(.MuiInputLabel-root) {
+    font-size: 15px;
+    color: #6b7280;
+  }
+
+  :global(.MuiOutlinedInput-root) {
+    width: 100%;
+    min-height: 56px;
+    border-radius: 12px;
+    background: #fff;
+
+    &:hover :global(.MuiOutlinedInput-notchedOutline) {
+      border-color: #9ca3af;
+    }
+
+    &.Mui-focused :global(.MuiOutlinedInput-notchedOutline) {
+      border-color: #2563eb;
+      border-width: 1px;
     }
   }
+
+  :global(.MuiOutlinedInput-notchedOutline) {
+    border-color: #d1d5db;
+  }
+
+  :global(.MuiSelect-select) {
+    display: flex;
+    align-items: center;
+    min-height: 56px;
+    padding: 14px 16px !important;
+    box-sizing: border-box;
+  }
+
+  :global(.MuiChip-root) {
+    border-radius: 999px;
+    height: 28px;
+  }
 }
+
 .error__select {
   background: rgba(255, 0, 0, 0.031) !important;
   border: 1px solid #cc674f;
 }
+
 .error__msg {
   color: $error-color;
   font-size: 13px;
 }
+
+.header {
+  margin-bottom: 0.75rem;
+}
+
 .flex {
   display: flex !important;
   align-items: center;
   gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
 }

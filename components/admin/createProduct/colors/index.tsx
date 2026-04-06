@@ -4,7 +4,6 @@
 import * as React from "react";
 import NextImage from "next/image";
 import { useEffect, useState } from "react";
-import { useField, ErrorMessage } from "formik";
 import ColorThief from "color-thief-browser";
 import { TbArrowUpRightCircle } from "react-icons/tb";
 import styles from "./styles.module.scss";
@@ -36,7 +35,6 @@ export default function Colors({
 }: ColorsProps): React.JSX.Element {
   const [toggle, setToggle] = useState(false);
   const [palette, setPalette] = useState<string[]>([]);
-  const [field, meta] = useField<string>(name);
 
   // Extract colors from the image whenever it changes
   useEffect(() => {
@@ -66,30 +64,14 @@ export default function Colors({
 
   return (
     <div className={styles.colors}>
-      <div className={`${styles.header} ${meta.error ? styles.header__error : ""}`}>
-        <div className={styles.flex}>
-          {meta.error && (
-            <NextImage
-              src="/images/warning.png"
-              alt="Warning"
-              width={16}
-              height={16}
-              priority
-            />
-          )}
-          Pick a product color
-        </div>
-        {meta.touched && meta.error && (
-          <div className={styles.error__msg}>
-            <ErrorMessage name={name} />
-          </div>
-        )}
+      <div className={styles.header}>
+        <div className={styles.flex}>Pick a product color</div>
       </div>
 
       <input
         type="text"
         hidden
-        {...field}
+        name={name}
         value={product.color?.color ?? ""}
         readOnly
       />
