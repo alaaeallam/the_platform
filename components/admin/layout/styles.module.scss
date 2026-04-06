@@ -1,8 +1,18 @@
 .layout {
   position: relative;
+
   &__main {
     padding: 1rem 2rem;
     min-height: 100vh;
     padding-bottom: 5rem;
+    transition: margin-left 0.3s ease;
   }
+}
+
+.expanded {
+  margin-left: 280px;
+}
+
+.collapsed {
+  margin-left: 80px;
 }

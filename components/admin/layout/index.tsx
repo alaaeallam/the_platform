@@ -8,6 +8,7 @@ import { hideDialog } from "../../../store/DialogSlice";
 import DialogModal from "../../dialogModal";
 import Sidebar from "./sidebar";
 import styles from "./styles.module.scss";
+import { store } from "@/store";
 
 /* =========================
    Types
@@ -19,9 +20,7 @@ interface ExpandSidebarState {
 }
 
 // Full RootState shape for selector (adjust if needed)
-interface RootState {
-  expandSidebar: ExpandSidebarState;
-}
+export type RootState = ReturnType<typeof store.getState>;  
 
 // Props for Layout
 interface LayoutProps {
@@ -36,10 +35,10 @@ export default function Layout({ children }: LayoutProps) {
   const dispatch = useDispatch();
 
   // Strongly typed selector
-  const useTypedSelector: TypedUseSelectorHook<RootState> = useSelector;
-  const showSidebar = useTypedSelector(
-    (state) => state.expandSidebar.expandSidebar
-  );
+  const showSidebar = useSelector(
+  (state: RootState) => state.expandSidebar.expandSidebar
+);
+ 
 
   useEffect(() => {
     dispatch(hideDialog());
@@ -50,8 +49,7 @@ export default function Layout({ children }: LayoutProps) {
       <DialogModal />
       <Sidebar />
       <div
-        className={styles.layout__main}
-        style={{ marginLeft: showSidebar ? "280px" : "80px" }}
+        className={`${styles.layout__main} ${showSidebar ? styles.expanded : styles.collapsed}`}
       >
         {children}
       </div>

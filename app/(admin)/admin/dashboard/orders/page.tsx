@@ -1,7 +1,10 @@
 // app/(admin)/admin/dashboard/orders/page.tsx
 import React from "react";
 import Layout from "@/components/admin/layout";
-import {CollapsibleTable} from "@/components/admin/orders/table";
+import nextDynamic from "next/dynamic";
+const CollapsibleTable = nextDynamic(() =>
+  import("@/components/admin/orders/table").then((m) => m.CollapsibleTable)
+);
 import { connectDb } from "@/utils/db";
 import Order from "@/models/Order";
 import User from "@/models/User";
@@ -43,7 +46,6 @@ interface OrderLean {
 }
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 function pickCouponCode(doc: OrderLean): string | null {
   return (
@@ -87,7 +89,7 @@ function toAdminOrderVM(doc: OrderLean): AdminOrderVM {
     shippingAddress: doc?.shippingAddress ?? null,
     products: Array.isArray(doc?.products)
       ? doc.products.map((p: ProductLineLean) => ({
-          _id: String(p?._id ?? crypto.randomUUID()),
+          _id: String(p?._id ?? `${p?.name ?? "item"}-${p?.size ?? "na"}`),
           image: p?.image,
           name: p?.name,
           size: p?.size,
@@ -105,9 +107,29 @@ export default async function AdminOrdersPage() {
   await connectDb();
 
   const raw = await Order.find({})
-    .populate({ path: "user", model: User, select: "name email image" })
+    .select([
+      "_id",
+      "user",
+      "total",
+      "totalPrice",
+      "isPaid",
+      "status",
+      "paymentMethod",
+      "couponApplied",
+      "couponCode",
+      "shippingAddress",
+      "products._id",
+      "products.image",
+      "products.name",
+      "products.size",
+      "products.qty",
+      "products.price",
+      "createdAt",
+      "updatedAt",
+    ].join(" "))
+    .populate({ path: "user", model: User, select: "_id name email image" })
     .sort({ createdAt: -1 })
-    .lean();
+    .lean<OrderLean[]>();
 
   const orders: AdminOrderVM[] = (raw ?? []).map(toAdminOrderVM);
 
