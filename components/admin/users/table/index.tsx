@@ -22,8 +22,6 @@ import Switch from '@mui/material/Switch';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { visuallyHidden } from '@mui/utils';
-import { RiDeleteBin7Fill } from 'react-icons/ri';
-import axios from "axios";
 import { toast } from 'react-toastify';
 
 import styles from './styles.module.scss';
@@ -236,17 +234,20 @@ export default function EnhancedTable({ rows }: Props) {
     if (!confirm('Delete this user?')) return;
     try {
       setDeleting(id);
-      await axios.delete(`/api/admin/users/${id}`);
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      if (!res.ok) {
+        throw new Error(data.message || "Delete failed");
+      }
       // Optimistically unselect and remove from table
       setSelected((s) => s.filter((x) => x !== id));
       setData((prev) => prev.filter((r) => r.id !== id));
       toast.success('User deleted');
     } catch (e: unknown) {
-      let message = 'Delete failed';
-      if (e && typeof e === 'object') {
-        const err = e as { response?: { data?: { message?: string } }; message?: string };
-        message = err.response?.data?.message ?? err.message ?? message;
-      }
+      const message = e instanceof Error ? e.message : 'Delete failed';
       toast.error(message);
     } finally {
       setDeleting(null);
@@ -376,7 +377,7 @@ export default function EnhancedTable({ rows }: Props) {
     disabled={deleting === row.id}
     style={{ background: "none", border: 0, cursor: "pointer" }}
   >
-    <RiDeleteBin7Fill />
+    <DeleteIcon fontSize="small" />
   </button>
                     </TableCell>
                   </TableRow>

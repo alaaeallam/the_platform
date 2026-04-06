@@ -1,20 +1,10 @@
 import Layout from "@/components/admin/layout";
-import EnhancedTable from "@/components/admin/users/table";
 import { connectDb } from "@/utils/db";
 import User from "@/models/User";
 import type { UserRow } from "@/types/users";
+import dynamic from "next/dynamic";
 
-/**
- * Server component – runs on the server in the App Router.
- * Fetches users, normalizes them to serializable props, and renders the table.
- */
-export default async function UsersPage() {
-  await connectDb();
-
-  const users = await User.find({})
-    .sort({ createdAt: -1 })
-    .lean()
-    .exec();
+const EnhancedTable = dynamic(() => import("@/components/admin/users/table"));
 
 type LeanUser = {
   _id: unknown;
@@ -25,6 +15,18 @@ type LeanUser = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
 };
+
+/**
+ * Server component – runs on the server in the App Router.
+ * Fetches users, normalizes them to serializable props, and renders the table.
+ */
+export default async function UsersPage() {
+  await connectDb();
+
+  const users = await User.find({})
+    .select("_id name email image role createdAt updatedAt")
+    .sort({ createdAt: -1 })
+    .lean<LeanUser[]>();
 
   // Ensure plain, serializable values
   const rows: UserRow[] = (users ?? []).map((u: LeanUser) => ({
