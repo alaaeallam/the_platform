@@ -1,7 +1,6 @@
 // app/(admin)/admin/dashboard/products/create/page.tsx
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const revalidate = 0;
 
 import * as React from "react";
 import { connectDb } from "@/utils/db";
@@ -54,10 +53,10 @@ export default async function CreateProductPage(): Promise<React.JSX.Element> {
         <CreateProductClient parents={parents}
         categories={categories}
         mode="create"
-/>
+      />
       </Layout>
     );
-  } catch (err) {
+  } catch {
     // Render a minimal shell so Next can still resolve the module during build
     return (
       <Layout>

@@ -2,6 +2,7 @@
 ///components/admin/products/create/CreateProductClient.tsx
 import * as React from "react";
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import axios from "axios";
@@ -12,17 +13,7 @@ import { useDispatch } from "react-redux";
 
 import styles from "@/app/styles/products.module.scss";
 
-import SingularSelect from "@/components/selects/SingularSelect";
-import MultipleSelect from "@/components/selects/MultipleSelect";
-import AdminInput from "@/components/inputs/adminInput";
-import DialogModal from "@/components/dialogModal";
-import Images from "@/components/admin/createProduct/images";
-import Colors from "@/components/admin/createProduct/colors";
-import Style from "@/components/admin/createProduct/style";
-import Sizes from "@/components/admin/createProduct/clickToAdd/Sizes";
 import { normalizeSizesForPayload } from "@/components/admin/createProduct/clickToAdd/Sizes";
-import Details from "@/components/admin/createProduct/clickToAdd/Details";
-import Questions from "@/components/admin/createProduct/clickToAdd/Questions";
 
 import { showDialog } from "@/store/DialogSlice";
 import {
@@ -134,6 +125,17 @@ type Props = {
   productId?: string;
   initialProduct?: ProductDraft;
 };
+
+const SingularSelect = dynamic(() => import("@/components/selects/SingularSelect"));
+const MultipleSelect = dynamic(() => import("@/components/selects/MultipleSelect"));
+const AdminInput = dynamic(() => import("@/components/inputs/adminInput"));
+const DialogModal = dynamic(() => import("@/components/dialogModal"), { ssr: false });
+const Images = dynamic(() => import("@/components/admin/createProduct/images"));
+const Colors = dynamic(() => import("@/components/admin/createProduct/colors"));
+const Style = dynamic(() => import("@/components/admin/createProduct/style"));
+const Sizes = dynamic(() => import("@/components/admin/createProduct/clickToAdd/Sizes"));
+const Details = dynamic(() => import("@/components/admin/createProduct/clickToAdd/Details"));
+const Questions = dynamic(() => import("@/components/admin/createProduct/clickToAdd/Questions"));
 
 const isRemoteUrl = (value: string): boolean => /^https?:\/\//i.test(value);
 
