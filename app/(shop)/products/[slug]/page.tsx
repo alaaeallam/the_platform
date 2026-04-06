@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import Product, { type IProduct } from "@/models/Product";
 import Category from "@/models/Category";
@@ -54,18 +54,32 @@ export default async function ProductPage(props: PageProps) {
   const product = productDoc as IProduct;
 
   const cookieStore = await cookies();
-  const cookieCountry = cookieStore.get("country")?.value;
-  const countryISO2 = String(qs?.country ?? cookieCountry ?? "EG").toUpperCase();
+  const headerStore = await headers();
+
+  const queryCountry = String(qs?.country ?? "").trim().toUpperCase();
+  const geoCountry = String(headerStore.get("x-vercel-ip-country") ?? "")
+    .trim()
+    .toUpperCase();
+  const cookieCountry = String(cookieStore.get("country")?.value ?? "")
+    .trim()
+    .toUpperCase();
+
+  const countryISO2 = queryCountry || geoCountry || cookieCountry || "EG";
+
   const groups: CountryGroupsMap = {
     MA: ["LOW_ECONOMY", "MENA"],
     EG: ["LOW_ECONOMY", "MENA"],
     US: ["HIGH_ECONOMY"],
   };
 
+  // If a country is not explicitly mapped, let the pricing layer fall back
+  // to the product's base/default price rather than forcing Egypt pricing.
+  const normalizedCountryISO2 = countryISO2;
+
   const vm = buildProductViewModel(product, {
     styleIndex,
     sizeIndex,
-    countryISO2,
+    countryISO2: normalizedCountryISO2,
     countryGroups: groups,
   });
 
