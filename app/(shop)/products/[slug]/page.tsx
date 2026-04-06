@@ -16,15 +16,15 @@ import type { CountryGroupsMap } from "@/lib/pricing";
 import type { ProductInfosVM } from "@/components/productPage/infos";
 
 type PageProps = {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ style?: string; size?: string; country?: string }>;
+  params: { slug: string };
+  searchParams?: { style?: string; size?: string; country?: string };
 };
 
 export default async function ProductPage(props: PageProps) {
   await connectDb();
 
-  const { slug } = await props.params;
-  const qs = await props.searchParams;
+  const { slug } = props.params;
+  const qs = props.searchParams ?? {};
 
   const parsedStyleIndex = Number(qs?.style ?? 0);
   const parsedSizeIndex = Number(qs?.size ?? 0);
@@ -64,7 +64,9 @@ export default async function ProductPage(props: PageProps) {
     .trim()
     .toUpperCase();
 
-  const countryISO2 = queryCountry || geoCountry || cookieCountry || "EG";
+  const isDev = process.env.NODE_ENV !== "production";
+const countryISO2 =
+  (isDev ? queryCountry : "") || geoCountry || cookieCountry || "EG";
 
   const groups: CountryGroupsMap = {
     MA: ["LOW_ECONOMY", "MENA"],
