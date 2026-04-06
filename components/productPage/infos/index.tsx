@@ -7,6 +7,7 @@ import { toggleWishlist } from "@/store/wishlistSlice";
 import type { WishItem } from "@/types/wishlist";
 import { makeWishKey } from "@/utils/wishlist";
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image"; // ✅
 import { useSearchParams } from "next/navigation";
@@ -16,9 +17,11 @@ import styles from "./styles.module.scss";
 import Rating from "@mui/material/Rating";
 
 import Accordian, { type DetailKV } from "./Accordian";
-import SimillarSwiper from "./SimillarSwiper";
-import Share from "./share";
-import DialogModal from "@/components/dialogModal";
+const Share = dynamic(() => import("./share"));
+const SimillarSwiper = dynamic(() => import("./SimillarSwiper"));
+const DialogModal = dynamic(() => import("@/components/dialogModal"), {
+  ssr: false,
+});
 
 /* ---------- Types ---------- */
 export interface ProductInfosVM {
@@ -103,7 +106,17 @@ export default function Infos({ product, setActiveImg }: InfosProps) {
       color: product.colors?.[styleIndex]?.color,
       addedAt: new Date().toISOString(),
     };
-  }, [product, styleIndex, sizeIndex, displayPrice]);
+  }, [
+    product._id,
+    product.slug,
+    product.name,
+    product.images,
+    product.sizes,
+    product.colors,
+    styleIndex,
+    sizeIndex,
+    displayPrice,
+  ]);
 
   const dispatch = useAppDispatch();
 

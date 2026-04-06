@@ -8,7 +8,6 @@ import { cookies } from "next/headers";
 import Product, { type IProduct } from "@/models/Product";
 import Category from "@/models/Category";
 import SubCategory from "@/models/SubCategory";
-import User from "@/models/User";
 import styles from "@/app/styles/product.module.scss";
 import { connectDb } from "@/utils/db";
 import ProductDetailsClient from "@/components/productPage/ProductDetailsClient";
@@ -34,6 +33,7 @@ export default async function ProductPage(props: PageProps) {
   const productDoc = await Product.findOne({ slug })
     .select(
       [
+        "_id",
         "name",
         "slug",
         "description",
@@ -42,13 +42,12 @@ export default async function ProductPage(props: PageProps) {
         "numReviews",
         "category",
         "subCategories",
-        "reviews",
+        "shipping",
         "subProducts",
       ].join(" ")
     )
     .populate({ path: "category", model: Category, select: "name slug" })
     .populate({ path: "subCategories", model: SubCategory, select: "name slug" })
-    .populate({ path: "reviews.reviewBy", model: User, select: "name image" })
     .lean();
   if (!productDoc) return notFound();
 
@@ -70,8 +69,47 @@ export default async function ProductPage(props: PageProps) {
     countryGroups: groups,
   });
 
-  // Strip non-serializable fields
-  const viewModel: ProductInfosVM = JSON.parse(JSON.stringify(vm));
+  const viewModel: ProductInfosVM = {
+    _id: String(vm._id),
+    name: vm.name,
+    slug: vm.slug,
+    rating: Number(vm.rating ?? 0),
+    numReviews: Number(vm.numReviews ?? 0),
+    createdAt: String(vm.createdAt ?? ""),
+    description: String(vm.description ?? ""),
+    details: Array.isArray(vm.details)
+      ? vm.details.map((d) => ({
+          name: String(d.name ?? ""),
+          value: String(d.value ?? ""),
+        }))
+      : [],
+    style: Number(vm.style ?? 0),
+    images: Array.isArray(vm.images) ? vm.images.map(String) : [],
+    sizes: Array.isArray(vm.sizes)
+      ? vm.sizes.map((s) => ({
+          size: String(s.size ?? ""),
+          qty: Number(s.qty ?? 0),
+        }))
+      : [],
+    discount: Number(vm.discount ?? 0),
+    sku: String(vm.sku ?? ""),
+    colors: Array.isArray(vm.colors)
+      ? vm.colors.map((c) => ({
+          color: c.color ? String(c.color) : undefined,
+          image: c.image ? String(c.image) : undefined,
+        }))
+      : [],
+    priceRange: String(vm.priceRange ?? ""),
+    price: Number(vm.price ?? 0),
+    priceBefore: Number(vm.priceBefore ?? 0),
+    quantity: Number(vm.quantity ?? 0),
+    shipping: typeof vm.shipping === "number" ? vm.shipping : undefined,
+    subProducts: Array.isArray(vm.subProducts)
+      ? vm.subProducts.map((sp) => ({
+          images: Array.isArray(sp.images) ? sp.images.map(String) : [],
+        }))
+      : [],
+  };
 
   // ---------- Breadcrumbs (safe, typed) ----------
   const categoryName =
