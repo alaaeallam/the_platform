@@ -6,13 +6,15 @@ import Image from "next/image";
 import styles from "./styles.module.scss";
 import { RiSearch2Line } from "react-icons/ri";
 import { FaOpencart } from "react-icons/fa";
+import { Provider as ReduxProvider } from "react-redux";
 import { useAppSelector } from "@/store/hooks";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { store } from "@/store";
 
 import { selectCartLineCount } from "@/store/cartSlice";
 
-export default function Main() {
+function MainContent() {
   const router = useRouter();
   const badgeCount = useAppSelector(selectCartLineCount);
   const [query, setQuery] = useState("");
@@ -55,5 +57,13 @@ export default function Main() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function Main() {
+  return (
+    <ReduxProvider store={store}>
+      <MainContent />
+    </ReduxProvider>
   );
 }

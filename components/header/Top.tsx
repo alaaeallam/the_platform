@@ -1,10 +1,9 @@
-// components/header/Top.tsx
 "use client";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSession } from "next-auth/react";
+import { SessionProvider, useSession } from "next-auth/react";
 import styles from "./styles.module.scss";
 
 import { MdSecurity } from "react-icons/md";
@@ -13,20 +12,19 @@ import { RiAccountPinCircleLine, RiArrowDropDownFill } from "react-icons/ri";
 
 import UserMenu from "./UserMenu";
 
-// Keep in sync with utils/countries
 export type CountryInfo = {
-  code: string;       // e.g. "EG"
-  name: string;       // e.g. "Egypt"
-  flagEmoji: string;  // 🇪🇬
-  flagUrl: string;    // https CDN url
+  code: string;
+  name: string;
+  flagEmoji: string;
+  flagUrl: string;
 };
 
 type TopProps = {
   country?: CountryInfo;
-  currency?: string; // default "USD"
+  currency?: string;
 };
 
-export default function Top({ country, currency = "USD" }: TopProps) {
+function TopContent({ country, currency = "USD" }: TopProps) {
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const [useEmojiFlag, setUseEmojiFlag] = useState(false);
@@ -42,7 +40,6 @@ export default function Top({ country, currency = "USD" }: TopProps) {
         <div />
 
         <ul className={styles.top__list}>
-          {/* Country / Currency */}
           <li className={styles.li} aria-label="Country and currency">
             {country ? (
               <>
@@ -90,7 +87,6 @@ export default function Top({ country, currency = "USD" }: TopProps) {
             </Link>
           </li>
 
-          {/* Account dropdown */}
           <li
             className={styles.li}
             onMouseEnter={() => setMenuOpen(true)}
@@ -123,5 +119,13 @@ export default function Top({ country, currency = "USD" }: TopProps) {
         </ul>
       </div>
     </div>
+  );
+}
+
+export default function Top(props: TopProps) {
+  return (
+    <SessionProvider>
+      <TopContent {...props} />
+    </SessionProvider>
   );
 }
