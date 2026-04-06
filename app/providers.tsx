@@ -6,10 +6,9 @@ import { SessionProvider } from "next-auth/react";
 import type { Session } from "next-auth";
 import { Provider as ReduxProvider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
-import { store, persistor } from "@/store";
+import { store, makePersistor } from "@/store";
 
 import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 type ProvidersProps = {
   children: React.ReactNode;
@@ -18,6 +17,7 @@ type ProvidersProps = {
 };
 
 export function Providers({ children, session }: ProvidersProps): React.JSX.Element {
+  const persistor = React.useMemo(() => makePersistor(), []);
   return (
     <SessionProvider
       session={session ?? undefined}

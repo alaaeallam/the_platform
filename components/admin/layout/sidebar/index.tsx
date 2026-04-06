@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";   // ✅ App Router
 import { useSession } from "next-auth/react";
 
-import { useAppDispatch, useAppSelector } from "@/store"; // ✅ typed hooks
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleSidebar } from "@/store/ExpandSlice";
 
 import styles from "./styles.module.scss";

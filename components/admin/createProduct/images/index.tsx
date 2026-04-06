@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useRef } from "react";
 import { useField } from "formik";
-import { useAppDispatch } from "@/store"; // typed hooks you’re already using elsewhere
+import { useAppDispatch } from "@/store/hooks";// typed hooks you’re already using elsewhere
 import { showDialog } from "@/store/DialogSlice";
 
 import Image from "next/image";

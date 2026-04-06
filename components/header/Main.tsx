@@ -6,7 +6,7 @@ import Image from "next/image";
 import styles from "./styles.module.scss";
 import { RiSearch2Line } from "react-icons/ri";
 import { FaOpencart } from "react-icons/fa";
-import { useAppSelector } from "@/store";
+import { useAppSelector } from "@/store/hooks";
 import { useState, type FormEvent } from "react";
 import { useRouter, usePathname } from "next/navigation";
 

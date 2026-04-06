@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAppDispatch } from "@/store";
+import { useAppDispatch} from "@/store/hooks";
 import { updateCart, type CartState } from "@/store/cartSlice";
 
 /** Rehydrates cart when another tab writes to redux-persist. */

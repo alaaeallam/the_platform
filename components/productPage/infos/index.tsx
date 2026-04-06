@@ -2,7 +2,7 @@
 "use client";
 import { addToCart } from "@/store/cartSlice";
 import type { CartProduct } from "@/types/cart";
-import { useAppDispatch, useAppSelector } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleWishlist } from "@/store/wishlistSlice";
 import type { WishItem } from "@/types/wishlist";
 import { makeWishKey } from "@/utils/wishlist";

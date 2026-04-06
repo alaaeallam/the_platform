@@ -2,8 +2,8 @@
 "use client";
 
 import { JSX, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import type { Session } from "next-auth";
-import Shipping from "@/components/checkout/shipping";
 import type { Address } from "@/types/checkout";
 
 interface AddressClientProps {
@@ -12,6 +12,8 @@ interface AddressClientProps {
   /** Initial addresses fetched on the server from User.address */
   initialAddresses: Address[];
 }
+
+const Shipping = dynamic(() => import("@/components/checkout/shipping"));
 
 export default function AddressClient({
   user,

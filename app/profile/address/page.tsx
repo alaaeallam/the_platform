@@ -18,7 +18,6 @@ function getUserId(u: unknown): string | null {
 }
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export const metadata = {
   title: "My Addresses",
@@ -48,14 +47,30 @@ export default async function AddressPage({ searchParams }: PageProps) {
   }
 
   const doc = await User.findById(userId)
-    .select("address") // only singular "address"
+    .select("_id address")
     .lean();
 
-  const rawAddressesUnknown: unknown = (doc && typeof doc === "object" && "address" in doc)
-    ? (doc as { address?: unknown }).address
-    : undefined;
+  const rawAddressesUnknown: unknown =
+    doc && typeof doc === "object" && "address" in doc
+      ? (doc as { address?: unknown }).address
+      : undefined;
   const rawArray: unknown[] = Array.isArray(rawAddressesUnknown) ? rawAddressesUnknown : [];
-  const initialAddresses: Address[] = JSON.parse(JSON.stringify(rawArray));
+
+  const initialAddresses: Address[] = rawArray.map((item) => {
+    const a = (item ?? {}) as Record<string, unknown>;
+    return {
+      firstName: typeof a.firstName === "string" ? a.firstName : "",
+      lastName: typeof a.lastName === "string" ? a.lastName : "",
+      phoneNumber: typeof a.phoneNumber === "string" ? a.phoneNumber : "",
+      state: typeof a.state === "string" ? a.state : "",
+      city: typeof a.city === "string" ? a.city : "",
+      zipCode: typeof a.zipCode === "string" ? a.zipCode : "",
+      address1: typeof a.address1 === "string" ? a.address1 : "",
+      address2: typeof a.address2 === "string" ? a.address2 : "",
+      country: typeof a.country === "string" ? a.country : "",
+      active: typeof a.active === "boolean" ? a.active : false,
+    } as Address;
+  });
 
   return (
     <Layout user={session.user} tab={tab}>

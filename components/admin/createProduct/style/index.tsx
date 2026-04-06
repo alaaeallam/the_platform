@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useRef } from "react";
 import { useField, ErrorMessage } from "formik";
-import { useAppDispatch } from "@/store"; // ✅ typed dispatch hook
+import { useAppDispatch } from "@/store/hooks";
 import { showDialog } from "@/store/DialogSlice";
 import Image from "next/image";
 
