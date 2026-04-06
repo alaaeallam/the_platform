@@ -1,16 +1,21 @@
 "use client";
 
 import * as React from "react";
-import Create from "@/components/admin/subCategories/Create";
-import List from "@/components/admin/subCategories/List";
-import type { CategoryVM, SubCategoryVM, SubCategoryServer } from "@/components/admin/subCategories/types";
+import dynamic from "next/dynamic";
+import type {
+  CategoryVM,
+  SubCategoryVM,
+  SubCategoryServer,
+} from "@/components/admin/subCategories/types";
 import { toClient } from "@/components/admin/subCategories/types";
-
 
 interface Props {
   categories: CategoryVM[];
   initialSubCategories: SubCategoryServer[];
 }
+
+const Create = dynamic(() => import("@/components/admin/subCategories/Create"));
+const List = dynamic(() => import("@/components/admin/subCategories/List"));
 
 export default function SubCategoriesClient({
   categories,
@@ -29,6 +34,5 @@ export default function SubCategoriesClient({
         setSubCategories={setSubCategories}
       />
     </div>
-  
   );
 }

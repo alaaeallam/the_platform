@@ -11,8 +11,9 @@ export const dynamic = "force-dynamic";
 async function loadCategories(): Promise<CategoryVM[]> {
   await db.connectDb();
   const rows = await Category.find({})
-    .sort({ updatedAt: -1 })
-    .lean<{ _id: unknown; name: string; slug?: string; parent?: string | null; createdAt?: Date; updatedAt?: Date }[]>();
+  .select("_id name slug parent createdAt updatedAt")
+  .sort({ updatedAt: -1 })
+  .lean<{ _id: unknown; name: string; slug?: string; parent?: string | null; createdAt?: Date; updatedAt?: Date }[]>();
 
   return rows.map((c) => ({
     _id: String(c._id),
@@ -28,9 +29,10 @@ async function loadSubCategories(): Promise<SubCategoryServer[]> {
   await db.connectDb();
 
   const rows = await SubCategory.find({})
-    .populate({ path: "parent", model: Category, select: "_id name" })
-    .sort({ updatedAt: -1 })
-    .lean<
+  .select("_id name slug parent createdAt updatedAt")
+  .populate({ path: "parent", model: Category, select: "_id name" })
+  .sort({ updatedAt: -1 })
+  .lean<
       {
         _id: unknown;
         name: string;
