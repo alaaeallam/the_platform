@@ -90,6 +90,27 @@ type UserLean = {
   addresses?: AddressDoc[];
 };
 
+const CART_SELECT = [
+  "_id",
+  "user",
+  "cartTotal",
+  "totalAfterDiscount",
+  "createdAt",
+  "updatedAt",
+  "products._id",
+  "products.product",
+  "products.productId",
+  "products.id",
+  "products.style",
+  "products.size",
+  "products.qty",
+  "products.price",
+  "products.image",
+  "products.color",
+  "products.name",
+  "products.slug",
+].join(" ");
+
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
@@ -144,7 +165,7 @@ export default async function CheckoutPage(): Promise<React.JSX.Element> {
   }
 
   const cartDoc = await Cart.findOne({ user: userDoc._id })
-    .select("_id user products cartTotal totalAfterDiscount createdAt updatedAt")
+    .select(CART_SELECT)
     .lean<CartDocLean | null>();
   if (!cartDoc) {
     await db.disconnectDb();
@@ -168,7 +189,7 @@ export default async function CheckoutPage(): Promise<React.JSX.Element> {
   // Fetch only what we need
   const productDocs: ProductLean[] = productIds.length
     ? await Product.find({ _id: { $in: productIds } })
-        .select({ name: 1, "subProducts.images": 1 })
+        .select("_id name subProducts.images")
         .lean<ProductLean[]>()
     : [];
 

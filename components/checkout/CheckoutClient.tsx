@@ -3,8 +3,6 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 // import Header from "@/components/cart/header";
-import Shipping from "@/components/checkout/shipping";
-import InlineStripeForm from "@/components/checkout/summary/InlineStripeForm";
 
 import styles from "@/app/styles/checkout.module.scss";
 import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
@@ -15,9 +13,17 @@ type Props = {
   cart: CartVM;
 };
 
+const Shipping = dynamic(() => import("@/components/checkout/shipping"));
 const Products = dynamic(() => import("@/components/checkout/products"));
 const Payment = dynamic(() => import("@/components/checkout/payment"));
 const Summary = dynamic(() => import("@/components/checkout/summary"));
+const InlineStripeForm = dynamic(
+  () => import("@/components/checkout/summary/InlineStripeForm"),
+  {
+    ssr: false,
+    loading: () => <p>Loading payment…</p>,
+  }
+);
 
 export default function CheckoutClient({ user, cart }: Props) {
   // Addresses state (default to whatever came from the server)
