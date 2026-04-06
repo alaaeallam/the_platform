@@ -5,9 +5,6 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import axios from "axios";
-import * as Yup from "yup";
-import { Form, Formik } from "formik";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 
@@ -182,7 +179,18 @@ const CreateProductClient: React.FC<Props> = ({
       if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) return;
 
       try {
-        const { data } = await axios.get("/api/products", { params: { id } });
+        const response = await fetch(`/api/products?id=${encodeURIComponent(id)}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const data = (await response.json().catch(() => null)) as {
+          name?: string;
+          description?: string;
+          brand?: string;
+          category?: string;
+          subCategories?: string[];
+        } | null;
+
         if (data) {
           setProduct((prev) => ({
             ...prev,
@@ -195,12 +203,12 @@ const CreateProductClient: React.FC<Props> = ({
             details: [],
           }));
         }
-      } catch (e) {
-        console.error("Failed to load parent product", e);
+      } catch {
+        // no-op
       }
     }
 
-    getParentData();
+    void getParentData();
   }, [product.parent]);
 
   useEffect(() => {
@@ -210,15 +218,19 @@ const CreateProductClient: React.FC<Props> = ({
         return;
       }
 
-      const { data } = await axios.get<Array<{ _id: string; name?: string }>>(
-        "/api/admin/sub-categories",
-        { params: { category: product.category } }
+      const response = await fetch(
+        `/api/admin/sub-categories?category=${encodeURIComponent(product.category)}`,
+        { cache: "no-store" }
       );
+      const data = (await response.json().catch(() => [])) as Array<{
+        _id: string;
+        name?: string;
+      }>;
 
       setSubs((data ?? []).map((d) => ({ _id: d._id, name: d.name ?? "" })));
     }
 
-    getSubs();
+    void getSubs();
   }, [product.category]);
 
   /* ---------- Handlers ---------- */
@@ -227,7 +239,10 @@ const CreateProductClient: React.FC<Props> = ({
     HTMLInputElement | HTMLTextAreaElement
   > = (e) => {
     const { value, name } = e.target;
-    setProduct((prev) => ({ ...prev, [name]: value }));
+    setProduct((prev) => ({
+      ...prev,
+      [name]: name === "discount" ? Number(value || 0) : value,
+    }));
   };
 
   const handleTagsChange: React.ChangeEventHandler<
@@ -247,7 +262,8 @@ const CreateProductClient: React.FC<Props> = ({
 
     setProduct((prev) => ({ ...prev, tags: normalizedTags }));
   };
-    const addMarketingTag = () => {
+
+  const addMarketingTag = () => {
     setProduct((prev) => ({
       ...prev,
       marketingTags: [
@@ -287,18 +303,6 @@ const CreateProductClient: React.FC<Props> = ({
   const setField = (name: keyof ProductDraft) => (value: string) =>
     setProduct((prev) => ({ ...prev, [name]: value }));
 
-  const validationSchema = Yup.object({
-    name: Yup.string()
-      .required("Please add a name")
-      .min(10, "Product name must bewteen 10 and 300 characters.")
-      .max(300, "Product name must bewteen 10 and 300 characters."),
-    brand: Yup.string().required("Please add a brand"),
-    category: Yup.string().required("Please select a category."),
-    sku: Yup.string().required("Please add a sku/number"),
-    color: Yup.string().optional(),
-    description: Yup.string().required("Please add a description"),
-  });
-
   const createProduct = async () => {
     const toValidate: ProductForValidation = {
       color: product.color,
@@ -321,7 +325,7 @@ const CreateProductClient: React.FC<Props> = ({
 
   const createProductHandler = async () => {
     setLoading(true);
-    
+
     const existingImageUrls = images.filter(isRemoteUrl);
     const newImageInputs = images.filter((img) => !isRemoteUrl(img));
 
@@ -378,16 +382,16 @@ const CreateProductClient: React.FC<Props> = ({
             category: product.category,
             subCategories: product.subCategories,
             tags: product.tags,
-             marketingTags: (product.marketingTags ?? [])
-            .filter((row) => row.tag)
-            .map((row) => ({
-              tag: row.tag,
-              isActive: row.isActive,
-              startAt: row.startAt ? row.startAt : undefined,
-              endAt: row.endAt ? row.endAt : undefined,
-              badgeText: row.badgeText.trim() || undefined,
-              priority: row.priority ? Number(row.priority) : 0,
-            })),
+            marketingTags: (product.marketingTags ?? [])
+              .filter((row) => row.tag)
+              .map((row) => ({
+                tag: row.tag,
+                isActive: row.isActive,
+                startAt: row.startAt ? row.startAt : undefined,
+                endAt: row.endAt ? row.endAt : undefined,
+                badgeText: row.badgeText.trim() || undefined,
+                priority: row.priority ? Number(row.priority) : 0,
+              })),
             shipping: Number(product.shippingFee || 0),
             ...subFields,
           };
@@ -397,12 +401,24 @@ const CreateProductClient: React.FC<Props> = ({
           ? `/api/admin/products/${productId}`
           : "/api/admin/products";
 
-      const response =
-        mode === "edit" && productId
-          ? await axios.patch<{ message?: string; productId?: string }>(endpoint, payload)
-          : await axios.post<{ message?: string; productId?: string }>(endpoint, payload);
+      const response = await fetch(endpoint, {
+        method: mode === "edit" && productId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-      const data = response.data;
+      const data = (await response.json().catch(() => ({}))) as {
+        message?: string;
+        productId?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ??
+            (mode === "edit" ? "Failed to update product." : "Failed to create product.")
+        );
+      }
+
       toast.success(
         data?.message ??
           (mode === "edit"
@@ -418,21 +434,20 @@ const CreateProductClient: React.FC<Props> = ({
         return;
       }
     } catch (err: unknown) {
-      let msg = mode === "edit" ? "Failed to update product." : "Failed to create product.";
-      if (axios.isAxiosError(err)) {
-        const data = err.response?.data as unknown;
-        const serverMsg =
-          data && typeof data === "object" && "message" in data
-            ? String((data as { message?: unknown }).message ?? "")
-            : "";
-        if (serverMsg) msg = serverMsg;
-      } else if (err instanceof Error) {
-        msg = err.message || msg;
-      }
+      const msg = err instanceof Error
+        ? err.message || (mode === "edit" ? "Failed to update product." : "Failed to create product.")
+        : mode === "edit"
+        ? "Failed to update product."
+        : "Failed to create product.";
       toast.error(msg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await createProduct();
   };
 
   /* ---------- Render ---------- */
@@ -448,333 +463,308 @@ const CreateProductClient: React.FC<Props> = ({
   }));
 
   return (
-    <Formik
-      enableReinitialize
-      initialValues={{
-        name: product.name,
-        brand: product.brand,
-        description: product.description,
-        category: product.category,
-        subCategories: product.subCategories,
-        parent: product.parent,
-        sku: product.sku,
-        discount: product.discount,
-        color: product.color.color,
-        tags: tagsInput,
-        imageInputFile: "",
-        styleInput: "",
-      }}
-      validationSchema={validationSchema}
-      onSubmit={createProduct}
-    >
-      {() => (
-        <Form>
-          <Images
-            name="imageInputFile"
-            header="Product Carousel Images"
-            text="Add images"
-            images={images}
-            setImages={setImages}
-            setColorImage={setColorImage}
+    <form onSubmit={handleSubmit}>
+      <Images
+        name="imageInputFile"
+        header="Product Carousel Images"
+        text="Add images"
+        images={images}
+        setImages={setImages}
+        setColorImage={setColorImage}
+      />
+
+      <div className={styles.flex}>
+        {product.color.image && (
+          <Image
+            src={product.color.image}
+            alt="Selected style"
+            width={80}
+            height={80}
+            sizes="80px"
+            className={styles.image_span}
           />
-
-          <div className={styles.flex}>
-            {product.color.image && (
-              <Image
-                src={product.color.image}
-                alt="Selected style"
-                width={80}
-                height={80}
-                sizes="80px"
-                className={styles.image_span}
-              />
-            )}
-            {product.color.color && (
-              <span
-                className={styles.color_span}
-                style={{ background: product.color.color }}
-              />
-            )}
-          </div>
-
-          <Colors
-            name="color"
-            product={product}
-            setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-            colorImage={colorImage}
+        )}
+        {product.color.color && (
+          <span
+            className={styles.color_span}
+            style={{ background: product.color.color }}
           />
+        )}
+      </div>
 
-          <Style
-            name="styleInput"
-            product={product}
-            setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-          />
+      <Colors
+        name="color"
+        product={product}
+        setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
+        colorImage={colorImage}
+      />
 
-          <SingularSelect
-            name="parent"
-            value={product.parent}
-            placeholder="Parent product"
-            data={parentOptions}
-            header="Add to an existing product"
-            handleChange={setField("parent")}
-          />
+      <Style
+        name="styleInput"
+        product={product}
+        setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
+      />
 
-          <SingularSelect
-            name="category"
-            value={product.category}
-            placeholder="Category"
-            data={categoryOptions}
-            header="Select a Category"
-            handleChange={setField("category")}
-            disabled={!!product.parent}
-          />
+      <SingularSelect
+        name="parent"
+        value={product.parent}
+        placeholder="Parent product"
+        data={parentOptions}
+        header="Add to an existing product"
+        handleChange={setField("parent")}
+      />
 
-          {product.category && (
-            <MultipleSelect
-              value={product.subCategories}
-              data={subs}
-              header="Select SubCategories"
-              name="subCategories"
-              disabled={!!product.parent}
-              handleChange={(event: { target: { value: unknown } }) => {
-                const value = event.target.value as string[];
-                setProduct((prev) => ({ ...prev, subCategories: value }));
+      <SingularSelect
+        name="category"
+        value={product.category}
+        placeholder="Category"
+        data={categoryOptions}
+        header="Select a Category"
+        handleChange={setField("category")}
+        disabled={!!product.parent}
+      />
+
+      {product.category && (
+        <MultipleSelect
+          value={product.subCategories}
+          data={subs}
+          header="Select SubCategories"
+          name="subCategories"
+          disabled={!!product.parent}
+          handleChange={(event: { target: { value: unknown } }) => {
+            const value = event.target.value as string[];
+            setProduct((prev) => ({ ...prev, subCategories: value }));
+          }}
+        />
+      )}
+
+      <div className={styles.header}>Basic Infos</div>
+
+      <AdminInput
+        type="text"
+        label="Name"
+        name="name"
+        placeholder="Product name"
+        value={product.name}
+        onChange={handleChange}
+      />
+      <AdminInput
+        type="text"
+        label="Description"
+        name="description"
+        placeholder="Product description"
+        value={product.description}
+        onChange={handleChange}
+      />
+      <AdminInput
+        type="text"
+        label="Brand"
+        name="brand"
+        placeholder="Product brand"
+        value={product.brand}
+        onChange={handleChange}
+      />
+      <AdminInput
+        type="text"
+        label="Tags"
+        name="tags"
+        placeholder="black, oversized, cotton, streetwear"
+        value={tagsInput}
+        onChange={handleTagsChange}
+      />
+      <AdminInput
+        type="text"
+        label="Sku"
+        name="sku"
+        placeholder="Product sku/ number"
+        value={product.sku}
+        onChange={handleChange}
+      />
+      <AdminInput
+        type="text"
+        label="Discount"
+        name="discount"
+        placeholder="Product discount"
+        value={String(product.discount ?? 0)}
+        onChange={handleChange}
+      />
+
+      <Sizes
+        sizes={product.sizes}
+        product={product}
+        setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
+      />
+      <Details
+        details={product.details}
+        product={product}
+        setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
+      />
+      <Questions
+        questions={product.questions}
+        product={product}
+        setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
+      />
+
+      <div className={styles.header}>Marketing Tags</div>
+
+      <div style={{ display: "grid", gap: 12, marginBottom: 20 }}>
+        {(product.marketingTags ?? []).map((row, index) => (
+          <div
+            key={`marketing-tag-${index}`}
+            style={{
+              display: "grid",
+              gap: 12,
+              padding: 16,
+              border: "1px solid #e5e7eb",
+              borderRadius: 12,
+              background: "#fff",
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 12,
               }}
-            />
-          )}
-
-          <div className={styles.header}>Basic Infos</div>
-
-          <AdminInput
-            type="text"
-            label="Name"
-            name="name"
-            placeholder="Product name"
-            onChange={handleChange}
-          />
-          <AdminInput
-            type="text"
-            label="Description"
-            name="description"
-            placeholder="Product description"
-            onChange={handleChange}
-          />
-          <AdminInput
-            type="text"
-            label="Brand"
-            name="brand"
-            placeholder="Product brand"
-            onChange={handleChange}
-          />
-          <AdminInput
-            type="text"
-            label="Tags"
-            name="tags"
-            placeholder="black, oversized, cotton, streetwear"
-            value={tagsInput}
-            onChange={handleTagsChange}
-          />
-          <AdminInput
-            type="text"
-            label="Sku"
-            name="sku"
-            placeholder="Product sku/ number"
-            onChange={handleChange}
-          />
-          <AdminInput
-            type="text"
-            label="Discount"
-            name="discount"
-            placeholder="Product discount"
-            onChange={handleChange}
-          />
-
-          <Sizes
-            sizes={product.sizes}
-            product={product}
-            setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-          />
-          <Details
-            details={product.details}
-            product={product}
-            setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-          />
-          <Questions
-            questions={product.questions}
-            product={product}
-            setProduct={setProduct as React.Dispatch<React.SetStateAction<unknown>>}
-          />
-                    <div className={styles.header}>Marketing Tags</div>
-
-          <div style={{ display: "grid", gap: 12, marginBottom: 20 }}>
-            {(product.marketingTags ?? []).map((row, index) => (
-              <div
-                key={`marketing-tag-${index}`}
-                style={{
-                  display: "grid",
-                  gap: 12,
-                  padding: 16,
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  background: "#fff",
-                }}
-              >
-                <div
+            >
+              <div>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                  Tag
+                </label>
+                <select
+                  value={row.tag}
+                  onChange={(e) => updateMarketingTag(index, "tag", e.target.value)}
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: 12,
+                    width: "100%",
+                    height: 44,
+                    borderRadius: 10,
+                    border: "1px solid #d1d5db",
+                    padding: "0 12px",
                   }}
                 >
-                  <div>
-                    <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
-                      Tag
-                    </label>
-                    <select
-                      value={row.tag}
-                      onChange={(e) =>
-                        updateMarketingTag(index, "tag", e.target.value)
-                      }
-                      style={{
-                        width: "100%",
-                        height: 44,
-                        borderRadius: 10,
-                        border: "1px solid #d1d5db",
-                        padding: "0 12px",
-                      }}
-                    >
-                      <option value="">Select tag</option>
-                      <option value="FLASH_SALE">FLASH_SALE</option>
-                      <option value="NEW_ARRIVAL">NEW_ARRIVAL</option>
-                      <option value="BLACK_FRIDAY">BLACK_FRIDAY</option>
-                      <option value="BEST_SELLER">BEST_SELLER</option>
-                      <option value="LIMITED">LIMITED</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
-                      Active
-                    </label>
-                    <select
-                      value={row.isActive ? "true" : "false"}
-                      onChange={(e) =>
-                        updateMarketingTag(index, "isActive", e.target.value === "true")
-                      }
-                      style={{
-                        width: "100%",
-                        height: 44,
-                        borderRadius: 10,
-                        border: "1px solid #d1d5db",
-                        padding: "0 12px",
-                      }}
-                    >
-                      <option value="true">Active</option>
-                      <option value="false">Inactive</option>
-                    </select>
-                  </div>
-
-                  <AdminInput
-                    type="datetime-local"
-                    label="Start At"
-                    name={`marketing-start-${index}`}
-                    value={row.startAt}
-                    onChange={(e) =>
-                      updateMarketingTag(index, "startAt", e.target.value)
-                    }
-                  />
-
-                  <AdminInput
-                    type="datetime-local"
-                    label="End At"
-                    name={`marketing-end-${index}`}
-                    value={row.endAt}
-                    onChange={(e) =>
-                      updateMarketingTag(index, "endAt", e.target.value)
-                    }
-                  />
-
-                  <AdminInput
-                    type="text"
-                    label="Badge Text"
-                    name={`marketing-badge-${index}`}
-                    placeholder="Flash Sale"
-                    value={row.badgeText}
-                    onChange={(e) =>
-                      updateMarketingTag(index, "badgeText", e.target.value)
-                    }
-                  />
-
-                  <AdminInput
-                    type="number"
-                    label="Priority"
-                    name={`marketing-priority-${index}`}
-                    placeholder="10"
-                    value={row.priority}
-                    onChange={(e) =>
-                      updateMarketingTag(index, "priority", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => removeMarketingTag(index)}
-                    style={{
-                      height: 40,
-                      padding: "0 14px",
-                      borderRadius: 10,
-                      border: "1px solid #ef4444",
-                      background: "#fff",
-                      color: "#ef4444",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Remove Tag
-                  </button>
-                </div>
+                  <option value="">Select tag</option>
+                  <option value="FLASH_SALE">FLASH_SALE</option>
+                  <option value="NEW_ARRIVAL">NEW_ARRIVAL</option>
+                  <option value="BLACK_FRIDAY">BLACK_FRIDAY</option>
+                  <option value="BEST_SELLER">BEST_SELLER</option>
+                  <option value="LIMITED">LIMITED</option>
+                </select>
               </div>
-            ))}
+
+              <div>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                  Active
+                </label>
+                <select
+                  value={row.isActive ? "true" : "false"}
+                  onChange={(e) =>
+                    updateMarketingTag(index, "isActive", e.target.value === "true")
+                  }
+                  style={{
+                    width: "100%",
+                    height: 44,
+                    borderRadius: 10,
+                    border: "1px solid #d1d5db",
+                    padding: "0 12px",
+                  }}
+                >
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+
+              <AdminInput
+                type="datetime-local"
+                label="Start At"
+                name={`marketing-start-${index}`}
+                value={row.startAt}
+                onChange={(e) => updateMarketingTag(index, "startAt", e.target.value)}
+              />
+
+              <AdminInput
+                type="datetime-local"
+                label="End At"
+                name={`marketing-end-${index}`}
+                value={row.endAt}
+                onChange={(e) => updateMarketingTag(index, "endAt", e.target.value)}
+              />
+
+              <AdminInput
+                type="text"
+                label="Badge Text"
+                name={`marketing-badge-${index}`}
+                placeholder="Flash Sale"
+                value={row.badgeText}
+                onChange={(e) => updateMarketingTag(index, "badgeText", e.target.value)}
+              />
+
+              <AdminInput
+                type="number"
+                label="Priority"
+                name={`marketing-priority-${index}`}
+                placeholder="10"
+                value={row.priority}
+                onChange={(e) => updateMarketingTag(index, "priority", e.target.value)}
+              />
+            </div>
 
             <div>
               <button
                 type="button"
-                onClick={addMarketingTag}
+                onClick={() => removeMarketingTag(index)}
                 style={{
-                  height: 42,
-                  padding: "0 16px",
+                  height: 40,
+                  padding: "0 14px",
                   borderRadius: 10,
-                  border: "1px solid #111827",
-                  background: "#111827",
-                  color: "#fff",
+                  border: "1px solid #ef4444",
+                  background: "#fff",
+                  color: "#ef4444",
                   fontWeight: 700,
                   cursor: "pointer",
                 }}
               >
-                Add Marketing Tag
+                Remove Tag
               </button>
             </div>
           </div>
-          <button
-            className={`${styles.btn} ${styles.btn__primary} ${styles.submit_btn}`}
-            type="submit"
-            disabled={loading}
-          >
-            {loading
-              ? mode === "edit"
-                ? "Updating..."
-                : "Creating..."
-              : mode === "edit"
-              ? "Update Product"
-              : "Create Product"}
-          </button>
+        ))}
 
-          <DialogModal />
-        </Form>
-      )}
-    </Formik>
+        <div>
+          <button
+            type="button"
+            onClick={addMarketingTag}
+            style={{
+              height: 42,
+              padding: "0 16px",
+              borderRadius: 10,
+              border: "1px solid #111827",
+              background: "#111827",
+              color: "#fff",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Add Marketing Tag
+          </button>
+        </div>
+      </div>
+
+      <button
+        className={`${styles.btn} ${styles.btn__primary} ${styles.submit_btn}`}
+        type="submit"
+        disabled={loading}
+      >
+        {loading
+          ? mode === "edit"
+            ? "Updating..."
+            : "Creating..."
+          : mode === "edit"
+          ? "Update Product"
+          : "Create Product"}
+      </button>
+
+      <DialogModal />
+    </form>
   );
 };
 

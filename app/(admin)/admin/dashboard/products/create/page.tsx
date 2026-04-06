@@ -28,11 +28,12 @@ async function loadData(): Promise<{ parents: ParentVM[]; categories: CategoryVM
   await connectDb();
 
   const parents = await Product.find({})
-    .select("name") // keep it light; add `subProducts` if your UI needs them
-    .lean<{ _id: unknown; name?: string }[]>();
+  .select("_id name")
+  .lean<{ _id: unknown; name?: string }[]>();
 
   const categories = await Category.find({})
-    .lean<{ _id: unknown; name?: string }[]>();
+  .select("_id name")
+  .lean<{ _id: unknown; name?: string }[]>();
 
   // normalize ObjectId -> string
   const normalizeId = <T extends { _id: unknown }>(arr: T[]) =>
