@@ -2,33 +2,9 @@
 
 import * as React from "react";
 import Image from "next/image";
-import Box from "@mui/material/Box";
-import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
-import CircularProgress from "@mui/material/CircularProgress";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
-import Select, { type SelectChangeEvent } from "@mui/material/Select";
-import Paper from "@mui/material/Paper";
-import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
-import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import { toast } from "react-toastify";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import styles from "./styles.module.scss";
 import type { AdminOrderVM } from "@/types/admin/orders";
-
-/* ---------- Types ---------- */
 
 export type OrderStatus =
   | "Not Processed"
@@ -69,8 +45,6 @@ export interface OrderLineItem {
   price?: number;
 }
 
-/* ---------- Helpers ---------- */
-
 const PAYMENT_LABEL: Record<string, string> = {
   paypal: "Paypal",
   credit_card: "Credit Card",
@@ -88,18 +62,66 @@ function formatPaymentLabel(method: string | null | undefined): string {
   return PAYMENT_LABEL[key] ?? key.toUpperCase();
 }
 
-/* ---------- Row ---------- */
+function chipStyles(kind: "status" | "paid" | "coupon", value: string) {
+  if (kind === "paid") {
+    return {
+      backgroundColor: value === "Paid" ? "#dcfce7" : "#fee2e2",
+      color: value === "Paid" ? "#166534" : "#991b1b",
+      border: value === "Paid" ? "1px solid #86efac" : "1px solid #fca5a5",
+    } as const;
+  }
+
+  if (kind === "coupon") {
+    return {
+      backgroundColor: "#eff6ff",
+      color: "#1d4ed8",
+      border: "1px solid #bfdbfe",
+    } as const;
+  }
+
+  switch (value) {
+    case "Not Processed":
+      return { backgroundColor: "#fef3c7", color: "#92400e", border: "1px solid #fcd34d" } as const;
+    case "Processing":
+    case "Dispatched":
+      return { backgroundColor: "#dbeafe", color: "#1d4ed8", border: "1px solid #93c5fd" } as const;
+    case "Cancelled":
+      return { backgroundColor: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5" } as const;
+    case "Completed":
+      return { backgroundColor: "#dcfce7", color: "#166534", border: "1px solid #86efac" } as const;
+    default:
+      return { backgroundColor: "#f3f4f6", color: "#374151", border: "1px solid #d1d5db" } as const;
+  }
+}
+
+function Pill({ label, style }: { label: string; style: React.CSSProperties }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        minHeight: 28,
+        padding: "0 10px",
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        ...style,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 type RowProps = { row: AdminOrderVM };
 
 function Row({ row }: RowProps): React.JSX.Element {
   const [open, setOpen] = React.useState(false);
-
   const [status, setStatus] = React.useState<OrderStatus>(
     (row.status as OrderStatus) ?? "Not Processed"
   );
   const [isSavingStatus, setIsSavingStatus] = React.useState(false);
-
   const [paymentStatus, setPaymentStatus] = React.useState<PaymentStatus>(
     row.isPaid ? "paid" : "unpaid"
   );
@@ -126,24 +148,6 @@ function Row({ row }: RowProps): React.JSX.Element {
     row.shippingAddress?.phoneNumber,
   ].filter((value): value is string => Boolean(value && value.trim()));
 
-  const statusChipColor:
-    | "default"
-    | "warning"
-    | "info"
-    | "success"
-    | "error" =
-    status === "Not Processed"
-      ? "warning"
-      : status === "Processing"
-      ? "info"
-      : status === "Dispatched"
-      ? "info"
-      : status === "Cancelled"
-      ? "error"
-      : status === "Completed"
-      ? "success"
-      : "default";
-
   React.useEffect(() => {
     setStatus((row.status as OrderStatus) ?? "Not Processed");
   }, [row.status]);
@@ -152,7 +156,7 @@ function Row({ row }: RowProps): React.JSX.Element {
     setPaymentStatus(row.isPaid ? "paid" : "unpaid");
   }, [row.isPaid]);
 
-  async function handleStatusChange(event: SelectChangeEvent<OrderStatus>) {
+  async function handleStatusChange(event: React.ChangeEvent<HTMLSelectElement>) {
     const nextStatus = event.target.value as OrderStatus;
     const previousStatus = status;
 
@@ -162,9 +166,7 @@ function Row({ row }: RowProps): React.JSX.Element {
     try {
       const response = await fetch(`/api/admin/orders/${row._id}/status`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: nextStatus }),
       });
 
@@ -188,9 +190,7 @@ function Row({ row }: RowProps): React.JSX.Element {
     }
   }
 
-  async function handlePaymentStatusChange(
-    event: SelectChangeEvent<PaymentStatus>
-  ) {
+  async function handlePaymentStatusChange(event: React.ChangeEvent<HTMLSelectElement>) {
     const nextPaymentStatus = event.target.value as PaymentStatus;
     const previousPaymentStatus = paymentStatus;
 
@@ -200,9 +200,7 @@ function Row({ row }: RowProps): React.JSX.Element {
     try {
       const response = await fetch(`/api/admin/orders/${row._id}/payment`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paymentStatus: nextPaymentStatus }),
       });
 
@@ -229,311 +227,207 @@ function Row({ row }: RowProps): React.JSX.Element {
   const isPaidNow = paymentStatus === "paid";
 
   return (
-    <React.Fragment>
-      <TableRow
-        hover
-        sx={{
-          "& > *": { borderBottom: open ? "none" : undefined },
+    <>
+      <tr
+        style={{
           backgroundColor: open ? "rgba(59, 130, 246, 0.03)" : "transparent",
           transition: "background-color 0.2s ease",
         }}
       >
-        <TableCell sx={{ width: 56 }}>
-          <IconButton
+        <td style={{ padding: 12, width: 56, borderBottom: open ? "none" : "1px solid #e5e7eb" }}>
+          <button
             aria-label="expand row"
-            size="small"
+            type="button"
             onClick={() => setOpen((v) => !v)}
-            sx={{
-              border: "1px solid",
-              borderColor: open ? "primary.main" : "divider",
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              border: `1px solid ${open ? "#3b82f6" : "#d1d5db"}`,
               backgroundColor: open ? "rgba(59, 130, 246, 0.08)" : "transparent",
+              cursor: "pointer",
+              fontSize: 18,
+              lineHeight: 1,
             }}
           >
-            {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-          </IconButton>
-        </TableCell>
+            {open ? "−" : "+"}
+          </button>
+        </td>
 
-        <TableCell component="th" scope="row" sx={{ minWidth: 220 }}>
-          <Tooltip title={row._id}>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 700,
-                fontFamily: "monospace",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {row._id}
-            </Typography>
-          </Tooltip>
-        </TableCell>
+        <td style={{ padding: 12, minWidth: 220, borderBottom: open ? "none" : "1px solid #e5e7eb" }}>
+          <span
+            title={row._id}
+            style={{ fontWeight: 700, fontFamily: "monospace", whiteSpace: "nowrap" }}
+          >
+            {row._id}
+          </span>
+        </td>
 
-        <TableCell sx={{ minWidth: 180 }}>
-          <Typography variant="body2" sx={{ fontWeight: 500, whiteSpace: "nowrap" }}>
+        <td style={{ padding: 12, minWidth: 180, borderBottom: open ? "none" : "1px solid #e5e7eb" }}>
+          <span style={{ fontWeight: 500, whiteSpace: "nowrap" }}>
             {formatPaymentLabel(row.paymentMethod)}
-          </Typography>
-        </TableCell>
+          </span>
+        </td>
 
-        <TableCell sx={{ minWidth: 140 }}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            {isPaidNow ? (
-              <Image
-                src={verifiedIcon}
-                alt="Paid"
-                width={18}
-                height={18}
-                sizes="18px"
-                className={styles.ver}
-              />
-            ) : (
-              <Image
-                src={unverifiedIcon}
-                alt="Unpaid"
-                width={18}
-                height={18}
-                sizes="18px"
-                className={styles.ver}
-              />
-            )}
-            <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
-              {isPaidNow ? "Paid" : "Unpaid"}
-            </Typography>
-            {isSavingPayment ? <CircularProgress size={16} /> : null}
-          </Stack>
-        </TableCell>
-
-        <TableCell sx={{ minWidth: 190 }}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Chip
-              size="small"
-              label={status}
-              color={statusChipColor}
-              variant={status === "Completed" ? "filled" : "outlined"}
-              sx={{ fontWeight: 600 }}
+        <td style={{ padding: 12, minWidth: 140, borderBottom: open ? "none" : "1px solid #e5e7eb" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Image
+              src={isPaidNow ? verifiedIcon : unverifiedIcon}
+              alt={isPaidNow ? "Paid" : "Unpaid"}
+              width={18}
+              height={18}
+              sizes="18px"
+              className={styles.ver}
             />
-            {isSavingStatus ? <CircularProgress size={16} /> : null}
-          </Stack>
-        </TableCell>
+            <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>
+              {isPaidNow ? "Paid" : "Unpaid"}
+            </span>
+            {isSavingPayment ? <span style={{ fontSize: 12, color: "#6b7280" }}>Saving...</span> : null}
+          </div>
+        </td>
 
-        <TableCell sx={{ minWidth: 140 }}>
+        <td style={{ padding: 12, minWidth: 190, borderBottom: open ? "none" : "1px solid #e5e7eb" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Pill label={status} style={chipStyles("status", status)} />
+            {isSavingStatus ? <span style={{ fontSize: 12, color: "#6b7280" }}>Saving...</span> : null}
+          </div>
+        </td>
+
+        <td style={{ padding: 12, minWidth: 140, borderBottom: open ? "none" : "1px solid #e5e7eb" }}>
           {row.couponCode ? (
-            <Chip size="small" label={row.couponCode} variant="outlined" sx={{ fontWeight: 600 }} />
+            <Pill label={row.couponCode} style={chipStyles("coupon", row.couponCode)} />
           ) : (
-            <Typography variant="body2" color="text.secondary">
-              {row.couponApplied ? "Applied" : "-"}
-            </Typography>
+            <span style={{ color: "#6b7280" }}>{row.couponApplied ? "Applied" : "-"}</span>
           )}
-        </TableCell>
+        </td>
 
-        <TableCell align="right" sx={{ minWidth: 120 }}>
-          <Typography variant="body1" sx={{ fontWeight: 800, whiteSpace: "nowrap" }}>
+        <td style={{ padding: 12, minWidth: 120, textAlign: "right", borderBottom: open ? "none" : "1px solid #e5e7eb" }}>
+          <span style={{ fontWeight: 800, whiteSpace: "nowrap" }}>
             {typeof row.total === "number" ? `${row.total}$` : "-"}
-          </Typography>
-        </TableCell>
-      </TableRow>
+          </span>
+        </td>
+      </tr>
 
-      <TableRow>
-        <TableCell
-          style={{ paddingBottom: 0, paddingTop: 0, borderBottom: open ? "none" : undefined }}
-          colSpan={7}
-        >
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box
-              sx={{
-                mx: 1,
-                mb: 2,
-                mt: 0.5,
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 3,
+      {open ? (
+        <tr>
+          <td colSpan={7} style={{ padding: 12, paddingTop: 0 }}>
+            <div
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 16,
                 overflow: "hidden",
-                backgroundColor: "background.paper",
+                backgroundColor: "#fff",
                 boxShadow: "0 8px 24px rgba(15, 23, 42, 0.06)",
               }}
             >
-              <Box
-                sx={{
-                  px: 2,
-                  py: 1.5,
+              <div
+                style={{
+                  padding: 16,
                   display: "flex",
-                  alignItems: { xs: "flex-start", md: "center" },
+                  alignItems: "flex-start",
                   justifyContent: "space-between",
-                  flexDirection: { xs: "column", md: "row" },
-                  gap: 1,
-                  background:
-                    "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 100%)",
+                  flexWrap: "wrap",
+                  gap: 12,
+                  background: "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 100%)",
                 }}
               >
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Order details
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>Order details</div>
+                  <div style={{ fontSize: 14, color: "#6b7280", marginTop: 4 }}>
                     Review customer info, update order status, payment status, and inspect purchased items.
-                  </Typography>
-                </Box>
+                  </div>
+                </div>
 
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  <Chip
-                    size="small"
-                    label={`Items: ${row.products?.length ?? 0}`}
-                    variant="outlined"
-                  />
-                  <Chip
-                    size="small"
-                    label={`Total: ${typeof row.total === "number" ? `${row.total}$` : "-"}`}
-                    sx={{ fontWeight: 700 }}
-                  />
-                </Stack>
-              </Box>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Pill label={`Items: ${row.products?.length ?? 0}`} style={{ backgroundColor: "#fff", color: "#374151", border: "1px solid #d1d5db" }} />
+                  <Pill label={`Total: ${typeof row.total === "number" ? `${row.total}$` : "-"}`} style={{ backgroundColor: "#f3f4f6", color: "#111827", border: "1px solid #d1d5db" }} />
+                </div>
+              </div>
 
-              <Divider />
+              <div style={{ borderTop: "1px solid #e5e7eb", padding: 16, display: "grid", gridTemplateColumns: "minmax(320px, 380px) 1fr", gap: 16 }}>
+                <div style={{ display: "grid", gap: 16 }}>
+                  <div style={{ padding: 16, border: "1px solid #e5e7eb", borderRadius: 12 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 12 }}>Order status</div>
+                    <select
+                      value={status}
+                      onChange={handleStatusChange}
+                      disabled={isSavingStatus}
+                      style={{ width: "100%", minHeight: 38, borderRadius: 8, border: "1px solid #d1d5db", padding: "0 10px" }}
+                    >
+                      <option value="Not Processed">Not Processed</option>
+                      <option value="Processing">Processing</option>
+                      <option value="Dispatched">Dispatched</option>
+                      <option value="Cancelled">Cancelled</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                      <Pill label={status} style={chipStyles("status", status)} />
+                      {isSavingStatus ? <span style={{ fontSize: 12, color: "#6b7280" }}>Saving...</span> : null}
+                    </div>
+                  </div>
 
-              <Box
-                sx={{
-                  p: 2,
-                  display: "grid",
-                  gridTemplateColumns: { xs: "1fr", lg: "minmax(320px, 380px) 1fr" },
-                  gap: 2,
-                }}
-              >
-                <Stack spacing={2}>
-                  <Paper
-                    variant="outlined"
-                    sx={{ p: 2, borderRadius: 2, boxShadow: "none" }}
-                  >
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-                      Order status
-                    </Typography>
-
-                    <FormControl fullWidth size="small" disabled={isSavingStatus}>
-                      <Select<OrderStatus>
-                        value={status}
-                        onChange={handleStatusChange}
-                        displayEmpty
-                      >
-                        <MenuItem value="Not Processed">Not Processed</MenuItem>
-                        <MenuItem value="Processing">Processing</MenuItem>
-                        <MenuItem value="Dispatched">Dispatched</MenuItem>
-                        <MenuItem value="Cancelled">Cancelled</MenuItem>
-                        <MenuItem value="Completed">Completed</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.5 }}>
-                      <Chip
-                        size="small"
-                        label={status}
-                        color={statusChipColor}
-                        variant={status === "Completed" ? "filled" : "outlined"}
-                        sx={{ fontWeight: 600 }}
-                      />
-                      {isSavingStatus ? (
-                        <Typography variant="caption" color="text.secondary">
-                          Saving...
-                        </Typography>
-                      ) : null}
-                    </Stack>
-                  </Paper>
-
-                  <Paper
-                    variant="outlined"
-                    sx={{ p: 2, borderRadius: 2, boxShadow: "none" }}
-                  >
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-                      Payment status
-                    </Typography>
-
-                    <FormControl fullWidth size="small" disabled={isSavingPayment}>
-                      <Select<PaymentStatus>
-                        value={paymentStatus}
-                        onChange={handlePaymentStatusChange}
-                        displayEmpty
-                      >
-                        <MenuItem value="paid">Paid</MenuItem>
-                        <MenuItem value="unpaid">Unpaid</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.5 }}>
-                      <Chip
-                        size="small"
+                  <div style={{ padding: 16, border: "1px solid #e5e7eb", borderRadius: 12 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 12 }}>Payment status</div>
+                    <select
+                      value={paymentStatus}
+                      onChange={handlePaymentStatusChange}
+                      disabled={isSavingPayment}
+                      style={{ width: "100%", minHeight: 38, borderRadius: 8, border: "1px solid #d1d5db", padding: "0 10px" }}
+                    >
+                      <option value="paid">Paid</option>
+                      <option value="unpaid">Unpaid</option>
+                    </select>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                      <Pill
                         label={isPaidNow ? "Paid" : "Unpaid"}
-                        color={isPaidNow ? "success" : "error"}
-                        variant={isPaidNow ? "filled" : "outlined"}
-                        sx={{ fontWeight: 600 }}
+                        style={chipStyles("paid", isPaidNow ? "Paid" : "Unpaid")}
                       />
-                      {isSavingPayment ? (
-                        <Typography variant="caption" color="text.secondary">
-                          Saving...
-                        </Typography>
-                      ) : null}
-                    </Stack>
-                  </Paper>
+                      {isSavingPayment ? <span style={{ fontSize: 12, color: "#6b7280" }}>Saving...</span> : null}
+                    </div>
+                  </div>
 
-                  <Paper
-                    variant="outlined"
-                    sx={{ p: 2, borderRadius: 2, boxShadow: "none" }}
-                  >
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-                      Shipping address
-                    </Typography>
-
+                  <div style={{ padding: 16, border: "1px solid #e5e7eb", borderRadius: 12 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 12 }}>Shipping address</div>
                     {shippingName ? (
-                      <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                        {shippingName}
-                      </Typography>
+                      <div style={{ fontWeight: 600, marginBottom: 8 }}>{shippingName}</div>
                     ) : null}
 
                     {shippingLines.length ? (
-                      <Stack spacing={0.5}>
+                      <div style={{ display: "grid", gap: 4 }}>
                         {shippingLines.map((line, index) => (
-                          <Typography
-                            key={`${row._id}-shipping-${index}`}
-                            variant="body2"
-                            color="text.secondary"
-                          >
+                          <div key={`${row._id}-shipping-${index}`} style={{ color: "#6b7280", fontSize: 14 }}>
                             {line}
-                          </Typography>
+                          </div>
                         ))}
-                      </Stack>
+                      </div>
                     ) : (
-                      <Typography variant="body2" color="text.secondary">
+                      <div style={{ color: "#6b7280", fontSize: 14 }}>
                         No shipping information available.
-                      </Typography>
+                      </div>
                     )}
-                  </Paper>
-                </Stack>
+                  </div>
+                </div>
 
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    borderRadius: 2,
-                    boxShadow: "none",
-                    overflow: "hidden",
-                  }}
-                >
-                  <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Order items
-                    </Typography>
-                  </Box>
+                <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ padding: 16, borderBottom: "1px solid #e5e7eb", fontWeight: 700 }}>
+                    Order items
+                  </div>
 
-                  <Box sx={{ overflowX: "auto" }}>
-                    <Table size="small" aria-label="order items">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ width: 72 }}>Item</TableCell>
-                          <TableCell>Name</TableCell>
-                          <TableCell align="left">Size</TableCell>
-                          <TableCell align="left">Qty</TableCell>
-                          <TableCell align="left">Price</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: "left", padding: 12, width: 72 }}>Item</th>
+                          <th style={{ textAlign: "left", padding: 12 }}>Name</th>
+                          <th style={{ textAlign: "left", padding: 12 }}>Size</th>
+                          <th style={{ textAlign: "left", padding: 12 }}>Qty</th>
+                          <th style={{ textAlign: "left", padding: 12 }}>Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
                         {(row.products ?? []).map((p) => (
-                          <TableRow key={p._id} hover>
-                            <TableCell component="th" scope="row">
+                          <tr key={p._id}>
+                            <td style={{ padding: 12, borderTop: "1px solid #f3f4f6" }}>
                               {p.image ? (
                                 <Image
                                   src={p.image}
@@ -546,53 +440,44 @@ function Row({ row }: RowProps): React.JSX.Element {
                               ) : (
                                 <span className={styles.table__productImg_placeholder} />
                               )}
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {p.name ?? "-"}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="left">
+                            </td>
+                            <td style={{ padding: 12, borderTop: "1px solid #f3f4f6", fontWeight: 600 }}>
+                              {p.name ?? "-"}
+                            </td>
+                            <td style={{ padding: 12, borderTop: "1px solid #f3f4f6" }}>
                               {p.size !== undefined ? String(p.size) : "-"}
-                            </TableCell>
-                            <TableCell align="left">x{p.qty ?? 0}</TableCell>
-                            <TableCell align="left">
+                            </td>
+                            <td style={{ padding: 12, borderTop: "1px solid #f3f4f6" }}>x{p.qty ?? 0}</td>
+                            <td style={{ padding: 12, borderTop: "1px solid #f3f4f6" }}>
                               {typeof p.price === "number" ? `${p.price}$` : "-"}
-                            </TableCell>
-                          </TableRow>
+                            </td>
+                          </tr>
                         ))}
-
-                        <TableRow>
-                          <TableCell colSpan={3} />
-                          <TableCell align="left" sx={{ fontWeight: 700 }}>
-                            Total
-                          </TableCell>
-                          <TableCell align="left" sx={{ fontWeight: 800, fontSize: 16 }}>
+                        <tr>
+                          <td colSpan={3} />
+                          <td style={{ padding: 12, fontWeight: 700 }}>Total</td>
+                          <td style={{ padding: 12, fontWeight: 800, fontSize: 16 }}>
                             {typeof row.total === "number" ? `${row.total}$` : "-"}
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </Box>
-                </Paper>
-              </Box>
-            </Box>
-          </Collapse>
-        </TableCell>
-      </TableRow>
-    </React.Fragment>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      ) : null}
+    </>
   );
 }
-
-/* ---------- Table (root) ---------- */
 
 type CollapsibleTableProps = {
   rows: AdminOrderVM[];
 };
 
-export function CollapsibleTable({
-  rows,
-}: CollapsibleTableProps): React.JSX.Element {
+export function CollapsibleTable({ rows }: CollapsibleTableProps): React.JSX.Element {
   const [statusFilter, setStatusFilter] = React.useState<"all" | OrderStatus>("all");
   const [paidFilter, setPaidFilter] = React.useState<"all" | "paid" | "unpaid">("all");
   const [couponFilter, setCouponFilter] = React.useState<"all" | "applied" | "none">("all");
@@ -624,146 +509,105 @@ export function CollapsibleTable({
   }, [rows, statusFilter, paidFilter, couponFilter]);
 
   return (
-    <TableContainer
-      component={Paper}
-      sx={{
-        borderRadius: 3,
+    <div
+      style={{
+        borderRadius: 24,
         overflowX: "auto",
+        backgroundColor: "#fff",
         boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
       }}
     >
-      <Box sx={{ px: 2, pt: 2, pb: 1 }}>
-        <Typography
-          sx={{ flex: "1 1 100%", fontWeight: 700 }}
-          variant="h5"
-          id="tableTitle"
-          component="div"
-        >
-          Orders
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
+      <div style={{ padding: 16 }}>
+        <div style={{ fontSize: 24, fontWeight: 700 }}>Orders</div>
+        <div style={{ fontSize: 14, color: "#6b7280", marginTop: 4 }}>
           Track payments, coupon usage, order status, and purchased items.
-        </Typography>
+        </div>
 
-        <Box
-          sx={{
-            mt: 2,
+        <div
+          style={{
+            marginTop: 16,
             display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2, minmax(180px, 1fr))",
-              lg: "repeat(4, minmax(180px, 1fr))",
-            },
-            gap: 1.5,
+            gridTemplateColumns: "repeat(4, minmax(180px, 1fr))",
+            gap: 12,
             alignItems: "end",
           }}
         >
-          <FormControl fullWidth size="small">
-            <InputLabel id="orders-status-filter-label">Status</InputLabel>
-            <Select
-              labelId="orders-status-filter-label"
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Status</label>
+            <select
               value={statusFilter}
-              label="Status"
-              onChange={(event) =>
-                setStatusFilter(event.target.value as "all" | OrderStatus)
-              }
+              onChange={(event) => setStatusFilter(event.target.value as "all" | OrderStatus)}
+              style={{ width: "100%", minHeight: 38, borderRadius: 8, border: "1px solid #d1d5db", padding: "0 10px" }}
             >
-              <MenuItem value="all">All statuses</MenuItem>
-              <MenuItem value="Not Processed">Not Processed</MenuItem>
-              <MenuItem value="Processing">Processing</MenuItem>
-              <MenuItem value="Dispatched">Dispatched</MenuItem>
-              <MenuItem value="Cancelled">Cancelled</MenuItem>
-              <MenuItem value="Completed">Completed</MenuItem>
-            </Select>
-          </FormControl>
+              <option value="all">All statuses</option>
+              <option value="Not Processed">Not Processed</option>
+              <option value="Processing">Processing</option>
+              <option value="Dispatched">Dispatched</option>
+              <option value="Cancelled">Cancelled</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
 
-          <FormControl fullWidth size="small">
-            <InputLabel id="orders-paid-filter-label">Payment</InputLabel>
-            <Select
-              labelId="orders-paid-filter-label"
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Payment</label>
+            <select
               value={paidFilter}
-              label="Payment"
-              onChange={(event) =>
-                setPaidFilter(event.target.value as "all" | "paid" | "unpaid")
-              }
+              onChange={(event) => setPaidFilter(event.target.value as "all" | "paid" | "unpaid")}
+              style={{ width: "100%", minHeight: 38, borderRadius: 8, border: "1px solid #d1d5db", padding: "0 10px" }}
             >
-              <MenuItem value="all">All payments</MenuItem>
-              <MenuItem value="paid">Paid</MenuItem>
-              <MenuItem value="unpaid">Unpaid</MenuItem>
-            </Select>
-          </FormControl>
+              <option value="all">All payments</option>
+              <option value="paid">Paid</option>
+              <option value="unpaid">Unpaid</option>
+            </select>
+          </div>
 
-          <FormControl fullWidth size="small">
-            <InputLabel id="orders-coupon-filter-label">Coupon</InputLabel>
-            <Select
-              labelId="orders-coupon-filter-label"
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Coupon</label>
+            <select
               value={couponFilter}
-              label="Coupon"
-              onChange={(event) =>
-                setCouponFilter(event.target.value as "all" | "applied" | "none")
-              }
+              onChange={(event) => setCouponFilter(event.target.value as "all" | "applied" | "none")}
+              style={{ width: "100%", minHeight: 38, borderRadius: 8, border: "1px solid #d1d5db", padding: "0 10px" }}
             >
-              <MenuItem value="all">All orders</MenuItem>
-              <MenuItem value="applied">Coupon applied</MenuItem>
-              <MenuItem value="none">No coupon</MenuItem>
-            </Select>
-          </FormControl>
+              <option value="all">All orders</option>
+              <option value="applied">Coupon applied</option>
+              <option value="none">No coupon</option>
+            </select>
+          </div>
 
-          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            <Chip size="small" label={`Total: ${rows.length}`} variant="outlined" />
-            <Chip
-              size="small"
-              label={`Shown: ${filteredRows.length}`}
-              sx={{ fontWeight: 700 }}
-            />
-          </Stack>
-        </Box>
-      </Box>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Pill label={`Total: ${rows.length}`} style={{ backgroundColor: "#fff", color: "#374151", border: "1px solid #d1d5db" }} />
+            <Pill label={`Shown: ${filteredRows.length}`} style={{ backgroundColor: "#f3f4f6", color: "#111827", border: "1px solid #d1d5db" }} />
+          </div>
+        </div>
+      </div>
 
-      <Table
-        aria-label="collapsible table"
-        className={styles.table}
-        sx={{ minWidth: 980, "& th": { whiteSpace: "nowrap" } }}
-      >
-        <TableHead>
-          <TableRow
-            sx={{
-              "& th": {
-                fontWeight: 700,
-                fontSize: 14,
-                color: "common.white",
-                backgroundColor: "#3b82f6",
-                py: 1.75,
-              },
-            }}
-          >
-            <TableCell sx={{ width: 56 }} />
-            <TableCell>Order</TableCell>
-            <TableCell>Payment Method</TableCell>
-            <TableCell>Paid</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell>Coupon</TableCell>
-            <TableCell align="right">Total</TableCell>
-          </TableRow>
-        </TableHead>
-
-        <TableBody>
+      <table className={styles.table} style={{ width: "100%", minWidth: 980, borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ backgroundColor: "#3b82f6", color: "#fff" }}>
+            <th style={{ width: 56, padding: "14px 12px" }} />
+            <th style={{ padding: "14px 12px", textAlign: "left", whiteSpace: "nowrap" }}>Order</th>
+            <th style={{ padding: "14px 12px", textAlign: "left", whiteSpace: "nowrap" }}>Payment Method</th>
+            <th style={{ padding: "14px 12px", textAlign: "left", whiteSpace: "nowrap" }}>Paid</th>
+            <th style={{ padding: "14px 12px", textAlign: "left", whiteSpace: "nowrap" }}>Status</th>
+            <th style={{ padding: "14px 12px", textAlign: "left", whiteSpace: "nowrap" }}>Coupon</th>
+            <th style={{ padding: "14px 12px", textAlign: "right", whiteSpace: "nowrap" }}>Total</th>
+          </tr>
+        </thead>
+        <tbody>
           {filteredRows.length ? (
             filteredRows.map((row) => <Row key={row._id} row={row} />)
           ) : (
-            <TableRow>
-              <TableCell colSpan={7} sx={{ py: 5, textAlign: "center" }}>
-                <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                  No orders match the selected filters.
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <tr>
+              <td colSpan={7} style={{ padding: 40, textAlign: "center" }}>
+                <div style={{ fontWeight: 600 }}>No orders match the selected filters.</div>
+                <div style={{ fontSize: 14, color: "#6b7280", marginTop: 4 }}>
                   Try changing the status, payment, or coupon filters.
-                </Typography>
-              </TableCell>
-            </TableRow>
+                </div>
+              </td>
+            </tr>
           )}
-        </TableBody>
-      </Table>
-    </TableContainer>
+        </tbody>
+      </table>
+    </div>
   );
 }
