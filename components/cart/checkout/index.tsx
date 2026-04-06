@@ -18,7 +18,6 @@ type Props = {
 export default function Checkout({
   subtotal,
   shippingFee,
-  total,
   selected,
   saveCartToDbHandler,
   countryCode,
@@ -57,7 +56,7 @@ export default function Checkout({
 
         setDeliveryFee(Number(data.delivery.fee || 0));
         setDeliveryEta(data.preview?.eta || "");
-      } catch (err) {
+      } catch {
         if (cancelled) return;
         setDeliveryFee(0);
         setDeliveryEta("");
