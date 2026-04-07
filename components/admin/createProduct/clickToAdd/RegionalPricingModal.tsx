@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { COUNTRIES, COUNTRY_CODE_TO_NAME } from "@/lib/countries";
 import type {
   SizeRow,
   CountryPriceRowUI,
@@ -82,7 +83,7 @@ export default function RegionalPricingModal({ open, onClose, size, onChange }: 
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  <th align="left">Country (ISO-2)</th>
+                  <th align="left">Country</th>
                   <th align="left">Price</th>
                   <th />
                 </tr>
@@ -91,11 +92,20 @@ export default function RegionalPricingModal({ open, onClose, size, onChange }: 
                 {(size.countryPrices || []).map((row, i) => (
                   <tr key={i}>
                     <td>
-                      <input
+                      <select
                         value={row.country}
-                        onChange={(e) => setCountryRow(i, { country: e.target.value.toUpperCase() })}
-                        placeholder="EG"
-                      />
+                        onChange={(e) => setCountryRow(i, { country: e.target.value })}
+                      >
+                        <option value="">Select country</option>
+                        {COUNTRIES.map((country) => (
+                          <option key={country.code} value={country.code}>
+                            {country.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
+                        Code: {row.country ? COUNTRY_CODE_TO_NAME[row.country] ? row.country : row.country : "—"}
+                      </div>
                     </td>
                     <td>
                       <input

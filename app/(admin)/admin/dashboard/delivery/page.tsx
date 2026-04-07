@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { COUNTRIES } from "@/lib/countries";
 
 type DeliveryRule = {
   _id: string;
@@ -168,6 +169,7 @@ export default function DeliveryAdminPage() {
   function validateForm() {
     const countryCode = form.countryCode.trim().toUpperCase();
     const countryName = form.countryName.trim();
+    const selectedCountry = COUNTRIES.find((country) => country.code === countryCode);
     const fee = Number(form.fee);
     const estimatedDaysMin = Number(form.estimatedDaysMin);
     const estimatedDaysMax = Number(form.estimatedDaysMax);
@@ -176,7 +178,8 @@ export default function DeliveryAdminPage() {
         ? null
         : Number(form.freeShippingThreshold);
 
-    if (!countryCode) return "Country code is required";
+    if (!countryCode) return "Country is required";
+    if (!selectedCountry) return "Please select a valid country";
     if (!countryName) return "Country name is required";
     if (!Number.isFinite(fee) || fee < 0) return "Fee must be 0 or greater";
     if (!Number.isFinite(estimatedDaysMin) || estimatedDaysMin < 0) {
@@ -389,22 +392,38 @@ export default function DeliveryAdminPage() {
               <div style={styles.formGrid}>
                 <label style={styles.label}>
                   <span style={styles.labelText}>Country Name</span>
-                  <input
-                    value={form.countryName}
-                    onChange={(e) => updateForm("countryName", e.target.value)}
-                    placeholder="Egypt"
+                  <select
+                    value={form.countryCode}
+                    onChange={(e) => {
+                      const selected = COUNTRIES.find((country) => country.code === e.target.value);
+                      updateForm("countryCode", e.target.value);
+                      updateForm("countryName", selected?.name ?? "");
+                    }}
                     style={styles.input}
-                  />
+                  >
+                    <option value="">Select country</option>
+                    {COUNTRIES.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label style={styles.label}>
                   <span style={styles.labelText}>Country Code</span>
                   <input
                     value={form.countryCode}
-                    onChange={(e) => updateForm("countryCode", e.target.value.toUpperCase())}
+                    readOnly
+                    disabled
                     placeholder="EG"
-                    maxLength={3}
-                    style={styles.input}
+                    maxLength={2}
+                    style={{
+                      ...styles.input,
+                      background: "#f8fafc",
+                      color: "#64748b",
+                      cursor: "not-allowed",
+                    }}
                   />
                 </label>
 
