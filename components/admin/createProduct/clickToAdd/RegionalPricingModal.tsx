@@ -68,10 +68,10 @@ export default function RegionalPricingModal({ open, onClose, size, onChange }: 
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <h3 style={{ margin: 0 }}>Regional pricing for size “{size.size ?? "No size"}”</h3>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setTab("country")} aria-pressed={tab === "country"}>
+            <button type="button" onClick={() => setTab("country")} aria-pressed={tab === "country"}>
               Per-Country
             </button>
-            <button onClick={() => setTab("group")} aria-pressed={tab === "group"}>
+            <button type="button" onClick={() => setTab("group")} aria-pressed={tab === "group"}>
               Per-Group
             </button>
           </div>
@@ -107,7 +107,7 @@ export default function RegionalPricingModal({ open, onClose, size, onChange }: 
                       />
                     </td>
                     <td>
-                      <button onClick={() => delCountryRow(i)} aria-label="Remove country row">
+                      <button type="button" onClick={() => delCountryRow(i)} aria-label="Remove country row">
                         −
                       </button>
                     </td>
@@ -115,7 +115,7 @@ export default function RegionalPricingModal({ open, onClose, size, onChange }: 
                 ))}
               </tbody>
             </table>
-            <button onClick={addCountryRow} style={{ marginTop: 8 }}>
+            <button type="button" onClick={addCountryRow} style={{ marginTop: 8 }}>
               + Add Country
             </button>
           </section>
@@ -153,7 +153,7 @@ export default function RegionalPricingModal({ open, onClose, size, onChange }: 
                       />
                     </td>
                     <td>
-                      <button onClick={() => delGroupRow(i)} aria-label="Remove group row">
+                      <button type="button" onClick={() => delGroupRow(i)} aria-label="Remove group row">
                         −
                       </button>
                     </td>
@@ -169,14 +169,14 @@ export default function RegionalPricingModal({ open, onClose, size, onChange }: 
               ))} */}
             </datalist>
 
-            <button onClick={addGroupRow} style={{ marginTop: 8 }}>
+            <button type="button" onClick={addGroupRow} style={{ marginTop: 8 }}>
               + Add Group
             </button>
           </section>
         )}
 
         <footer style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
-          <button onClick={onClose}>Done</button>
+          <button type="button" onClick={onClose}>Done</button>
         </footer>
       </div>
     </div>
