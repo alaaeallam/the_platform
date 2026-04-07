@@ -10,7 +10,6 @@ import { calculateDelivery } from "@/lib/delivery/calculateDelivery";
 import { authOptions } from "@/lib/auth";
 import db from "@/utils/db";
 import User from "@/models/User";
-import Cart from "@/models/Cart";
 import Order, {
   type IOrderCreate,
   type IOrderProduct,
@@ -42,6 +41,7 @@ type Body = {
   total?: number; // ignored (client-provided)
   totalBeforeDiscount?: number; // ignored (client-provided)
   couponApplied?: string;
+  country?: string;
 };
 
 type Ok = { order_id: string };
@@ -242,7 +242,7 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as Body;
-    const country = String((body as any).country || "US").toUpperCase();
+    const country = String(body.country || "US").toUpperCase();
 
     if (!body.paymentMethod) {
       return NextResponse.json<Err>(
