@@ -31,10 +31,15 @@ export default function Payment({
   codEnabled = true,
   codDisabledReason = "Cash on delivery is available only in Egypt.",
 }: PaymentProps) {
-  const methods = React.useMemo<readonly PaymentMethodInfo[]>(
-    () => paymentMethods as readonly PaymentMethodInfo[],
-    []
-  );
+    const methods = React.useMemo<readonly PaymentMethodInfo[]>(() => {
+    const allMethods = paymentMethods as readonly PaymentMethodInfo[];
+        if (codEnabled) return allMethods;
+
+    return allMethods.filter((pm) => {
+      const normalizedId = String(pm.id).toLowerCase();
+      return normalizedId !== "cash" && normalizedId !== "cod";
+    });
+  }, [codEnabled]);
 
   const selectMethod = React.useCallback(
     (id: PaymentMethod) => {
@@ -100,11 +105,7 @@ export default function Payment({
 
             <div className={styles.payment__item_col}>
               <span>Pay with {pm.name}</span>
-              {isCodMethod && !codEnabled ? (
-                <small style={{ display: "block", marginTop: 4, color: "#b91c1c" }}>
-                  {codDisabledReason}
-                </small>
-              ) : null}
+              
               <p>
                 {pm.images?.length
                   ? pm.images.map((img) => {
