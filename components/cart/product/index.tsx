@@ -49,6 +49,7 @@ interface ProductProps {
   setSelected: React.Dispatch<React.SetStateAction<CartProduct[]>>;
   /** Optional server-resolved pricing for this line (from /api/cart/sync). */
   syncedLine?: SyncedLineWithOptionals;
+  countryCode?: string;
 }
 
 /* ---------- Local helpers ---------- */
@@ -159,12 +160,12 @@ const Product: React.FC<ProductProps> = ({
   selected,
   setSelected,
   syncedLine,
+  countryCode,
 }) => {
   const dispatch = useAppDispatch();
   const [active, setActive] = React.useState<boolean>(false);
 
-  // TODO: replace with country from session/profile/IP (e.g., read from session.user.country or a geo cookie)
-  const COUNTRY = "EG";
+  const COUNTRY = (countryCode || "US").toUpperCase();
 
   const {
     price: displayPrice,
@@ -173,6 +174,7 @@ const Product: React.FC<ProductProps> = ({
   } = React.useMemo(() => resolveDisplayPrice(product, syncedLine, COUNTRY), [
     product,
     syncedLine,
+    COUNTRY,
   ]);
 
   const discountPct = React.useMemo(() => {

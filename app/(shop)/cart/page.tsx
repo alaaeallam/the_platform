@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
-
+import { COUNTRIES } from "@/lib/countries";
 import CartHeader from "@/components/cart/cartHeader";
 import Product from "@/components/cart/product";
 import { women_swiper } from "@/data/home";
@@ -72,6 +72,7 @@ export default function CartPage(): React.JSX.Element {
 
   const { cart } = useSelector((state: RootState) => state);
   const [selected, setSelected] = useState<CartProduct[]>([]);
+  const [countryCode, setCountryCode] = useState("US");
 
   // server-synced snapshot (prices/qty/shipping)
   const [synced, setSynced] = useState<CartSyncResponse | null>(null);
@@ -108,8 +109,6 @@ export default function CartPage(): React.JSX.Element {
 
   return map;
 }, [synced, selected]);  // ← depends on both
-  // choose the shopper country (hard-code for now or read from profile/IP)
-  const COUNTRY = "EG"; // ← change to whatever you detect for the user
 
   // keep selection in sync with cart contents
   useEffect(() => {
@@ -127,6 +126,31 @@ export default function CartPage(): React.JSX.Element {
       return merged.filter((p) => items.some((c) => c._uid === p._uid));
     });
   }, [cart?.cartItems]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const detectCountry = (): string => {
+      try {
+        const htmlLang = document.documentElement.lang || "";
+        const langs = [
+          htmlLang,
+          ...(Array.isArray(navigator.languages) ? navigator.languages : []),
+          navigator.language || "",
+        ].filter(Boolean);
+
+        for (const lang of langs) {
+          const match = String(lang).match(/[-_](\w{2})$/);
+          if (match?.[1]) return match[1].toUpperCase();
+        }
+      } catch {
+        // ignore client locale parsing failures and keep fallback
+      }
+      return "US";
+    };
+
+    setCountryCode(detectCountry());
+  }, []);
 
   // CALL /api/cart/sync whenever selection changes (and on mount)
   useEffect(() => {
@@ -152,7 +176,7 @@ export default function CartPage(): React.JSX.Element {
               };
             })
             .filter(isClientCartLine),
-          country: COUNTRY,
+          country: countryCode,
           countryGroups: COUNTRY_GROUPS,
         };
 
@@ -163,7 +187,7 @@ export default function CartPage(): React.JSX.Element {
         setSynced(null);
       }
     })();
-  }, [selected]);
+  }, [selected, countryCode]);
 
   // (optional) auto-refresh every 60s while on the page
   useEffect(() => {
@@ -231,7 +255,7 @@ export default function CartPage(): React.JSX.Element {
 
     const body: SaveCartBody = {
       cart: cartLinesFromSynced ?? cartLinesFromSelected,
-      country: COUNTRY,
+      country: countryCode,
       countryGroups: COUNTRY_GROUPS,
     };
 
@@ -269,7 +293,8 @@ export default function CartPage(): React.JSX.Element {
   product={product}
   selected={selected}
   setSelected={setSelected}
-  syncedLine={syncedByUid.get(product._uid)}   // will be defined
+  syncedLine={syncedByUid.get(product._uid)}
+  countryCode={countryCode}
 />
       ))}
     </div>
@@ -280,7 +305,7 @@ export default function CartPage(): React.JSX.Element {
             total={total}
             selected={selected}
             saveCartToDbHandler={saveCartToDbHandler}
-            countryCode={COUNTRY}
+            countryCode={countryCode}
           />
           <PaymentMethods />
         </div>

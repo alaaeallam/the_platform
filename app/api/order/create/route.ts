@@ -242,6 +242,7 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as Body;
+    const country = String((body as any).country || "US").toUpperCase();
 
     if (!body.paymentMethod) {
       return NextResponse.json<Err>(
@@ -270,29 +271,18 @@ export async function POST(req: Request) {
     }
     const userId = new Types.ObjectId(String(user._id));
 
-    // Load authoritative cart
-    const cart = await Cart.findOne({ user: userId }).lean<{ products: CartLine[]; cartTotal?: number; totalAfterDiscount?: number } | null>();
-
-    if (!cart || !Array.isArray(cart.products) || cart.products.length === 0) {
-      return NextResponse.json<Err>({ message: "Your cart is empty." }, { status: 400 });
+    if (!Array.isArray(body.products) || body.products.length === 0) {
+      return NextResponse.json<Err>({ message: "No products provided." }, { status: 400 });
     }
 
-    // Compute totals from cart
-    const subtotal = cart.products.reduce(
+    const subtotal = body.products.reduce(
       (acc, p) => acc + Number(p.price || 0) * Number(p.qty || 0),
       0
     );
     const subtotalRounded = toMoney(subtotal);
+    const effectiveTotal = subtotalRounded;
 
-    const effectiveTotal = toMoney(
-      typeof cart.totalAfterDiscount === "number"
-        ? cart.totalAfterDiscount
-        : subtotalRounded
-    );
-
-    const deliveryCountryCode = String(body.shippingAddress.countryCode || "")
-      .trim()
-      .toUpperCase();
+    const deliveryCountryCode = country;
 
     let delivery: Awaited<ReturnType<typeof calculateDelivery>>;
 
@@ -309,7 +299,7 @@ export async function POST(req: Request) {
     }
 
     // Map cart lines to order lines
-    const hydrated = await Promise.all(cart.products.map(hydrateLine));
+    const hydrated = await Promise.all((body.products as CartLine[]).map(hydrateLine));
 
     // Validate that each line now has required denormalized fields
     for (let i = 0; i < hydrated.length; i++) {
@@ -463,11 +453,6 @@ export async function POST(req: Request) {
 
     await syncInventoryFromOrderLines(orderProducts);
 
-    // Clear cart (optional, but typical)
-    await Cart.updateOne(
-      { user: userId },
-      { $set: { products: [], cartTotal: 0 }, $unset: { totalAfterDiscount: "" } }
-    );
 
     return NextResponse.json<Ok>({ order_id: String(created._id) }, { status: 200 });
   } catch (e) {
