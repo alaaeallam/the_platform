@@ -257,6 +257,23 @@ export async function POST(req: Request) {
       );
     }
 
+    const shippingAddressCountryCode = String(body.shippingAddress.countryCode || "")
+      .trim()
+      .toUpperCase();
+
+    const normalizedPaymentMethod = String(body.paymentMethod || "")
+      .trim()
+      .toLowerCase();
+
+    const isCodPayment = normalizedPaymentMethod === "cash" || normalizedPaymentMethod === "cod";
+
+    if (isCodPayment && shippingAddressCountryCode !== "EG") {
+      return NextResponse.json<Err>(
+        { message: "Cash on delivery is available only for deliveries in Egypt." },
+        { status: 400 }
+      );
+    }
+
     await db.connectDb();
     connected = true;
 

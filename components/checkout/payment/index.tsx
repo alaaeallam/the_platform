@@ -19,9 +19,18 @@ type PaymentProps = {
   setPaymentMethod: React.Dispatch<React.SetStateAction<PaymentMethod>>;
   profile?: boolean;
   selectedMethodContent?: React.ReactNode;
+  codEnabled?: boolean;
+  codDisabledReason?: string;
 };
 
-export default function Payment({ paymentMethod, setPaymentMethod, profile, selectedMethodContent }: PaymentProps) {
+export default function Payment({
+  paymentMethod,
+  setPaymentMethod,
+  profile,
+  selectedMethodContent,
+  codEnabled = true,
+  codDisabledReason = "Cash on delivery is available only in Egypt.",
+}: PaymentProps) {
   const methods = React.useMemo<readonly PaymentMethodInfo[]>(
     () => paymentMethods as readonly PaymentMethodInfo[],
     []
@@ -48,15 +57,19 @@ export default function Payment({ paymentMethod, setPaymentMethod, profile, sele
         const inputId = `pm-${pm.id}`;
         const logoSrc = `/images/checkout/${String(pm.id).toLowerCase()}.webp`;
 
+        const normalizedId = String(pm.id).toLowerCase();
+        const isCodMethod = normalizedId === "cash" || normalizedId === "cod";
+        const isDisabled = Boolean(pm.disabled || (isCodMethod && !codEnabled));
+
         return (
           <label
             key={pm.id}
             htmlFor={inputId}
             className={`${styles.payment__item} ${checked ? styles.checked : ""}`}
             aria-checked={checked}
-            aria-disabled={pm.disabled || undefined}
+            aria-disabled={isDisabled || undefined}
             onKeyDown={(e) => {
-              if (pm.disabled) return;
+              if (isDisabled) return;
               if (e.key === " " || e.key === "Enter") {
                 e.preventDefault();
                 selectMethod(pm.id);
@@ -71,7 +84,7 @@ export default function Payment({ paymentMethod, setPaymentMethod, profile, sele
               value={pm.id}
               checked={checked}
               onChange={() => selectMethod(pm.id)}
-              disabled={pm.disabled}
+              disabled={isDisabled}
             />
 
             {/* Main method icon */}
@@ -87,6 +100,11 @@ export default function Payment({ paymentMethod, setPaymentMethod, profile, sele
 
             <div className={styles.payment__item_col}>
               <span>Pay with {pm.name}</span>
+              {isCodMethod && !codEnabled ? (
+                <small style={{ display: "block", marginTop: 4, color: "#b91c1c" }}>
+                  {codDisabledReason}
+                </small>
+              ) : null}
               <p>
                 {pm.images?.length
                   ? pm.images.map((img) => {

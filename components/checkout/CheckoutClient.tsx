@@ -59,6 +59,11 @@ export default function CheckoutClient({ user, cart }: Props) {
     normalizedPaymentMethod === "visa" ||
     normalizedPaymentMethod === "mastercard";
 
+  const shippingCountryCode = String((selectedAddress as Address & { countryCode?: string })?.countryCode || "")
+    .trim()
+    .toUpperCase();
+  const codEnabled = shippingCountryCode === "EG";
+
   // Pick active address whenever list changes
   React.useEffect(() => {
     const active = addresses.find((a) => a?.active);
@@ -83,6 +88,8 @@ export default function CheckoutClient({ user, cart }: Props) {
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
             profile={false}
+            codEnabled={codEnabled}
+            codDisabledReason="Cash on delivery is available only in Egypt."
             selectedMethodContent={
               isStripeSelected ? (
                 <div>
