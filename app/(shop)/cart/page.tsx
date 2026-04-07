@@ -6,7 +6,6 @@ import dynamic from "next/dynamic";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
-import { COUNTRIES } from "@/lib/countries";
 import CartHeader from "@/components/cart/cartHeader";
 import Product from "@/components/cart/product";
 import { women_swiper } from "@/data/home";
@@ -31,6 +30,24 @@ interface CartState {
 }
 interface RootState {
   cart: CartState;
+}
+
+const COUNTRY_COOKIE = "country";
+
+function getCookie(name: string): string {
+  if (typeof document === "undefined") return "";
+
+  const prefix = `${name}=`;
+  const cookies = document.cookie.split(";");
+
+  for (const cookie of cookies) {
+    const trimmed = cookie.trim();
+    if (trimmed.startsWith(prefix)) {
+      return decodeURIComponent(trimmed.slice(prefix.length));
+    }
+  }
+
+  return "";
 }
 
 /** Parse productId & style index from legacy _uid = `${productId}_${styleIndex}_${sizeIndex}` */
@@ -128,28 +145,16 @@ export default function CartPage(): React.JSX.Element {
   }, [cart?.cartItems]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    const cookieCountry = String(getCookie(COUNTRY_COOKIE) || "")
+      .trim()
+      .toUpperCase();
 
-    const detectCountry = (): string => {
-      try {
-        const htmlLang = document.documentElement.lang || "";
-        const langs = [
-          htmlLang,
-          ...(Array.isArray(navigator.languages) ? navigator.languages : []),
-          navigator.language || "",
-        ].filter(Boolean);
+    if (/^[A-Z]{2}$/.test(cookieCountry)) {
+      setCountryCode(cookieCountry);
+      return;
+    }
 
-        for (const lang of langs) {
-          const match = String(lang).match(/[-_](\w{2})$/);
-          if (match?.[1]) return match[1].toUpperCase();
-        }
-      } catch {
-        // ignore client locale parsing failures and keep fallback
-      }
-      return "US";
-    };
-
-    setCountryCode(detectCountry());
+    setCountryCode("US");
   }, []);
 
   // CALL /api/cart/sync whenever selection changes (and on mount)

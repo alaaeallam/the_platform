@@ -13,6 +13,24 @@ import DotLoaderSpinner from "@/components/loaders/dotLoader";
 import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
 import type { InlineStripeHandle } from "./InlineStripeForm";
 
+const COUNTRY_COOKIE = "country";
+
+function getCookie(name: string): string {
+  if (typeof document === "undefined") return "";
+
+  const prefix = `${name}=`;
+  const cookies = document.cookie.split(";");
+
+  for (const cookie of cookies) {
+    const trimmed = cookie.trim();
+    if (trimmed.startsWith(prefix)) {
+      return decodeURIComponent(trimmed.slice(prefix.length));
+    }
+  }
+
+  return "";
+}
+
 type CanonicalPM = "STRIPE" | "PAYPAL" | "CASH";
 
 type DeliveryQuoteResponse = {
@@ -79,7 +97,6 @@ export default function Summary({
 
   const [posting, setPosting] = React.useState<boolean>(false);
   const [isApplying, setIsApplying] = React.useState<boolean>(false);
-  const [detectedCountry, setDetectedCountry] = React.useState<string>("US");
 
   React.useEffect(() => {
     setOrderError("");
@@ -132,34 +149,14 @@ export default function Summary({
     return Number.isFinite(base) ? base : 0;
   }, [showNewPrice, totalAfterDiscount, cart.cartTotal]);
 
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const detectCountry = (): string => {
-      try {
-        const htmlLang = document.documentElement.lang || "";
-        const langs = [
-          htmlLang,
-          ...(Array.isArray(navigator.languages) ? navigator.languages : []),
-          navigator.language || "",
-        ].filter(Boolean);
-
-        for (const lang of langs) {
-          const match = String(lang).match(/[-_](\w{2})$/);
-          if (match?.[1]) return match[1].toUpperCase();
-        }
-      } catch {
-        // ignore
-      }
-      return "US";
-    };
-
-    setDetectedCountry(detectCountry());
-  }, []);
-
   const selectedCountryCode = React.useMemo(() => {
-    // always prioritize detected country (geo pricing consistency)
-    if (detectedCountry) return detectedCountry;
+    const cookieCountry = String(getCookie(COUNTRY_COOKIE) || "")
+      .trim()
+      .toUpperCase();
+
+    if (/^[A-Z]{2}$/.test(cookieCountry)) {
+      return cookieCountry;
+    }
 
     const address = selectedAddress as
       | (Address & { countryCode?: string; country?: string })
@@ -177,7 +174,7 @@ export default function Summary({
     );
 
     return String(matched?.code || "").trim().toUpperCase();
-  }, [selectedAddress, detectedCountry]);
+  }, [selectedAddress]);
 
   const displayTotal = React.useMemo(() => {
     return Number((subtotalDisplay + deliveryFee).toFixed(2));
@@ -221,6 +218,7 @@ export default function Summary({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           products: cart.products,
+          country: selectedCountryCode,
           shippingAddress: {
             ...selectedAddress,
             countryCode: selectedCountryCode,

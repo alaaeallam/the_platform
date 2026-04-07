@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 
 import styles from "@/app/styles/checkout.module.scss";
 import type { Address, UserVM, CartVM, PaymentMethod } from "@/types/checkout";
+import { countries } from "@/data/countries";
 import type { InlineStripeHandle } from "@/components/checkout/summary/InlineStripeForm";
 
 type Props = {
@@ -59,9 +60,28 @@ export default function CheckoutClient({ user, cart }: Props) {
     normalizedPaymentMethod === "visa" ||
     normalizedPaymentMethod === "mastercard";
 
-  const shippingCountryCode = String((selectedAddress as Address & { countryCode?: string })?.countryCode || "")
-    .trim()
-    .toUpperCase();
+  const shippingCountryCode = React.useMemo(() => {
+    const directCode = String((selectedAddress as Address & { countryCode?: string })?.countryCode || "")
+      .trim()
+      .toUpperCase();
+
+    if (directCode) return directCode;
+
+    const countryName = String(selectedAddress?.country || "")
+      .trim()
+      .toLowerCase();
+
+    if (!countryName) return "";
+
+    const matched = countries.find(
+      (entry) => String(entry.name || "").trim().toLowerCase() === countryName
+    );
+
+    return String(matched?.code || "")
+      .trim()
+      .toUpperCase();
+  }, [selectedAddress]);
+
   const codEnabled = shippingCountryCode === "EG";
 
   // Pick active address whenever list changes
@@ -89,7 +109,6 @@ export default function CheckoutClient({ user, cart }: Props) {
             setPaymentMethod={setPaymentMethod}
             profile={false}
             codEnabled={codEnabled}
-            codDisabledReason="Cash on delivery is available only in Egypt."
             selectedMethodContent={
               isStripeSelected ? (
                 <div>
