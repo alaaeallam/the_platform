@@ -27,6 +27,7 @@ export default async function UsersPage() {
     .select("_id name email image role createdAt updatedAt")
     .sort({ createdAt: -1 })
     .lean<LeanUser[]>();
+    
 
   // Ensure plain, serializable values
   const rows: UserRow[] = (users ?? []).map((u: LeanUser) => ({
